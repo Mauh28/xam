@@ -8,6 +8,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -700,6 +701,52 @@ public class xdAbsoluteMastery {
                         }
                     });
                 }
+            }
+        }
+
+        @SubscribeEvent
+        public static void onScreenInit(net.minecraftforge.client.event.ScreenEvent.Init.Post event) {
+            if (event.getScreen() instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen inventoryScreen) {
+                int leftPos = inventoryScreen.getGuiLeft();
+                int topPos = inventoryScreen.getGuiTop();
+
+                int btnX = leftPos - 22;
+                int btnY = topPos + 8;
+
+                boolean collided;
+                do {
+                    collided = false;
+                    for (net.minecraft.client.gui.components.events.GuiEventListener listener : event.getListenersList()) {
+                        if (listener instanceof net.minecraft.client.gui.components.AbstractWidget widget) {
+                            if (widget.getX() == btnX && widget.getY() == btnY) {
+                                btnY += 22;
+                                collided = true;
+                                break;
+                            }
+                        }
+                    }
+                } while (collided);
+
+                net.minecraft.client.gui.components.Button btn = new net.minecraft.client.gui.components.Button(
+                        btnX, btnY, 20, 20, Component.empty(),
+                        b -> {
+                            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+                            if (mc.player != null) {
+                                mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                                    mc.setScreen(new MasteryInfoScreen(data));
+                                });
+                            }
+                        },
+                        supplier -> supplier.get()
+                ) {
+                    @Override
+                    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+                        super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+                        guiGraphics.renderFakeItem(new ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK), this.getX() + 2, this.getY() + 2);
+                    }
+                };
+
+                event.addListener(btn);
             }
         }
 
