@@ -83,7 +83,7 @@ public class xdAbsoluteMastery {
     };
 
     // Message Cooldown Manager (3 seconds)
-    private static final Map<UUID, Long> COOLDOWNS = new HashMap<>();
+    private static final Map<String, Long> COOLDOWNS = new HashMap<>();
     private static final Map<UUID, String> LAST_MAINHAND = new HashMap<>();
     private static final Map<UUID, String> LAST_OFFHAND = new HashMap<>();
 
@@ -111,9 +111,10 @@ public class xdAbsoluteMastery {
 
     public static void sendWarning(Player player, String message) {
         long now = System.currentTimeMillis();
-        Long last = COOLDOWNS.get(player.getUUID());
+        String key = player.getUUID().toString() + "_" + message;
+        Long last = COOLDOWNS.get(key);
         if (last == null || (now - last) >= 5000) {
-            COOLDOWNS.put(player.getUUID(), now);
+            COOLDOWNS.put(key, now);
             player.sendSystemMessage(Component.literal(message).withStyle(net.minecraft.ChatFormatting.RED));
         }
     }
