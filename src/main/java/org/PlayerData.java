@@ -13,6 +13,15 @@ import java.util.List;
 public class PlayerData {
     private String currentPath = null;
     private final List<String> masteredPaths = new ArrayList<>();
+    private boolean initialized = false;
+
+    public boolean isInitialized() {
+        return initialized;
+    }
+
+    public void setInitialized(boolean initialized) {
+        this.initialized = initialized;
+    }
 
     public String getCurrentPath() {
         return currentPath;

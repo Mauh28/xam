@@ -25,9 +25,34 @@ public class MasteryInfoScreen extends Screen {
         int panelX = this.width / 2 - panelWidth / 2;
         int panelY = this.height / 2 - panelHeight / 2;
 
+        int spacing = 10;
+        int totalBtnWidth = (btnWidth * 2) + spacing;
+        int startBtnX = panelX + (panelWidth - totalBtnWidth) / 2;
+
+        Button verRamasBtn = Button.builder(Component.literal("Ver Ramas"), b -> {
+            net.minecraft.client.Minecraft.getInstance().setScreen(new MasteryListScreen(this.playerData, this));
+        }).bounds(startBtnX, panelY + panelHeight - 30, btnWidth, btnHeight).build();
+
         Button closeBtn = Button.builder(Component.literal("Cerrar"), b -> this.onClose())
-                .bounds(panelX + panelWidth / 2 - btnWidth / 2, panelY + panelHeight - 30, btnWidth, btnHeight).build();
+                .bounds(startBtnX + btnWidth + spacing, panelY + panelHeight - 30, btnWidth, btnHeight).build();
+
+        this.addRenderableWidget(verRamasBtn);
         this.addRenderableWidget(closeBtn);
+
+        boolean hasAvailablePaths = false;
+        for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
+            if (this.playerData == null || !this.playerData.getMasteredPaths().contains(path.id)) {
+                hasAvailablePaths = true;
+                break;
+            }
+        }
+
+        if (this.playerData != null && this.playerData.getCurrentPath() == null && hasAvailablePaths) {
+            Button selectBtn = Button.builder(Component.literal("Elegir Rama"), b -> {
+                net.minecraft.client.Minecraft.getInstance().setScreen(new PathSelectionScreen(this.playerData));
+            }).bounds(panelX + 15, panelY + 60, 90, 18).build();
+            this.addRenderableWidget(selectBtn);
+        }
     }
 
     @Override
@@ -54,10 +79,9 @@ public class MasteryInfoScreen extends Screen {
         guiGraphics.fill(panelX + 15, panelY + 38, panelX + panelWidth - 15, panelY + 39, 0x55FFFFFF);
 
         // Draw Active Path Section
-        String currentPathName = "Ninguno";
-        int activeColor = 0xFF5555; // Red if none
+        String currentPathName = null;
+        int activeColor = 0x55FF55; // Green if active
         if (playerData != null && playerData.getCurrentPath() != null) {
-            activeColor = 0x55FF55; // Green if active
             for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
                 if (path.id.equals(playerData.getCurrentPath())) {
                     currentPathName = path.name;
@@ -66,7 +90,20 @@ public class MasteryInfoScreen extends Screen {
             }
         }
         guiGraphics.drawString(this.font, "Rama Activa:", panelX + 15, panelY + 50, 0x888888, false);
-        guiGraphics.drawString(this.font, currentPathName, panelX + 15, panelY + 62, activeColor, false);
+        if (currentPathName != null) {
+            guiGraphics.drawString(this.font, currentPathName, panelX + 15, panelY + 62, activeColor, false);
+        } else {
+            boolean hasAvailablePaths = false;
+            for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
+                if (playerData == null || !playerData.getMasteredPaths().contains(path.id)) {
+                    hasAvailablePaths = true;
+                    break;
+                }
+            }
+            if (!hasAvailablePaths) {
+                guiGraphics.drawString(this.font, "Todas Dominadas", panelX + 15, panelY + 62, 0x55FF55, false);
+            }
+        }
 
         // Draw Mastered Paths Section
         StringBuilder mastered = new StringBuilder();

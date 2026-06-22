@@ -272,11 +272,20 @@ public class xdAbsoluteMastery {
 
         @SubscribeEvent
         public static void onPlayerCloned(PlayerEvent.Clone event) {
-            event.getOriginal().getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(oldStore -> {
-                event.getEntity().getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(newStore -> {
-                    newStore.copyFrom(oldStore);
+            if (event.isWasDeath()) {
+                event.getOriginal().reviveCaps();
+            }
+            try {
+                event.getOriginal().getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(oldStore -> {
+                    event.getEntity().getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(newStore -> {
+                        newStore.copyFrom(oldStore);
+                    });
                 });
-            });
+            } finally {
+                if (event.isWasDeath()) {
+                    event.getOriginal().invalidateCaps();
+                }
+            }
         }
 
         @SubscribeEvent
@@ -289,6 +298,14 @@ public class xdAbsoluteMastery {
 
         @SubscribeEvent
         public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
+            if (event.getEntity() instanceof ServerPlayer player) {
+                sync(player);
+                updateArmorModifiers(player);
+            }
+        }
+
+        @SubscribeEvent
+        public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
             if (event.getEntity() instanceof ServerPlayer player) {
                 sync(player);
                 updateArmorModifiers(player);
@@ -641,17 +658,32 @@ public class xdAbsoluteMastery {
             net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
             if (mc.player != null) {
                 mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    boolean isFirstSync = !data.isInitialized();
+                    List<String> oldMastered = new ArrayList<>(data.getMasteredPaths());
                     data.loadNBTData(nbt);
-                    if (data.getCurrentPath() == null) {
-                        boolean hasAvailablePaths = false;
-                        for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
-                            if (!data.getMasteredPaths().contains(path.id)) {
-                                hasAvailablePaths = true;
+                    data.setInitialized(true);
+
+                    if (!isFirstSync) {
+                        List<String> newMastered = data.getMasteredPaths();
+                        for (String pathId : newMastered) {
+                            if (!oldMastered.contains(pathId)) {
+                                // Find the name of the mastered path
+                                String pathName = pathId;
+                                for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+                                    if (path.id.equals(pathId)) {
+                                        pathName = path.name;
+                                        break;
+                                    }
+                                }
+                                // Show premium client-side toast notification
+                                net.minecraft.client.gui.components.toasts.SystemToast.add(
+                                        mc.getToasts(),
+                                        net.minecraft.client.gui.components.toasts.SystemToast.SystemToastIds.TUTORIAL_HINT,
+                                        Component.literal("¡Maestría Completada!"),
+                                        Component.literal("Has dominado: " + pathName)
+                                );
                                 break;
                             }
-                        }
-                        if (hasAvailablePaths && !(mc.screen instanceof PathSelectionScreen)) {
-                            mc.setScreen(new PathSelectionScreen(data));
                         }
                     }
                 });
