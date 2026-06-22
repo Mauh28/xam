@@ -124,7 +124,11 @@ public class xdAbsoluteMastery {
         if (rl == null) return false;
 
         // Minecraft vanilla is always universal (ponytail: native platforms and simple checks)
+        // ponytail: temporary simulation overrides for testing
         if (rl.getNamespace().equals("minecraft")) {
+            if (rl.getPath().equals("wooden_hoe") || rl.getPath().equals("leather_chestplate")) {
+                return false;
+            }
             return true;
         }
 
@@ -156,6 +160,14 @@ public class xdAbsoluteMastery {
 
     public static String getPathFromItemTags(ItemStack stack) {
         if (stack.isEmpty()) return null;
+        // ponytail: temporary simulation overrides for testing
+        ResourceLocation rl = ForgeRegistries.ITEMS.getKey(stack.getItem());
+        if (rl != null && rl.getNamespace().equals("minecraft")) {
+            if (rl.getPath().equals("wooden_hoe") || rl.getPath().equals("leather_chestplate")) {
+                return "mekanism"; // Path 2 in default config
+            }
+        }
+
         for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
             if (stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, path.id + "/armor")))
                     || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, path.id + "/weapons")))
