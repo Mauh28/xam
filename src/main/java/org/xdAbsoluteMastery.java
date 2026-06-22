@@ -111,9 +111,9 @@ public class xdAbsoluteMastery {
     public static void sendWarning(Player player, String message) {
         long now = System.currentTimeMillis();
         Long last = COOLDOWNS.get(player.getUUID());
-        if (last == null || (now - last) >= 3000) {
+        if (last == null || (now - last) >= 5000) {
             COOLDOWNS.put(player.getUUID(), now);
-            player.sendSystemMessage(Component.literal(message));
+            player.sendSystemMessage(Component.literal(message).withStyle(net.minecraft.ChatFormatting.RED));
         }
     }
 
@@ -320,6 +320,48 @@ public class xdAbsoluteMastery {
             if (!mainHand.isEmpty()) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     if (!isItemValid(mainHand, data)) {
+                        event.setCanceled(true);
+                        sendWarning(player, "Esta arma no tiene efecto bajo tu maestría");
+                    }
+                });
+            }
+        }
+
+        @SubscribeEvent
+        public static void onRightClickItem(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickItem event) {
+            Player player = event.getEntity();
+            ItemStack stack = event.getItemStack();
+            if (!stack.isEmpty()) {
+                player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    if (!isItemValid(stack, data)) {
+                        event.setCanceled(true);
+                        sendWarning(player, "Esta arma no tiene efecto bajo tu maestría");
+                    }
+                });
+            }
+        }
+
+        @SubscribeEvent
+        public static void onRightClickBlock(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock event) {
+            Player player = event.getEntity();
+            ItemStack stack = event.getItemStack();
+            if (!stack.isEmpty()) {
+                player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    if (!isItemValid(stack, data)) {
+                        event.setCanceled(true);
+                        sendWarning(player, "Esta arma no tiene efecto bajo tu maestría");
+                    }
+                });
+            }
+        }
+
+        @SubscribeEvent
+        public static void onEntityInteract(net.minecraftforge.event.entity.player.PlayerInteractEvent.EntityInteract event) {
+            Player player = event.getEntity();
+            ItemStack stack = event.getItemStack();
+            if (!stack.isEmpty()) {
+                player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    if (!isItemValid(stack, data)) {
                         event.setCanceled(true);
                         sendWarning(player, "Esta arma no tiene efecto bajo tu maestría");
                     }
@@ -558,6 +600,78 @@ public class xdAbsoluteMastery {
                     }
                 });
             }
+        }
+    }
+
+    // --- Client Only Keybinds & Suppressions ---
+
+    @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+    public static class ClientModEvents {
+        public static final net.minecraft.client.KeyMapping MASTERY_KEY = new net.minecraft.client.KeyMapping(
+                "key.xam.mastery",
+                com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM,
+                org.lwjgl.glfw.GLFW.GLFW_KEY_M, // Key: 'M'
+                "key.categories.xam"
+        );
+
+        @SubscribeEvent
+        public static void registerKeys(net.minecraftforge.client.event.RegisterKeyMappingsEvent event) {
+            event.register(MASTERY_KEY);
+        }
+    }
+
+    @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
+    public static class ClientForgeEvents {
+        @SubscribeEvent
+        public static void onClientTick(TickEvent.ClientTickEvent event) {
+            if (event.phase == TickEvent.Phase.START) {
+                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+                if (mc.player != null) {
+                    // Check if they pressed the key
+                    if (ClientModEvents.MASTERY_KEY.consumeClick()) {
+                        mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                            mc.setScreen(new MasteryInfoScreen(data));
+                        });
+                    }
+
+                    // Key suppression check for invalid items
+                    mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                        ItemStack mainHand = mc.player.getMainHandItem();
+                        ItemStack offHand = mc.player.getOffhandItem();
+                        boolean mainInvalid = !mainHand.isEmpty() && !isItemValid(mainHand, data);
+                        boolean offInvalid = !offHand.isEmpty() && !isItemValid(offHand, data);
+
+                        if (mainInvalid || offInvalid) {
+                            for (net.minecraft.client.KeyMapping keyMapping : mc.options.keyMappings) {
+                                if (isInteractionKey(keyMapping, mc.options)) {
+                                    while (keyMapping.consumeClick()) {
+                                        // Drain all clicks
+                                    }
+                                    keyMapping.setDown(false);
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        private static boolean isInteractionKey(net.minecraft.client.KeyMapping key, net.minecraft.client.Options options) {
+            return key != options.keyUp
+                    && key != options.keyDown
+                    && key != options.keyLeft
+                    && key != options.keyRight
+                    && key != options.keyJump
+                    && key != options.keyShift
+                    && key != options.keySprint
+                    && key != options.keyInventory
+                    && key != options.keyChat
+                    && key != options.keyCommand
+                    && key != options.keyPlayerList
+                    && key != options.keyScreenshot
+                    && key != options.keySmoothCamera
+                    && key != options.keyFullscreen
+                    && key != options.keySpectatorOutlines;
         }
     }
 }
