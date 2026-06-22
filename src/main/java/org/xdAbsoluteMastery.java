@@ -88,7 +88,6 @@ public class xdAbsoluteMastery {
     public xdAbsoluteMastery() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         modEventBus.addListener(this::commonSetup);
-        modEventBus.addListener(this::registerCaps);
 
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(ForgeEvents.class);
@@ -106,9 +105,6 @@ public class xdAbsoluteMastery {
                 SelectPathPacket::encode, SelectPathPacket::decode, SelectPathPacket::handle);
     }
 
-    private void registerCaps(RegisterCapabilitiesEvent event) {
-        event.register(PlayerData.class);
-    }
 
     // --- Helper Logic ---
 
