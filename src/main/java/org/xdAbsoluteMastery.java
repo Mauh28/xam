@@ -223,8 +223,6 @@ public class xdAbsoluteMastery {
 
                     ItemStack stack = player.getItemBySlot(slot);
                     if (!stack.isEmpty() && !isItemValid(stack, data)) {
-                        sendWarning(player, "Tu maestría rechaza esta armadura, no te protegerá");
-
                         double armorVal = 0;
                         double toughnessVal = 0;
 
@@ -396,6 +394,16 @@ public class xdAbsoluteMastery {
                 UUID uuid = player.getUUID();
 
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    // Check armor warning continuously (repeats autonomously every 5s)
+                    for (EquipmentSlot slot : EquipmentSlot.values()) {
+                        if (slot.getType() == EquipmentSlot.Type.ARMOR) {
+                            ItemStack armorStack = player.getItemBySlot(slot);
+                            if (!armorStack.isEmpty() && !isItemValid(armorStack, data)) {
+                                sendWarning(player, "Tu maestría rechaza esta armadura, no te protegerá");
+                                break; // Only send one warning per tick
+                            }
+                        }
+                    }
                     ItemStack mainHand = player.getMainHandItem();
                     ItemStack offHand = player.getOffhandItem();
 
