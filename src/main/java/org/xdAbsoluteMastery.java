@@ -144,7 +144,7 @@ public class xdAbsoluteMastery {
         // Minecraft vanilla is always universal (ponytail: native platforms and simple checks)
         // ponytail: temporary simulation overrides for testing
         if (rl.getNamespace().equals("minecraft")) {
-            if (rl.getPath().equals("wooden_hoe") || rl.getPath().equals("leather_chestplate")) {
+            if (rl.getPath().equals("wooden_hoe") || rl.getPath().equals("leather_chestplate") || rl.getPath().equals("wooden_sword")) {
                 return false;
             }
             return true;
@@ -181,7 +181,7 @@ public class xdAbsoluteMastery {
         // ponytail: temporary simulation overrides for testing
         ResourceLocation rl = ForgeRegistries.ITEMS.getKey(stack.getItem());
         if (rl != null && rl.getNamespace().equals("minecraft")) {
-            if (rl.getPath().equals("wooden_hoe") || rl.getPath().equals("leather_chestplate")) {
+            if (rl.getPath().equals("wooden_hoe") || rl.getPath().equals("leather_chestplate") || rl.getPath().equals("wooden_sword")) {
                 return "mekanism"; // Path 2 in default config
             }
         }
