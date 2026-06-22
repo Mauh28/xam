@@ -84,6 +84,8 @@ public class xdAbsoluteMastery {
 
     // Message Cooldown Manager (3 seconds)
     private static final Map<UUID, Long> COOLDOWNS = new HashMap<>();
+    private static final Map<UUID, String> LAST_MAINHAND = new HashMap<>();
+    private static final Map<UUID, String> LAST_OFFHAND = new HashMap<>();
 
     public xdAbsoluteMastery() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -105,7 +107,6 @@ public class xdAbsoluteMastery {
                 SelectPathPacket::encode, SelectPathPacket::decode, SelectPathPacket::handle);
     }
 
-
     // --- Helper Logic ---
 
     public static void sendWarning(Player player, String message) {
@@ -114,6 +115,23 @@ public class xdAbsoluteMastery {
         if (last == null || (now - last) >= 5000) {
             COOLDOWNS.put(player.getUUID(), now);
             player.sendSystemMessage(Component.literal(message).withStyle(net.minecraft.ChatFormatting.RED));
+        }
+    }
+
+    public static boolean isWeapon(ItemStack stack) {
+        Item item = stack.getItem();
+        return item instanceof net.minecraft.world.item.SwordItem
+                || item instanceof net.minecraft.world.item.ProjectileWeaponItem
+                || item instanceof net.minecraft.world.item.TridentItem
+                || ForgeRegistries.ITEMS.getKey(item).getPath().contains("sword")
+                || ForgeRegistries.ITEMS.getKey(item).getPath().contains("bow");
+    }
+
+    public static void sendItemWarning(Player player, ItemStack stack) {
+        if (isWeapon(stack)) {
+            sendWarning(player, "Esta arma no tiene efecto bajo tu maestría");
+        } else {
+            sendWarning(player, "Esta herramienta no tiene efecto bajo tu maestría");
         }
     }
 
@@ -292,7 +310,7 @@ public class xdAbsoluteMastery {
                     player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                         if (!isItemValid(mainHand, data)) {
                             event.setAmount(1.0f);
-                            sendWarning(player, "Esta arma no tiene efecto bajo tu maestría");
+                            sendItemWarning(player, mainHand);
                         }
                     });
                 }
@@ -307,7 +325,7 @@ public class xdAbsoluteMastery {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     if (!isItemValid(mainHand, data)) {
                         event.setNewSpeed(0.0f);
-                        sendWarning(player, "Esta arma no tiene efecto bajo tu maestría");
+                        sendItemWarning(player, mainHand);
                     }
                 });
             }
@@ -321,7 +339,7 @@ public class xdAbsoluteMastery {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     if (!isItemValid(mainHand, data)) {
                         event.setCanceled(true);
-                        sendWarning(player, "Esta arma no tiene efecto bajo tu maestría");
+                        sendItemWarning(player, mainHand);
                     }
                 });
             }
@@ -335,7 +353,7 @@ public class xdAbsoluteMastery {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     if (!isItemValid(stack, data)) {
                         event.setCanceled(true);
-                        sendWarning(player, "Esta arma no tiene efecto bajo tu maestría");
+                        sendItemWarning(player, stack);
                     }
                 });
             }
@@ -349,7 +367,7 @@ public class xdAbsoluteMastery {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     if (!isItemValid(stack, data)) {
                         event.setCanceled(true);
-                        sendWarning(player, "Esta arma no tiene efecto bajo tu maestría");
+                        sendItemWarning(player, stack);
                     }
                 });
             }
@@ -363,7 +381,7 @@ public class xdAbsoluteMastery {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     if (!isItemValid(stack, data)) {
                         event.setCanceled(true);
-                        sendWarning(player, "Esta arma no tiene efecto bajo tu maestría");
+                        sendItemWarning(player, stack);
                     }
                 });
             }
@@ -373,7 +391,35 @@ public class xdAbsoluteMastery {
         public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
             if (event.phase == TickEvent.Phase.END && !event.player.level().isClientSide()) {
                 Player player = event.player;
+                UUID uuid = player.getUUID();
+
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    ItemStack mainHand = player.getMainHandItem();
+                    ItemStack offHand = player.getOffhandItem();
+
+                    String currentMain = ForgeRegistries.ITEMS.getKey(mainHand.getItem()).toString();
+                    if (mainHand.isEmpty()) currentMain = "minecraft:air";
+
+                    String currentOff = ForgeRegistries.ITEMS.getKey(offHand.getItem()).toString();
+                    if (offHand.isEmpty()) currentOff = "minecraft:air";
+
+                    String lastMain = LAST_MAINHAND.getOrDefault(uuid, "minecraft:air");
+                    String lastOff = LAST_OFFHAND.getOrDefault(uuid, "minecraft:air");
+
+                    if (!currentMain.equals(lastMain)) {
+                        LAST_MAINHAND.put(uuid, currentMain);
+                        if (!mainHand.isEmpty() && !isItemValid(mainHand, data)) {
+                            sendItemWarning(player, mainHand);
+                        }
+                    }
+
+                    if (!currentOff.equals(lastOff)) {
+                        LAST_OFFHAND.put(uuid, currentOff);
+                        if (!offHand.isEmpty() && !isItemValid(offHand, data)) {
+                            sendItemWarning(player, offHand);
+                        }
+                    }
+
                     for (InteractionHand hand : InteractionHand.values()) {
                         ItemStack stack = player.getItemInHand(hand);
                         if (!stack.isEmpty() && stack.isDamageableItem()) {
