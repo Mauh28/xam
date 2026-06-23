@@ -13,7 +13,12 @@ import java.util.List;
 public class PlayerData {
     private String currentPath = null;
     private final List<String> masteredPaths = new ArrayList<>();
+    private final List<String> completedRequirements = new ArrayList<>();
     private boolean initialized = false;
+
+    // cache fields (ponytail: server cache optimization)
+    private String activePathModId = "";
+    private long lastConfigVersion = -1;
 
     public boolean isInitialized() {
         return initialized;
@@ -41,10 +46,44 @@ public class PlayerData {
         }
     }
 
+    public List<String> getCompletedRequirements() {
+        return completedRequirements;
+    }
+
+    public void addCompletedRequirement(String req) {
+        if (!completedRequirements.contains(req)) {
+            completedRequirements.add(req);
+        }
+    }
+
+    public void clearCompletedRequirements() {
+        completedRequirements.clear();
+    }
+
+    public String getActivePathModId() {
+        return activePathModId;
+    }
+
+    public void setActivePathModId(String activePathModId) {
+        this.activePathModId = activePathModId != null ? activePathModId : "";
+    }
+
+    public long getLastConfigVersion() {
+        return lastConfigVersion;
+    }
+
+    public void setLastConfigVersion(long lastConfigVersion) {
+        this.lastConfigVersion = lastConfigVersion;
+    }
+
     public void copyFrom(PlayerData source) {
         this.currentPath = source.currentPath;
         this.masteredPaths.clear();
         this.masteredPaths.addAll(source.masteredPaths);
+        this.completedRequirements.clear();
+        this.completedRequirements.addAll(source.completedRequirements);
+        this.activePathModId = source.activePathModId;
+        this.lastConfigVersion = source.lastConfigVersion;
     }
 
     public void saveNBTData(CompoundTag nbt) {
@@ -56,6 +95,15 @@ public class PlayerData {
             masteredTag.add(StringTag.valueOf(path));
         }
         nbt.put("masteredPaths", masteredTag);
+
+        ListTag completedTag = new ListTag();
+        for (String req : completedRequirements) {
+            completedTag.add(StringTag.valueOf(req));
+        }
+        nbt.put("completedRequirements", completedTag);
+
+        nbt.putString("activePathModId", activePathModId);
+        nbt.putLong("lastConfigVersion", lastConfigVersion);
     }
 
     public void loadNBTData(CompoundTag nbt) {
@@ -65,5 +113,16 @@ public class PlayerData {
         for (int i = 0; i < masteredTag.size(); i++) {
             masteredPaths.add(masteredTag.getString(i));
         }
+
+        completedRequirements.clear();
+        if (nbt.contains("completedRequirements", Tag.TAG_LIST)) {
+            ListTag completedTag = nbt.getList("completedRequirements", Tag.TAG_STRING);
+            for (int i = 0; i < completedTag.size(); i++) {
+                completedRequirements.add(completedTag.getString(i));
+            }
+        }
+
+        activePathModId = nbt.contains("activePathModId", Tag.TAG_STRING) ? nbt.getString("activePathModId") : "";
+        lastConfigVersion = nbt.contains("lastConfigVersion", Tag.TAG_LONG) ? nbt.getLong("lastConfigVersion") : -1;
     }
 }

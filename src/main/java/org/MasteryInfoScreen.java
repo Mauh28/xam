@@ -39,6 +39,18 @@ public class MasteryInfoScreen extends Screen {
         this.addRenderableWidget(verRamasBtn);
         this.addRenderableWidget(closeBtn);
 
+        boolean canEdit = false;
+        if (net.minecraft.client.Minecraft.getInstance().player != null) {
+            canEdit = net.minecraft.client.Minecraft.getInstance().player.hasPermissions(2)
+                    || net.minecraft.client.Minecraft.getInstance().player.getAbilities().instabuild;
+        }
+        if (canEdit) {
+            Button editBtn = Button.builder(Component.literal("Editar"), b -> {
+                net.minecraft.client.Minecraft.getInstance().setScreen(new MasteryEditorScreen(this));
+            }).bounds(this.width - 90, this.height - 30, 80, 20).build();
+            this.addRenderableWidget(editBtn);
+        }
+
         boolean hasAvailablePaths = false;
         for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
             if (this.playerData == null || !this.playerData.getMasteredPaths().contains(path.id)) {

@@ -66,12 +66,14 @@ public class MasteryListScreen extends Screen {
             this.addRenderableWidget(pathBtn);
         }
 
-        // Add Back button centered at the bottom of the panel
+        // Add Back and Edit buttons at the bottom of the panel
         int backBtnWidth = 80;
         int backBtnHeight = 20;
+        
+        int backBtnX = panelX + panelWidth / 2 - backBtnWidth / 2;
         Button backBtn = Button.builder(Component.literal("Volver"), b -> {
             Minecraft.getInstance().setScreen(this.parent);
-        }).bounds(panelX + panelWidth / 2 - backBtnWidth / 2, panelY + panelHeight - 28, backBtnWidth, backBtnHeight).build();
+        }).bounds(backBtnX, panelY + panelHeight - 28, backBtnWidth, backBtnHeight).build();
         this.addRenderableWidget(backBtn);
     }
 
@@ -128,17 +130,65 @@ public class MasteryListScreen extends Screen {
             guiGraphics.drawString(this.font, "Requisitos:", sepX + 10, panelY + 52, 0x888888, false);
 
             int startReqY = panelY + 66;
-            for (int i = 0; i < selectedPath.mastery_advancements.size(); i++) {
-                String adv = selectedPath.mastery_advancements.get(i);
-                boolean completed = isAdvancementCompleted(adv);
+            for (int i = 0; i < selectedPath.requirements.size(); i++) {
+                xdAbsoluteMastery.ConfigManager.Requirement req = selectedPath.requirements.get(i);
+                boolean completed = isRequirementCompletedClient(req);
                 String prefix = completed ? "[✔] " : "[✘] ";
                 int color = completed ? 0x55FF55 : 0xAAAAAA;
-                String label = prefix + simplifyAdvancementName(adv);
-                guiGraphics.drawString(this.font, label, sepX + 10, startReqY + i * 11, color, false);
+                String label = prefix + formatRequirement(req);
+                guiGraphics.drawString(this.font, label, sepX + 10, startReqY + i * 12, color, false);
+
+                // If hovered, render tooltip description
+                int labelWidth = this.font.width(label);
+                if (mouseX >= sepX + 10 && mouseX < sepX + 10 + labelWidth && mouseY >= startReqY + i * 12 && mouseY < startReqY + i * 12 + 10) {
+                    if (req.description != null && !req.description.isEmpty()) {
+                        guiGraphics.renderTooltip(this.font, Component.literal(req.description), mouseX, mouseY);
+                    }
+                }
             }
         }
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+    }
+
+    public boolean isRequirementCompletedClient(xdAbsoluteMastery.ConfigManager.Requirement req) {
+        if (req.type.equals("advancement")) {
+            return isAdvancementCompleted(req.id);
+        } else {
+            String reqKey = req.type + ":" + req.id;
+            return playerData != null && playerData.getCompletedRequirements().contains(reqKey);
+        }
+    }
+
+    public String formatRequirement(xdAbsoluteMastery.ConfigManager.Requirement req) {
+        if (req.name != null && !req.name.isEmpty()) {
+            return req.name;
+        }
+        String name = req.id;
+        if (name.contains(":")) {
+            name = name.split(":")[1];
+        }
+        if (name.contains("/")) {
+            String[] split = name.split("/");
+            name = split[split.length - 1];
+        }
+        name = name.replace("_", " ");
+        if (!name.isEmpty()) {
+            name = Character.toUpperCase(name.charAt(0)) + name.substring(1);
+        }
+        
+        switch (req.type) {
+            case "advancement":
+                return "Logro: " + name;
+            case "craft":
+                return "Craft: " + name;
+            case "collect":
+                return "Recoger: " + name;
+            case "kill":
+                return "Derrotar: " + name;
+            default:
+                return req.type + ": " + name;
+        }
     }
 
     private boolean isAdvancementCompleted(String advIdStr) {
@@ -159,21 +209,6 @@ public class MasteryListScreen extends Screen {
             }
         }
         return false;
-    }
-
-    private String simplifyAdvancementName(String adv) {
-        if (adv.contains(":")) {
-            adv = adv.split(":")[1];
-        }
-        if (adv.contains("/")) {
-            String[] split = adv.split("/");
-            adv = split[split.length - 1];
-        }
-        adv = adv.replace("_", " ");
-        if (!adv.isEmpty()) {
-            adv = Character.toUpperCase(adv.charAt(0)) + adv.substring(1);
-        }
-        return adv;
     }
 
     private static class PathButton extends Button {

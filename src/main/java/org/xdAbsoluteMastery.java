@@ -106,9 +106,114 @@ public class xdAbsoluteMastery {
                 SyncPlayerDataPacket::encode, SyncPlayerDataPacket::decode, SyncPlayerDataPacket::handle);
         CHANNEL.registerMessage(packetId++, SelectPathPacket.class,
                 SelectPathPacket::encode, SelectPathPacket::decode, SelectPathPacket::handle);
+        CHANNEL.registerMessage(packetId++, SyncConfigPacket.class,
+                SyncConfigPacket::encode, SyncConfigPacket::decode, SyncConfigPacket::handle);
+        CHANNEL.registerMessage(packetId++, UpdateConfigPacket.class,
+                UpdateConfigPacket::encode, UpdateConfigPacket::decode, UpdateConfigPacket::handle);
+        CHANNEL.registerMessage(packetId++, NotifyConfigUpdatePacket.class,
+                NotifyConfigUpdatePacket::encode, NotifyConfigUpdatePacket::decode, NotifyConfigUpdatePacket::handle);
+        CHANNEL.registerMessage(packetId++, RequestConfigPacket.class,
+                RequestConfigPacket::encode, RequestConfigPacket::decode, RequestConfigPacket::handle);
     }
 
     // --- Helper Logic ---
+
+    public static void checkAndRefreshPlayerData(Player player, PlayerData data) {
+        if (data.getLastConfigVersion() < ConfigManager.getConfigVersion()) {
+            String currentPath = data.getCurrentPath();
+            boolean found = false;
+            if (currentPath != null) {
+                for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+                    if (path.id.equals(currentPath)) {
+                        data.setActivePathModId(path.mod_id);
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found) {
+                data.setActivePathModId("");
+            }
+            data.setLastConfigVersion(ConfigManager.getConfigVersion());
+            if (!player.level().isClientSide() && player instanceof ServerPlayer serverPlayer) {
+                sync(serverPlayer);
+            }
+        }
+    }
+
+    public static boolean hasItem(Player player, ResourceLocation itemId) {
+        Item item = ForgeRegistries.ITEMS.getValue(itemId);
+        if (item == null || item == net.minecraft.world.item.Items.AIR) return false;
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            if (player.getInventory().getItem(i).is(item)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean isRequirementCompleted(ServerPlayer player, PlayerData data, ConfigManager.Requirement req) {
+        if (req.type.equals("advancement")) {
+            ResourceLocation resLoc = new ResourceLocation(req.id);
+            net.minecraft.advancements.Advancement adv = player.server.getAdvancements().getAdvancement(resLoc);
+            if (adv == null) return false;
+            return player.getAdvancements().getOrStartProgress(adv).isDone();
+        } else {
+            String reqKey = req.type + ":" + req.id;
+            return data.getCompletedRequirements().contains(reqKey);
+        }
+    }
+
+    public static void checkPathCompletion(ServerPlayer player, PlayerData data, ConfigManager.PathInfo pathInfo) {
+        boolean completedAll = true;
+        for (ConfigManager.Requirement req : pathInfo.requirements) {
+            if (!isRequirementCompleted(player, data, req)) {
+                completedAll = false;
+                break;
+            }
+        }
+
+        if (completedAll) {
+            data.addMasteredPath(pathInfo.id);
+            data.setCurrentPath(null);
+            data.clearCompletedRequirements();
+            sync(player);
+            updateArmorModifiers(player);
+            player.sendSystemMessage(Component.literal("¡Has dominado " + pathInfo.name + "! Ahora puedes elegir un nuevo camino."));
+        }
+    }
+
+    public static void checkAndProgressRequirement(ServerPlayer player, String type, String targetId) {
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            String currentPath = data.getCurrentPath();
+            if (currentPath == null) return;
+
+            ConfigManager.PathInfo pathInfo = null;
+            for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+                if (path.id.equals(currentPath)) {
+                    pathInfo = path;
+                    break;
+                }
+            }
+            if (pathInfo == null) return;
+
+            boolean changed = false;
+            for (ConfigManager.Requirement req : pathInfo.requirements) {
+                if (req.type.equals(type) && req.id.equals(targetId)) {
+                    String reqKey = type + ":" + targetId;
+                    if (!data.getCompletedRequirements().contains(reqKey)) {
+                        data.addCompletedRequirement(reqKey);
+                        changed = true;
+                    }
+                }
+            }
+
+            if (changed) {
+                sync(player);
+                checkPathCompletion(player, data, pathInfo);
+            }
+        });
+    }
 
     public static void sendWarning(Player player, String message) {
         long now = System.currentTimeMillis();
@@ -143,17 +248,21 @@ public class xdAbsoluteMastery {
         ResourceLocation rl = ForgeRegistries.ITEMS.getKey(item);
         if (rl == null) return false;
 
-        // Minecraft vanilla is always universal (ponytail: native platforms and simple checks)
-        // ponytail: temporary simulation overrides for testing
-        if (rl.getNamespace().equals("minecraft")) {
-            if (rl.getPath().equals("wooden_hoe") || rl.getPath().equals("leather_chestplate") || rl.getPath().equals("wooden_sword")) {
-                return false;
+        String namespace = rl.getNamespace();
+
+        // Check dynamic universal namespaces
+        if (ConfigManager.UNIVERSAL_NAMESPACES.contains(namespace)) {
+            // ponytail: native platform simulations override for testing
+            if (namespace.equals("minecraft")) {
+                if (rl.getPath().equals("wooden_hoe") || rl.getPath().equals("leather_chestplate") || rl.getPath().equals("wooden_sword")) {
+                    return false;
+                }
             }
             return true;
         }
 
         // Tinkers' Construct check (tconstruct namespace or ModifiableItem class)
-        if (rl.getNamespace().equals("tconstruct") || isTinkersItem(item)) {
+        if (namespace.equals("tconstruct") || isTinkersItem(item)) {
             return true;
         }
 
@@ -180,14 +289,24 @@ public class xdAbsoluteMastery {
 
     public static String getPathFromItemTags(ItemStack stack) {
         if (stack.isEmpty()) return null;
-        // ponytail: temporary simulation overrides for testing
         ResourceLocation rl = ForgeRegistries.ITEMS.getKey(stack.getItem());
-        if (rl != null && rl.getNamespace().equals("minecraft")) {
+        if (rl == null) return null;
+
+        // ponytail: temporary simulation overrides for testing
+        if (rl.getNamespace().equals("minecraft")) {
             if (rl.getPath().equals("wooden_hoe") || rl.getPath().equals("leather_chestplate") || rl.getPath().equals("wooden_sword")) {
                 return "mekanism"; // Path 2 in default config
             }
         }
 
+        // Check if item namespace matches path.mod_id
+        for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+            if (path.mod_id != null && path.mod_id.equals(rl.getNamespace())) {
+                return path.id;
+            }
+        }
+
+        // Fallback check for legacy path tags xam:path_id/...
         for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
             if (stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, path.id + "/armor")))
                     || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, path.id + "/weapons")))
@@ -201,14 +320,58 @@ public class xdAbsoluteMastery {
     public static boolean isItemValid(ItemStack stack, PlayerData data) {
         if (stack.isEmpty()) return true;
         if (isUniversal(stack)) return true;
-        String itemPath = getPathFromItemTags(stack);
-        if (itemPath == null) return false;
-        if (itemPath.equals(data.getCurrentPath())) return true;
-        return data.getMasteredPaths().contains(itemPath);
+
+        ResourceLocation rl = ForgeRegistries.ITEMS.getKey(stack.getItem());
+        if (rl == null) return false;
+
+        String namespace = rl.getNamespace();
+
+        // ponytail: temporary simulation overrides for testing
+        if (namespace.equals("minecraft")) {
+            if (rl.getPath().equals("wooden_hoe") || rl.getPath().equals("leather_chestplate") || rl.getPath().equals("wooden_sword")) {
+                namespace = "mekanism"; // Path 2 in default config
+            }
+        }
+
+        // 1. O(1) compare namespace against active path mod id
+        String activeModId = data.getActivePathModId();
+        if (data.getCurrentPath() != null && !activeModId.isEmpty() && namespace.equals(activeModId)) {
+            return true;
+        }
+
+        // 2. O(1) tags check (second layer of classification) for active path
+        String activePathId = data.getCurrentPath();
+        if (activePathId != null) {
+            if (stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, activePathId + "/armor")))
+                    || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, activePathId + "/weapons")))
+                    || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, activePathId + "/tools")))) {
+                return true;
+            }
+        }
+
+        // Check mastered paths (small loop, highly efficient)
+        for (String pathId : data.getMasteredPaths()) {
+            for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+                if (path.id.equals(pathId)) {
+                    if (namespace.equals(path.mod_id)) {
+                        return true;
+                    }
+                    if (stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, path.id + "/armor")))
+                            || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, path.id + "/weapons")))
+                            || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, path.id + "/tools")))) {
+                        return true;
+                    }
+                    break;
+                }
+            }
+        }
+
+        return false;
     }
 
     public static void updateArmorModifiers(Player player) {
         player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            checkAndRefreshPlayerData(player, data);
             for (EquipmentSlot slot : EquipmentSlot.values()) {
                 if (slot.getType() == EquipmentSlot.Type.ARMOR) {
                     int index = slot.getIndex();
@@ -293,6 +456,8 @@ public class xdAbsoluteMastery {
             if (event.getEntity() instanceof ServerPlayer player) {
                 sync(player);
                 updateArmorModifiers(player);
+                String pathsJson = ConfigManager.getPathsJson();
+                CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SyncConfigPacket(pathsJson));
             }
         }
 
@@ -325,6 +490,7 @@ public class xdAbsoluteMastery {
                 ItemStack mainHand = player.getMainHandItem();
                 if (!mainHand.isEmpty()) {
                     player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                        checkAndRefreshPlayerData(player, data);
                         if (!isItemValid(mainHand, data)) {
                             event.setAmount(1.0f);
                             sendItemWarning(player, mainHand);
@@ -340,6 +506,7 @@ public class xdAbsoluteMastery {
             ItemStack mainHand = player.getMainHandItem();
             if (!mainHand.isEmpty()) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    checkAndRefreshPlayerData(player, data);
                     if (!isItemValid(mainHand, data)) {
                         event.setNewSpeed(0.0f);
                         sendItemWarning(player, mainHand);
@@ -354,6 +521,7 @@ public class xdAbsoluteMastery {
             ItemStack mainHand = player.getMainHandItem();
             if (!mainHand.isEmpty()) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    checkAndRefreshPlayerData(player, data);
                     if (!isItemValid(mainHand, data)) {
                         event.setCanceled(true);
                         sendItemWarning(player, mainHand);
@@ -368,6 +536,7 @@ public class xdAbsoluteMastery {
             ItemStack stack = event.getItemStack();
             if (!stack.isEmpty()) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    checkAndRefreshPlayerData(player, data);
                     if (!isItemValid(stack, data)) {
                         event.setCanceled(true);
                         sendItemWarning(player, stack);
@@ -382,6 +551,7 @@ public class xdAbsoluteMastery {
             ItemStack stack = event.getItemStack();
             if (!stack.isEmpty()) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    checkAndRefreshPlayerData(player, data);
                     if (!isItemValid(stack, data)) {
                         event.setCanceled(true);
                         sendItemWarning(player, stack);
@@ -396,6 +566,7 @@ public class xdAbsoluteMastery {
             ItemStack stack = event.getItemStack();
             if (!stack.isEmpty()) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    checkAndRefreshPlayerData(player, data);
                     if (!isItemValid(stack, data)) {
                         event.setCanceled(true);
                         sendItemWarning(player, stack);
@@ -411,6 +582,24 @@ public class xdAbsoluteMastery {
                 UUID uuid = player.getUUID();
 
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    checkAndRefreshPlayerData(player, data);
+
+                    // ponytail: lazy inventory scanning for item collect requirements every 1 second
+                    if (player.tickCount % 20 == 0 && data.getCurrentPath() != null) {
+                        for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+                            if (path.id.equals(data.getCurrentPath())) {
+                                for (ConfigManager.Requirement req : path.requirements) {
+                                    if (req.type.equals("collect")) {
+                                        if (hasItem(player, new ResourceLocation(req.id))) {
+                                            checkAndProgressRequirement((ServerPlayer) player, "collect", req.id);
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+
                     // Check armor warning continuously (repeats autonomously every 5s)
                     for (EquipmentSlot slot : EquipmentSlot.values()) {
                         if (slot.getType() == EquipmentSlot.Type.ARMOR) {
@@ -474,47 +663,39 @@ public class xdAbsoluteMastery {
         public static void onAdvancement(AdvancementEvent event) {
             Player player = event.getEntity();
             if (player.level().isClientSide()) return;
-
-            player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                String currentPath = data.getCurrentPath();
-                if (currentPath == null) return;
-
-                ConfigManager.PathInfo pathInfo = null;
-                for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
-                    if (path.id.equals(currentPath)) {
-                        pathInfo = path;
-                        break;
-                    }
-                }
-
-                if (pathInfo == null) return;
-
-                if (player instanceof ServerPlayer serverPlayer) {
-                    boolean completedAll = true;
-                    net.minecraft.server.PlayerAdvancements playerAdvancements = serverPlayer.getAdvancements();
-
-                    for (String advIdStr : pathInfo.mastery_advancements) {
-                        ResourceLocation resLoc = new ResourceLocation(advIdStr);
-                        net.minecraft.advancements.Advancement adv = serverPlayer.server.getAdvancements().getAdvancement(resLoc);
-                        if (adv == null) {
-                            completedAll = false;
-                            break;
-                        }
-                        if (!playerAdvancements.getOrStartProgress(adv).isDone()) {
-                            completedAll = false;
+            if (player instanceof ServerPlayer serverPlayer) {
+                serverPlayer.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    String currentPath = data.getCurrentPath();
+                    if (currentPath == null) return;
+                    for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+                        if (path.id.equals(currentPath)) {
+                            checkPathCompletion(serverPlayer, data, path);
                             break;
                         }
                     }
+                });
+            }
+        }
 
-                    if (completedAll) {
-                        data.addMasteredPath(currentPath);
-                        data.setCurrentPath(null);
-                        sync(serverPlayer);
-                        updateArmorModifiers(serverPlayer);
-                        serverPlayer.sendSystemMessage(Component.literal("¡Has dominado " + pathInfo.name + "! Ahora puedes elegir un nuevo camino."));
-                    }
+        @SubscribeEvent
+        public static void onItemCrafted(PlayerEvent.ItemCraftedEvent event) {
+            Player player = event.getEntity();
+            if (player.level().isClientSide()) return;
+            if (player instanceof ServerPlayer serverPlayer) {
+                ItemStack crafted = event.getCrafting();
+                if (!crafted.isEmpty()) {
+                    String itemId = ForgeRegistries.ITEMS.getKey(crafted.getItem()).toString();
+                    checkAndProgressRequirement(serverPlayer, "craft", itemId);
                 }
-            });
+            }
+        }
+
+        @SubscribeEvent
+        public static void onLivingDeath(net.minecraftforge.event.entity.living.LivingDeathEvent event) {
+            if (event.getSource() != null && event.getSource().getEntity() instanceof ServerPlayer serverPlayer) {
+                String entityId = ForgeRegistries.ENTITY_TYPES.getKey(event.getEntity().getType()).toString();
+                checkAndProgressRequirement(serverPlayer, "kill", entityId);
+            }
         }
     }
 
@@ -564,9 +745,111 @@ public class xdAbsoluteMastery {
                 if (player != null) {
                     player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                         data.setCurrentPath(pkt.pathId);
+                        data.clearCompletedRequirements();
                         sync(player);
                         updateArmorModifiers(player);
+                        if (pkt.pathId != null) {
+                            for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+                                if (path.id.equals(pkt.pathId)) {
+                                    checkPathCompletion(player, data, path);
+                                    break;
+                                }
+                            }
+                        }
                     });
+                }
+            });
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    public static class SyncConfigPacket {
+        private final String json;
+
+        public SyncConfigPacket(String json) {
+            this.json = json;
+        }
+
+        public static void encode(SyncConfigPacket pkt, FriendlyByteBuf buf) {
+            buf.writeUtf(pkt.json);
+        }
+
+        public static SyncConfigPacket decode(FriendlyByteBuf buf) {
+            return new SyncConfigPacket(buf.readUtf());
+        }
+
+        public static void handle(SyncConfigPacket pkt, Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> {
+                DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientPacketHandler.handleSyncConfig(pkt.json));
+            });
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    public static class UpdateConfigPacket {
+        private final String json;
+
+        public UpdateConfigPacket(String json) {
+            this.json = json;
+        }
+
+        public static void encode(UpdateConfigPacket pkt, FriendlyByteBuf buf) {
+            buf.writeUtf(pkt.json);
+        }
+
+        public static UpdateConfigPacket decode(FriendlyByteBuf buf) {
+            return new UpdateConfigPacket(buf.readUtf());
+        }
+
+        public static void handle(UpdateConfigPacket pkt, Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> {
+                ServerPlayer player = ctx.get().getSender();
+                if (player != null && (player.hasPermissions(2) || player.level().isClientSide())) {
+                    ConfigManager.saveConfigFromServer(player.server, pkt.json);
+                }
+            });
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    public static class NotifyConfigUpdatePacket {
+        private final long version;
+
+        public NotifyConfigUpdatePacket(long version) {
+            this.version = version;
+        }
+
+        public static void encode(NotifyConfigUpdatePacket pkt, FriendlyByteBuf buf) {
+            buf.writeLong(pkt.version);
+        }
+
+        public static NotifyConfigUpdatePacket decode(FriendlyByteBuf buf) {
+            return new NotifyConfigUpdatePacket(buf.readLong());
+        }
+
+        public static void handle(NotifyConfigUpdatePacket pkt, Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> {
+                DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientPacketHandler.handleNotifyConfigUpdate(pkt.version));
+            });
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    public static class RequestConfigPacket {
+        public RequestConfigPacket() {}
+
+        public static void encode(RequestConfigPacket pkt, FriendlyByteBuf buf) {}
+
+        public static RequestConfigPacket decode(FriendlyByteBuf buf) {
+            return new RequestConfigPacket();
+        }
+
+        public static void handle(RequestConfigPacket pkt, Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> {
+                ServerPlayer player = ctx.get().getSender();
+                if (player != null) {
+                    String pathsJson = ConfigManager.getPathsJson();
+                    CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SyncConfigPacket(pathsJson));
                 }
             });
             ctx.get().setPacketHandled(true);
@@ -578,11 +861,37 @@ public class xdAbsoluteMastery {
     public static class ConfigManager {
         private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
         public static final List<PathInfo> PATHS = new ArrayList<>();
+        public static final Set<String> UNIVERSAL_NAMESPACES = new HashSet<>(Arrays.asList("minecraft", "tconstruct"));
+        private static long configVersion = 0;
+
+        public static long getConfigVersion() {
+            return configVersion;
+        }
+
+        public static void setConfigVersion(long version) {
+            configVersion = version;
+        }
+
+        public static class Requirement {
+            public String type; // "advancement", "craft", "kill"
+            public String id;
+            public String name;
+            public String description;
+
+            public Requirement() {}
+            public Requirement(String type, String id, String name, String description) {
+                this.type = type;
+                this.id = id;
+                this.name = name;
+                this.description = description;
+            }
+        }
 
         public static class PathInfo {
             public String id;
             public String name;
-            public List<String> mastery_advancements = new ArrayList<>();
+            public String mod_id;
+            public List<Requirement> requirements = new ArrayList<>();
         }
 
         public static void loadConfig() {
@@ -593,50 +902,187 @@ public class xdAbsoluteMastery {
             }
             try (FileReader reader = new FileReader(file)) {
                 JsonObject json = GSON.fromJson(reader, JsonObject.class);
-                PATHS.clear();
-                if (json != null && json.has("paths")) {
-                    JsonArray pathsArray = json.getAsJsonArray("paths");
-                    for (int i = 0; i < pathsArray.size(); i++) {
-                        JsonObject pObj = pathsArray.get(i).getAsJsonObject();
-                        PathInfo info = new PathInfo();
-                        info.id = pObj.get("id").getAsString();
-                        info.name = pObj.get("name").getAsString();
-                        info.mastery_advancements = new ArrayList<>();
-                        if (pObj.has("mastery_advancements")) {
-                            JsonArray advs = pObj.getAsJsonArray("mastery_advancements");
-                            for (int j = 0; j < advs.size(); j++) {
-                                info.mastery_advancements.add(advs.get(j).getAsString());
-                            }
-                        }
-                        PATHS.add(info);
-                    }
-                }
+                parseJson(json);
             } catch (IOException e) {
                 LOGGER.error("Failed to load xam_paths.json config", e);
             }
+        }
+
+        public static void loadConfigFromJson(String jsonString) {
+            try {
+                JsonObject json = GSON.fromJson(jsonString, JsonObject.class);
+                parseJson(json);
+            } catch (Exception e) {
+                LOGGER.error("Failed to load config from json string", e);
+            }
+        }
+
+        private static void parseJson(JsonObject json) {
+            configVersion++;
+            UNIVERSAL_NAMESPACES.clear();
+            if (json != null && json.has("universal_namespaces")) {
+                JsonArray nsArray = json.getAsJsonArray("universal_namespaces");
+                for (int i = 0; i < nsArray.size(); i++) {
+                    UNIVERSAL_NAMESPACES.add(nsArray.get(i).getAsString());
+                }
+            } else {
+                UNIVERSAL_NAMESPACES.addAll(Arrays.asList("minecraft", "tconstruct"));
+            }
+
+            PATHS.clear();
+            if (json != null && json.has("paths")) {
+                JsonArray pathsArray = json.getAsJsonArray("paths");
+                for (int i = 0; i < pathsArray.size(); i++) {
+                    JsonObject pObj = pathsArray.get(i).getAsJsonObject();
+                    PathInfo info = new PathInfo();
+                    info.id = pObj.get("id").getAsString();
+                    info.name = pObj.get("name").getAsString();
+                    info.mod_id = pObj.has("mod_id") ? pObj.get("mod_id").getAsString() : info.id;
+                    info.requirements = new ArrayList<>();
+                    if (pObj.has("requirements")) {
+                        JsonArray reqs = pObj.getAsJsonArray("requirements");
+                        for (int j = 0; j < reqs.size(); j++) {
+                            JsonObject rObj = reqs.get(j).getAsJsonObject();
+                            Requirement req = new Requirement();
+                            req.type = rObj.get("type").getAsString();
+                            req.id = rObj.get("id").getAsString();
+                            req.name = rObj.has("name") ? rObj.get("name").getAsString() : "";
+                            req.description = rObj.has("description") ? rObj.get("description").getAsString() : "";
+                            info.requirements.add(req);
+                        }
+                    } else if (pObj.has("mastery_advancements")) {
+                        JsonArray advs = pObj.getAsJsonArray("mastery_advancements");
+                        for (int j = 0; j < advs.size(); j++) {
+                            String advId = advs.get(j).getAsString();
+                            String simpleName = advId;
+                            if (simpleName.contains(":")) simpleName = simpleName.split(":")[1];
+                            if (simpleName.contains("/")) {
+                                String[] split = simpleName.split("/");
+                                simpleName = split[split.length - 1];
+                            }
+                            simpleName = simpleName.replace("_", " ");
+                            if (!simpleName.isEmpty()) {
+                                simpleName = Character.toUpperCase(simpleName.charAt(0)) + simpleName.substring(1);
+                            }
+                            info.requirements.add(new Requirement("advancement", advId, simpleName, "Completa el logro " + simpleName));
+                        }
+                    }
+                    PATHS.add(info);
+                }
+            }
+        }
+
+        public static String serializePaths(List<PathInfo> pathsList) {
+            JsonObject json = new JsonObject();
+            
+            JsonArray nsArray = new JsonArray();
+            for (String ns : UNIVERSAL_NAMESPACES) {
+                nsArray.add(ns);
+            }
+            json.add("universal_namespaces", nsArray);
+
+            JsonArray pathsArray = new JsonArray();
+            for (PathInfo path : pathsList) {
+                JsonObject pObj = new JsonObject();
+                pObj.addProperty("id", path.id);
+                pObj.addProperty("name", path.name);
+                pObj.addProperty("mod_id", path.mod_id);
+                JsonArray reqsArray = new JsonArray();
+                for (Requirement req : path.requirements) {
+                    JsonObject rObj = new JsonObject();
+                    rObj.addProperty("type", req.type);
+                    rObj.addProperty("id", req.id);
+                    rObj.addProperty("name", req.name);
+                    rObj.addProperty("description", req.description);
+                    reqsArray.add(rObj);
+                }
+                pObj.add("requirements", reqsArray);
+                pathsArray.add(pObj);
+            }
+            json.add("paths", pathsArray);
+            return GSON.toJson(json);
+        }
+
+        public static String getPathsJson() {
+            return serializePaths(PATHS);
+        }
+
+        public static void saveConfigFromServer(net.minecraft.server.MinecraftServer server, String jsonString) {
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                Path configPath = FMLPaths.CONFIGDIR.get().resolve("xam_paths.json");
+                File file = configPath.toFile();
+                try {
+                    file.getParentFile().mkdirs();
+                    try (FileWriter writer = new FileWriter(file)) {
+                        writer.write(jsonString);
+                    }
+                    if (server != null) {
+                        server.execute(() -> {
+                            loadConfigFromJson(jsonString);
+                            CHANNEL.send(PacketDistributor.ALL.noArg(), new NotifyConfigUpdatePacket(getConfigVersion()));
+                        });
+                    }
+                } catch (IOException e) {
+                    LOGGER.error("Failed to save paths config on server asynchronously", e);
+                }
+            });
         }
 
         private static void createDefaultConfig(File file) {
             try {
                 file.getParentFile().mkdirs();
                 JsonObject defaultJson = new JsonObject();
+                
+                JsonArray nsArray = new JsonArray();
+                nsArray.add("minecraft");
+                nsArray.add("tconstruct");
+                defaultJson.add("universal_namespaces", nsArray);
+
                 JsonArray pathsArray = new JsonArray();
 
                 JsonObject botania = new JsonObject();
                 botania.addProperty("id", "botania");
                 botania.addProperty("name", "El Camino de la Naturaleza");
-                JsonArray botaniaAdvs = new JsonArray();
-                botaniaAdvs.add("botania:main/rune_pickup");
-                botaniaAdvs.add("botania:main/elf_portal_open");
-                botania.add("mastery_advancements", botaniaAdvs);
+                botania.addProperty("mod_id", "botania");
+                JsonArray botaniaReqs = new JsonArray();
+                
+                JsonObject r1 = new JsonObject();
+                r1.addProperty("type", "advancement");
+                r1.addProperty("id", "botania:main/rune_pickup");
+                r1.addProperty("name", "Rune Pickup");
+                r1.addProperty("description", "Recoge una runa");
+                botaniaReqs.add(r1);
+
+                JsonObject r2 = new JsonObject();
+                r2.addProperty("type", "advancement");
+                r2.addProperty("id", "botania:main/elf_portal_open");
+                r2.addProperty("name", "Elf Portal Open");
+                r2.addProperty("description", "Abre el portal élfico");
+                botaniaReqs.add(r2);
+
+                botania.add("requirements", botaniaReqs);
 
                 JsonObject mekanism = new JsonObject();
                 mekanism.addProperty("id", "mekanism");
                 mekanism.addProperty("name", "El Camino Tecnológico");
-                JsonArray mekanismAdvs = new JsonArray();
-                mekanismAdvs.add("mekanism:achievement/elite");
-                mekanismAdvs.add("mekanism:achievement/master");
-                mekanism.add("mastery_advancements", mekanismAdvs);
+                mekanism.addProperty("mod_id", "mekanism");
+                JsonArray mekanismReqs = new JsonArray();
+
+                JsonObject r3 = new JsonObject();
+                r3.addProperty("type", "advancement");
+                r3.addProperty("id", "mekanism:achievement/elite");
+                r3.addProperty("name", "Elite");
+                r3.addProperty("description", "Completa el logro Élite");
+                mekanismReqs.add(r3);
+
+                JsonObject r4 = new JsonObject();
+                r4.addProperty("type", "advancement");
+                r4.addProperty("id", "mekanism:achievement/master");
+                r4.addProperty("name", "Master");
+                r4.addProperty("description", "Completa el logro Maestro");
+                mekanismReqs.add(r4);
+
+                mekanism.add("requirements", mekanismReqs);
 
                 pathsArray.add(botania);
                 pathsArray.add(mekanism);
@@ -687,6 +1133,16 @@ public class xdAbsoluteMastery {
                         }
                     }
                 });
+            }
+        }
+
+        public static void handleSyncConfig(String json) {
+            ConfigManager.loadConfigFromJson(json);
+        }
+
+        public static void handleNotifyConfigUpdate(long version) {
+            if (ConfigManager.getConfigVersion() < version) {
+                CHANNEL.sendToServer(new RequestConfigPacket());
             }
         }
     }
