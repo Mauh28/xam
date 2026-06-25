@@ -29,11 +29,15 @@ public class EntitySelectionScreen extends AbstractPickerScreen<EntityType<?>> {
     protected void filterEntries(String query) {
         this.filteredEntries.clear();
         String q = query.toLowerCase();
+        String nsFilter = getNamespaceFilter().toLowerCase();
         for (EntityType<?> type : this.allEntries) {
             ResourceLocation rl = ForgeRegistries.ENTITY_TYPES.getKey(type);
             if (rl == null) continue;
             String idStr = rl.toString().toLowerCase();
             String nameStr = type.getDescription().getString().toLowerCase();
+            if (!nsFilter.isEmpty() && !rl.getNamespace().toLowerCase().contains(nsFilter)) {
+                continue;
+            }
             if (idStr.contains(q) || nameStr.contains(q)) {
                 this.filteredEntries.add(type);
             }

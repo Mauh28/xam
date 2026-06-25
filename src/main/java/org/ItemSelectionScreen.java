@@ -28,11 +28,15 @@ public class ItemSelectionScreen extends AbstractPickerScreen<Item> {
     protected void filterEntries(String query) {
         this.filteredEntries.clear();
         String q = query.toLowerCase();
+        String nsFilter = getNamespaceFilter().toLowerCase();
         for (Item item : this.allEntries) {
             ResourceLocation rl = ForgeRegistries.ITEMS.getKey(item);
             if (rl == null) continue;
             String idStr = rl.toString().toLowerCase();
             String nameStr = item.getDescription().getString().toLowerCase();
+            if (!nsFilter.isEmpty() && !rl.getNamespace().toLowerCase().contains(nsFilter)) {
+                continue;
+            }
             if (idStr.contains(q) || nameStr.contains(q)) {
                 this.filteredEntries.add(item);
             }

@@ -215,6 +215,19 @@ public class xdAbsoluteMastery {
         });
     }
 
+    // ponytail: returns true if the player must select a path before doing anything
+    public static boolean mustSelectPath(PlayerData data) {
+        if (data.getCurrentPath() != null) return false;
+        for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+            if (!data.getMasteredPaths().contains(path.id)) {
+                return true;
+            }
+        }
+        return false; // all paths mastered, no restriction
+    }
+
+    private static final String MUST_SELECT_MSG = "Debes elegir una maestría antes de realizar acciones. Presiona M para abrir el menú.";
+
     public static void sendWarning(Player player, String message) {
         long now = System.currentTimeMillis();
         String key = player.getUUID().toString() + "_" + message;
@@ -487,92 +500,122 @@ public class xdAbsoluteMastery {
         @SubscribeEvent
         public static void onLivingHurt(LivingHurtEvent event) {
             if (event.getSource().getEntity() instanceof Player player) {
-                ItemStack mainHand = player.getMainHandItem();
-                if (!mainHand.isEmpty()) {
-                    player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    if (mustSelectPath(data)) {
+                        event.setAmount(1.0f);
+                        sendWarning(player, MUST_SELECT_MSG);
+                        return;
+                    }
+                    ItemStack mainHand = player.getMainHandItem();
+                    if (!mainHand.isEmpty()) {
                         checkAndRefreshPlayerData(player, data);
                         if (!isItemValid(mainHand, data)) {
                             event.setAmount(1.0f);
                             sendItemWarning(player, mainHand);
                         }
-                    });
-                }
+                    }
+                });
             }
         }
 
         @SubscribeEvent
         public static void onBreakSpeed(PlayerEvent.BreakSpeed event) {
             Player player = event.getEntity();
-            ItemStack mainHand = player.getMainHandItem();
-            if (!mainHand.isEmpty()) {
-                player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                if (mustSelectPath(data)) {
+                    event.setNewSpeed(0.0f);
+                    sendWarning(player, MUST_SELECT_MSG);
+                    return;
+                }
+                ItemStack mainHand = player.getMainHandItem();
+                if (!mainHand.isEmpty()) {
                     checkAndRefreshPlayerData(player, data);
                     if (!isItemValid(mainHand, data)) {
                         event.setNewSpeed(0.0f);
                         sendItemWarning(player, mainHand);
                     }
-                });
-            }
+                }
+            });
         }
 
         @SubscribeEvent
         public static void onBlockBreak(BlockEvent.BreakEvent event) {
             Player player = event.getPlayer();
-            ItemStack mainHand = player.getMainHandItem();
-            if (!mainHand.isEmpty()) {
-                player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                if (mustSelectPath(data)) {
+                    event.setCanceled(true);
+                    sendWarning(player, MUST_SELECT_MSG);
+                    return;
+                }
+                ItemStack mainHand = player.getMainHandItem();
+                if (!mainHand.isEmpty()) {
                     checkAndRefreshPlayerData(player, data);
                     if (!isItemValid(mainHand, data)) {
                         event.setCanceled(true);
                         sendItemWarning(player, mainHand);
                     }
-                });
-            }
+                }
+            });
         }
 
         @SubscribeEvent
         public static void onRightClickItem(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickItem event) {
             Player player = event.getEntity();
-            ItemStack stack = event.getItemStack();
-            if (!stack.isEmpty()) {
-                player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                if (mustSelectPath(data)) {
+                    event.setCanceled(true);
+                    sendWarning(player, MUST_SELECT_MSG);
+                    return;
+                }
+                ItemStack stack = event.getItemStack();
+                if (!stack.isEmpty()) {
                     checkAndRefreshPlayerData(player, data);
                     if (!isItemValid(stack, data)) {
                         event.setCanceled(true);
                         sendItemWarning(player, stack);
                     }
-                });
-            }
+                }
+            });
         }
 
         @SubscribeEvent
         public static void onRightClickBlock(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock event) {
             Player player = event.getEntity();
-            ItemStack stack = event.getItemStack();
-            if (!stack.isEmpty()) {
-                player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                if (mustSelectPath(data)) {
+                    event.setCanceled(true);
+                    sendWarning(player, MUST_SELECT_MSG);
+                    return;
+                }
+                ItemStack stack = event.getItemStack();
+                if (!stack.isEmpty()) {
                     checkAndRefreshPlayerData(player, data);
                     if (!isItemValid(stack, data)) {
                         event.setCanceled(true);
                         sendItemWarning(player, stack);
                     }
-                });
-            }
+                }
+            });
         }
 
         @SubscribeEvent
         public static void onEntityInteract(net.minecraftforge.event.entity.player.PlayerInteractEvent.EntityInteract event) {
             Player player = event.getEntity();
-            ItemStack stack = event.getItemStack();
-            if (!stack.isEmpty()) {
-                player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                if (mustSelectPath(data)) {
+                    event.setCanceled(true);
+                    sendWarning(player, MUST_SELECT_MSG);
+                    return;
+                }
+                ItemStack stack = event.getItemStack();
+                if (!stack.isEmpty()) {
                     checkAndRefreshPlayerData(player, data);
                     if (!isItemValid(stack, data)) {
                         event.setCanceled(true);
                         sendItemWarning(player, stack);
                     }
-                });
-            }
+                }
+            });
         }
 
         @SubscribeEvent
@@ -1100,6 +1143,8 @@ public class xdAbsoluteMastery {
     // --- Client Only Packet Handler to avoid Dedicated Server crashes ---
 
     public static class ClientPacketHandler {
+        public static boolean shouldOpenPathSelection = false;
+
         public static void handleSync(CompoundTag nbt) {
             net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
             if (mc.player != null) {
@@ -1129,6 +1174,20 @@ public class xdAbsoluteMastery {
                                         Component.literal("Has dominado: " + pathName)
                                 );
                                 break;
+                            }
+                        }
+                    } else {
+                        // Open path selection screen automatically on first join if no path is active
+                        if (data.getCurrentPath() == null) {
+                            boolean hasAvailablePaths = false;
+                            for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+                                if (!data.getMasteredPaths().contains(path.id)) {
+                                    hasAvailablePaths = true;
+                                    break;
+                                }
+                            }
+                            if (hasAvailablePaths) {
+                                shouldOpenPathSelection = true;
                             }
                         }
                     }
@@ -1171,21 +1230,30 @@ public class xdAbsoluteMastery {
             if (event.phase == TickEvent.Phase.START) {
                 net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
                 if (mc.player != null) {
-                    // Check if they pressed the key
-                    if (ClientModEvents.MASTERY_KEY.consumeClick()) {
+                    if (ClientPacketHandler.shouldOpenPathSelection && mc.screen == null) {
+                        ClientPacketHandler.shouldOpenPathSelection = false;
                         mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                            mc.setScreen(new MasteryInfoScreen(data));
+                            mc.setScreen(new PathSelectionScreen(data));
                         });
                     }
 
-                    // Key suppression check for invalid items
-                    mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                        ItemStack mainHand = mc.player.getMainHandItem();
-                        ItemStack offHand = mc.player.getOffhandItem();
-                        boolean mainInvalid = !mainHand.isEmpty() && !isItemValid(mainHand, data);
-                        boolean offInvalid = !offHand.isEmpty() && !isItemValid(offHand, data);
+                    // Check if they pressed the key
+                    if (ClientModEvents.MASTERY_KEY.consumeClick()) {
+                        mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                            mc.setScreen(new MasteryHubScreen(data));
+                        });
+                    }
 
-                        if (mainInvalid || offInvalid) {
+                    // Key suppression check for invalid items or no mastery selected
+                    mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                        boolean suppress = mustSelectPath(data);
+                        if (!suppress) {
+                            ItemStack mainHand = mc.player.getMainHandItem();
+                            ItemStack offHand = mc.player.getOffhandItem();
+                            suppress = (!mainHand.isEmpty() && !isItemValid(mainHand, data))
+                                    || (!offHand.isEmpty() && !isItemValid(offHand, data));
+                        }
+                        if (suppress) {
                             for (net.minecraft.client.KeyMapping keyMapping : mc.options.keyMappings) {
                                 if (isInteractionKey(keyMapping, mc.options)) {
                                     while (keyMapping.consumeClick()) {
@@ -1200,49 +1268,68 @@ public class xdAbsoluteMastery {
             }
         }
 
+        private static net.minecraft.client.gui.components.Button masteryButton;
+        private static net.minecraft.client.gui.screens.Screen lastScreen;
+
+        public static void addWidgetToScreen(net.minecraft.client.gui.screens.Screen screen, net.minecraft.client.gui.components.AbstractWidget widget) {
+            try {
+                java.lang.reflect.Method method = null;
+                for (java.lang.reflect.Method m : net.minecraft.client.gui.screens.Screen.class.getDeclaredMethods()) {
+                    if (m.getName().equals("addRenderableWidget") || m.getName().equals("m_142416_")) {
+                        method = m;
+                        break;
+                    }
+                }
+                if (method != null) {
+                    method.setAccessible(true);
+                    method.invoke(screen, widget);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
         @SubscribeEvent
-        public static void onScreenInit(net.minecraftforge.client.event.ScreenEvent.Init.Post event) {
-            if (event.getScreen() instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen inventoryScreen) {
-                int leftPos = inventoryScreen.getGuiLeft();
-                int topPos = inventoryScreen.getGuiTop();
+        public static void onScreenRenderPre(net.minecraftforge.client.event.ScreenEvent.Render.Pre event) {
+            net.minecraft.client.gui.screens.Screen screen = event.getScreen();
+            if (screen instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen || screen instanceof net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen) {
+                net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> containerScreen = (net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) screen;
+                int leftPos = containerScreen.getGuiLeft();
+                int topPos = containerScreen.getGuiTop();
 
                 int btnX = leftPos - 22;
                 int btnY = topPos + 8;
 
-                boolean collided;
-                do {
-                    collided = false;
-                    for (net.minecraft.client.gui.components.events.GuiEventListener listener : event.getListenersList()) {
-                        if (listener instanceof net.minecraft.client.gui.components.AbstractWidget widget) {
-                            if (widget.getX() == btnX && widget.getY() == btnY) {
-                                btnY += 22;
-                                collided = true;
-                                break;
-                            }
+                if (lastScreen != screen || masteryButton == null) {
+                    lastScreen = screen;
+                    masteryButton = new net.minecraft.client.gui.components.Button(
+                            btnX, btnY, 20, 20, Component.empty(),
+                            b -> {
+                                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+                                if (mc.player != null) {
+                                    mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                                        mc.setScreen(new MasteryHubScreen(data));
+                                    });
+                                }
+                            },
+                            supplier -> supplier.get()
+                    ) {
+                        @Override
+                        public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+                            super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+                            guiGraphics.renderFakeItem(new ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK), this.getX() + 2, this.getY() + 2);
                         }
-                    }
-                } while (collided);
+                    };
+                }
 
-                net.minecraft.client.gui.components.Button btn = new net.minecraft.client.gui.components.Button(
-                        btnX, btnY, 20, 20, Component.empty(),
-                        b -> {
-                            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-                            if (mc.player != null) {
-                                mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                                    mc.setScreen(new MasteryInfoScreen(data));
-                                });
-                            }
-                        },
-                        supplier -> supplier.get()
-                ) {
-                    @Override
-                    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-                        super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
-                        guiGraphics.renderFakeItem(new ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK), this.getX() + 2, this.getY() + 2);
-                    }
-                };
+                if (masteryButton.getX() != btnX || masteryButton.getY() != btnY) {
+                    masteryButton.setX(btnX);
+                    masteryButton.setY(btnY);
+                }
 
-                event.addListener(btn);
+                if (!screen.children().contains(masteryButton)) {
+                    addWidgetToScreen(screen, masteryButton);
+                }
             }
         }
 

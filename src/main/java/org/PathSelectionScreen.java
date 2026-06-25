@@ -1,37 +1,30 @@
 package org;
 
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import com.mojang.blaze3d.systems.RenderSystem;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class PathSelectionScreen extends Screen {
+public class PathSelectionScreen extends AbstractMasteryScreen {
     private final PlayerData playerData;
-    private final List<CardInfo> cards = new ArrayList<>();
     private final List<xdAbsoluteMastery.ConfigManager.PathInfo> availablePaths = new ArrayList<>();
     private int currentPage = 0;
     private int totalPages = 1;
 
-    private static class CardInfo {
-        xdAbsoluteMastery.ConfigManager.PathInfo path;
-        int x, y, width, height;
-        boolean hovered;
-    }
-
     public PathSelectionScreen(PlayerData playerData) {
-        super(Component.literal("Selecciona tu Rama de Maestría"));
+        super(Component.literal("SELECCIÓN DE RAMA"));
         this.playerData = playerData;
     }
 
     @Override
     protected void init() {
         super.init();
-        cards.clear();
-
+        
         availablePaths.clear();
         for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
             if (playerData == null || !playerData.getMasteredPaths().contains(path.id)) {
@@ -39,125 +32,201 @@ public class PathSelectionScreen extends Screen {
             }
         }
 
-        int CARDS_PER_PAGE = 2;
-        totalPages = (availablePaths.size() + CARDS_PER_PAGE - 1) / CARDS_PER_PAGE;
+        totalPages = (availablePaths.size() + 2) / 3;
         if (currentPage >= totalPages) {
             currentPage = Math.max(0, totalPages - 1);
-        }
-
-        int startIndex = currentPage * CARDS_PER_PAGE;
-        int endIndex = Math.min(startIndex + CARDS_PER_PAGE, availablePaths.size());
-        
-        List<xdAbsoluteMastery.ConfigManager.PathInfo> pagePaths = new ArrayList<>();
-        if (startIndex < availablePaths.size()) {
-            pagePaths = availablePaths.subList(startIndex, endIndex);
-        }
-
-        int cardWidth = 150;
-        int cardHeight = 160;
-        int spacing = 20;
-        int totalWidth = (pagePaths.size() * cardWidth) + ((pagePaths.size() - 1) * spacing);
-        int startX = this.width / 2 - totalWidth / 2;
-        int startY = this.height / 2 - cardHeight / 2 + 5;
-
-        for (int i = 0; i < pagePaths.size(); i++) {
-            CardInfo card = new CardInfo();
-            card.path = pagePaths.get(i);
-            card.x = startX + i * (cardWidth + spacing);
-            card.y = startY;
-            card.width = cardWidth;
-            card.height = cardHeight;
-            cards.add(card);
-        }
-
-        if (totalPages > 1) {
-            net.minecraft.client.gui.components.Button prevBtn = net.minecraft.client.gui.components.Button.builder(Component.literal("<-"), b -> {
-                if (currentPage > 0) {
-                    currentPage--;
-                    this.init(this.minecraft, this.width, this.height);
-                }
-            }).bounds(this.width / 2 - 50, startY + cardHeight + 8, 20, 16).build();
-            prevBtn.active = currentPage > 0;
-            this.addRenderableWidget(prevBtn);
-
-            net.minecraft.client.gui.components.Button nextBtn = net.minecraft.client.gui.components.Button.builder(Component.literal("->"), b -> {
-                if (currentPage < totalPages - 1) {
-                    currentPage++;
-                    this.init(this.minecraft, this.width, this.height);
-                }
-            }).bounds(this.width / 2 + 30, startY + cardHeight + 8, 20, 16).build();
-            nextBtn.active = currentPage < totalPages - 1;
-            this.addRenderableWidget(nextBtn);
         }
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics);
+    protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
+        int titleY = containerY + (headerH - 8) / 2;
+        graphics.drawString(this.font, "SELECCIÓN DE RAMA", containerX + 15, titleY, TEXT_PRIMARY, false);
+    }
 
-        // Draw title
-        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 25, 0xFFFFFF);
-        guiGraphics.drawCenteredString(this.font, "Elige sabiamente. Una vez iniciada, deberás dominarla para cambiar.", this.width / 2, 40, 0x888888);
+    @Override
+    protected void renderFooter(GuiGraphics graphics, int mouseX, int mouseY) {
+        String pageIndicator = String.format("[ Página %d de %d ]", currentPage + 1, Math.max(1, totalPages));
+        int textX = containerX + (containerW - this.font.width(pageIndicator)) / 2;
+        int textY = containerY + containerH - footerH + (footerH - 8) / 2;
+        graphics.drawString(this.font, pageIndicator, textX, textY, TEXT_MUTED, false);
+    }
 
-        for (CardInfo card : cards) {
-            card.hovered = mouseX >= card.x && mouseX < card.x + card.width && mouseY >= card.y && mouseY < card.y + card.height;
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        super.render(graphics, mouseX, mouseY, partialTick);
 
-            int bgColor = card.hovered ? 0xDD15151A : 0xAA0F0F12;
-            guiGraphics.fill(card.x, card.y, card.x + card.width, card.y + card.height, bgColor);
+        // Body area has PANEL_BACKGROUND from container panel, no custom solid background drawn
 
-            int borderColor = card.hovered ? 0xFFFFD700 : 0x44FFFFFF;
-            guiGraphics.renderOutline(card.x, card.y, card.width, card.height, borderColor);
+        // Render Pagination buttons
+        // Left Button
+        int prevX = containerX + 10;
+        int prevY = bodyY + (bodyH - 80) / 2;
+        boolean prevActive = currentPage > 0;
+        boolean prevHovered = prevActive && mouseX >= prevX && mouseX < prevX + 50 && mouseY >= prevY && mouseY < prevY + 80;
+        int prevBg = prevHovered ? BUTTON_HOVER_BG : WIDGET_BACKGROUND;
+        int prevBorder = prevHovered ? BUTTON_HOVER_BORDER : BORDER_INNER;
+        if (!prevActive) {
+            prevBg = 0xFF181818;
+            prevBorder = 0xFF282828;
+        }
+        drawFlatPanel(graphics, prevX, prevY, 50, 80, prevBg, prevBorder);
+        int prevCol = prevActive ? (prevHovered ? TEXT_PRIMARY : TEXT_SECONDARY) : TEXT_MUTED;
+        graphics.drawCenteredString(this.font, "◀", prevX + 25, prevY + 36, prevCol);
 
-            int titleColor = card.hovered ? 0xFFFFD700 : 0xFFFFFF;
-            guiGraphics.drawCenteredString(this.font, card.path.name, card.x + card.width / 2, card.y + 15, titleColor);
+        // Right Button
+        int nextX = containerX + containerW - 60;
+        int nextY = bodyY + (bodyH - 80) / 2;
+        boolean nextActive = currentPage < totalPages - 1;
+        boolean nextHovered = nextActive && mouseX >= nextX && mouseX < nextX + 50 && mouseY >= nextY && mouseY < nextY + 80;
+        int nextBg = nextHovered ? BUTTON_HOVER_BG : WIDGET_BACKGROUND;
+        int nextBorder = nextHovered ? BUTTON_HOVER_BORDER : BORDER_INNER;
+        if (!nextActive) {
+            nextBg = 0xFF181818;
+            nextBorder = 0xFF282828;
+        }
+        drawFlatPanel(graphics, nextX, nextY, 50, 80, nextBg, nextBorder);
+        int nextCol = nextActive ? (nextHovered ? TEXT_PRIMARY : TEXT_SECONDARY) : TEXT_MUTED;
+        graphics.drawCenteredString(this.font, "▶", nextX + 25, nextY + 36, nextCol);
 
-            ItemStack icon = getIconForPath(card.path.id);
-            int iconX = card.x + card.width / 2 - 8;
-            int iconY = card.y + 35;
-            guiGraphics.renderFakeItem(icon, iconX, iconY);
+        // Render cards grid layout: 3 cards per row
+        int startIndex = currentPage * 3;
+        int endIndex = Math.min(startIndex + 3, availablePaths.size());
 
-            int reqY = card.y + 60;
-            guiGraphics.drawCenteredString(this.font, "Requisitos:", card.x + card.width / 2, reqY, 0x888888);
+        int viewportW = containerW - 120;
+        int gap = 15;
+        int cardW = (viewportW - (gap * 4)) / 3;
+        int cardH = bodyH - 30;
+        int cardY = bodyY + 15;
 
-            int index = 0;
-            for (xdAbsoluteMastery.ConfigManager.Requirement req : card.path.requirements) {
+        for (int i = 0; i < (endIndex - startIndex); i++) {
+            xdAbsoluteMastery.ConfigManager.PathInfo path = availablePaths.get(startIndex + i);
+            int cardX = containerX + 60 + gap + i * (cardW + gap);
+
+            boolean cardHovered = mouseX >= cardX && mouseX < cardX + cardW && mouseY >= cardY && mouseY < cardY + cardH;
+            int borderColor = cardHovered ? 0xFFAAAAAA : BORDER_INNER;
+
+            // Draw Card Panel
+            drawFlatPanel(graphics, cardX, cardY, cardW, cardH, WIDGET_BACKGROUND, borderColor);
+
+            // Card Height Breakdowns:
+            int cabH = (int) (cardH * 0.20);
+            int bodyReqH = (int) (cardH * 0.60);
+            int pieH = cardH - cabH - bodyReqH;
+
+            // 1. Cabeza (20%)
+            int sqSize = (int) (cabH * 0.85);
+            int sqX = cardX + 8;
+            int sqY = cardY + (cabH - sqSize) / 2;
+            drawFlatPanel(graphics, sqX, sqY, sqSize, sqSize, INPUT_BACKGROUND, 0xFF555555);
+
+            ItemStack icon = getIconForPath(path.id);
+            graphics.renderFakeItem(icon, sqX + (sqSize - 16) / 2, sqY + (sqSize - 16) / 2);
+
+            String nameText = path.name;
+            int nameMaxW = cardW - sqSize - 22;
+            if (this.font.width(nameText) > nameMaxW) {
+                nameText = this.font.plainSubstrByWidth(nameText, nameMaxW - 10) + "...";
+            }
+            graphics.drawString(this.font, nameText, cardX + sqSize + 14, cardY + (cabH - 18) / 2, TEXT_PRIMARY, false);
+
+            String modText = path.mod_id;
+            int labelW = Math.min(this.font.width(modText) + 8, nameMaxW);
+            drawFlatPanel(graphics, cardX + sqSize + 14, cardY + cabH - 14, labelW, 11, 0xFF353535, BORDER_INNER);
+            String dispMod = modText;
+            if (this.font.width(modText) > labelW - 6) {
+                dispMod = this.font.plainSubstrByWidth(modText, labelW - 10) + "..";
+            }
+            graphics.drawString(this.font, dispMod, cardX + sqSize + 18, cardY + cabH - 12, TEXT_MUTED, false);
+
+            // Cabeza bottom line divider
+            graphics.fill(cardX + 2, cardY + cabH, cardX + cardW - 2, cardY + cabH + 2, BORDER_INNER);
+
+            // 2. Cuerpo (60%)
+            graphics.drawString(this.font, "Requisitos", cardX + 10, cardY + cabH + 6, TEXT_MUTED, false);
+            int labelWidth = this.font.width("Requisitos");
+            graphics.fill(cardX + 10, cardY + cabH + 15, cardX + 10 + labelWidth, cardY + cabH + 16, 0xFF555555);
+
+            // Clipping/Scissor region for requirements list text
+            double scale = Minecraft.getInstance().getWindow().getGuiScale();
+            int scissorX = (int) (cardX * scale);
+            int scissorY = (int) ((this.height - (cardY + cabH + bodyReqH)) * scale);
+            int scissorW = (int) (cardW * scale);
+            int scissorH = (int) ((bodyReqH - 18) * scale);
+
+            RenderSystem.enableScissor(scissorX, scissorY, scissorW, scissorH);
+
+            int reqY = cardY + cabH + 20;
+            for (xdAbsoluteMastery.ConfigManager.Requirement req : path.requirements) {
                 String label = formatRequirement(req);
-                // Splitting if too long
-                if (this.font.width(label) > card.width - 10) {
-                    label = this.font.plainSubstrByWidth(label, card.width - 20) + "...";
+                if (this.font.width(label) > cardW - 26) {
+                    label = this.font.plainSubstrByWidth(label, cardW - 36) + "...";
                 }
-                guiGraphics.drawCenteredString(this.font, "- " + label, card.x + card.width / 2, reqY + 12 + index * 10, 0xAAAAAA);
-                index++;
-                if (index >= 7) break; // Limit render size to prevent card overflow
+                graphics.fill(cardX + 10, reqY + 2, cardX + 14, reqY + 6, TEXT_MUTED);
+                graphics.drawString(this.font, label, cardX + 18, reqY, TEXT_SECONDARY, false);
+                reqY += 10;
             }
 
-            if (card.hovered) {
-                guiGraphics.drawCenteredString(this.font, "[ Haz click ]", card.x + card.width / 2, card.y + card.height - 18, 0x55FF55);
-            }
-        }
+            RenderSystem.disableScissor();
 
-        if (totalPages > 1) {
-            int cardHeight = 160;
-            int startY = this.height / 2 - cardHeight / 2 + 5;
-            guiGraphics.drawCenteredString(this.font, (currentPage + 1) + " / " + totalPages, this.width / 2, startY + cardHeight + 12, 0x888888);
-        }
+            // Cuerpo bottom line divider
+            graphics.fill(cardX + 2, cardY + cabH + bodyReqH, cardX + cardW - 2, cardY + cabH + bodyReqH + 2, BORDER_INNER);
 
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+            // 3. Pie (20%)
+            int btnX = cardX + 8;
+            int btnY = cardY + cabH + bodyReqH + 4;
+            int btnW = cardW - 16;
+            int btnH = pieH - 8;
+            drawFlatButton(graphics, btnX, btnY, btnW, btnH, "ELEGIR CAMINO", mouseX, mouseY, true);
+        }
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
-            for (CardInfo card : cards) {
-                if (mouseX >= card.x && mouseX < card.x + card.width && mouseY >= card.y && mouseY < card.y + card.height) {
-                    xdAbsoluteMastery.CHANNEL.sendToServer(new xdAbsoluteMastery.SelectPathPacket(card.path.id));
+            // Check left page button
+            int prevX = containerX + 10;
+            int prevY = bodyY + (bodyH - 80) / 2;
+            if (currentPage > 0 && mouseX >= prevX && mouseX < prevX + 50 && mouseY >= prevY && mouseY < prevY + 80) {
+                playClickSound();
+                currentPage--;
+                return true;
+            }
 
-                    net.minecraft.client.Minecraft.getInstance().getSoundManager().play(
-                            net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
-                                    net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F
-                            )
-                    );
+            // Check right page button
+            int nextX = containerX + containerW - 60;
+            int nextY = bodyY + (bodyH - 80) / 2;
+            if (currentPage < totalPages - 1 && mouseX >= nextX && mouseX < nextX + 50 && mouseY >= nextY && mouseY < nextY + 80) {
+                playClickSound();
+                currentPage++;
+                return true;
+            }
 
+            // Check Card choose button clicks
+            int startIndex = currentPage * 3;
+            int endIndex = Math.min(startIndex + 3, availablePaths.size());
+
+            int viewportW = containerW - 120;
+            int gap = 15;
+            int cardW = (viewportW - (gap * 4)) / 3;
+            int cardH = bodyH - 30;
+            int cardY = bodyY + 15;
+
+            int cabH = (int) (cardH * 0.20);
+            int bodyReqH = (int) (cardH * 0.60);
+            int pieH = cardH - cabH - bodyReqH;
+
+            for (int i = 0; i < (endIndex - startIndex); i++) {
+                xdAbsoluteMastery.ConfigManager.PathInfo path = availablePaths.get(startIndex + i);
+                int cardX = containerX + 60 + gap + i * (cardW + gap);
+                int btnX = cardX + 8;
+                int btnY = cardY + cabH + bodyReqH + 4;
+                int btnW = cardW - 16;
+                int btnH = pieH - 8;
+
+                if (mouseX >= btnX && mouseX < btnX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
+                    playClickSound();
+                    xdAbsoluteMastery.CHANNEL.sendToServer(new xdAbsoluteMastery.SelectPathPacket(path.id));
                     this.onClose();
                     return true;
                 }
