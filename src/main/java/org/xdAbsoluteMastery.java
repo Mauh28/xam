@@ -62,7 +62,7 @@ public class xdAbsoluteMastery {
     // Network Channel Setup
     public static final String PROTOCOL_VERSION = "1";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-            new ResourceLocation(MODID, "main"),
+            ResourceLocation.fromNamespaceAndPath(MODID, "main"),
             () -> PROTOCOL_VERSION,
             PROTOCOL_VERSION::equals,
             PROTOCOL_VERSION::equals
@@ -87,6 +87,11 @@ public class xdAbsoluteMastery {
     private static final Map<String, Long> COOLDOWNS = new HashMap<>();
     private static final Map<UUID, String> LAST_MAINHAND = new HashMap<>();
     private static final Map<UUID, String> LAST_OFFHAND = new HashMap<>();
+
+    // Pre-computed universal TagKeys to avoid allocation in hot paths
+    public static final TagKey<Item> UNIVERSAL_ARMOR_TAG = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(MODID, "universal/armor"));
+    public static final TagKey<Item> UNIVERSAL_WEAPONS_TAG = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(MODID, "universal/weapons"));
+    public static final TagKey<Item> UNIVERSAL_TOOLS_TAG = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(MODID, "universal/tools"));
 
     public xdAbsoluteMastery() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -154,7 +159,8 @@ public class xdAbsoluteMastery {
 
     public static boolean isRequirementCompleted(ServerPlayer player, PlayerData data, ConfigManager.Requirement req) {
         if (req.type.equals("advancement")) {
-            ResourceLocation resLoc = new ResourceLocation(req.id);
+            ResourceLocation resLoc = ResourceLocation.tryParse(req.id);
+            if (resLoc == null) return false;
             net.minecraft.advancements.Advancement adv = player.server.getAdvancements().getAdvancement(resLoc);
             if (adv == null) return false;
             return player.getAdvancements().getOrStartProgress(adv).isDone();
@@ -240,11 +246,17 @@ public class xdAbsoluteMastery {
 
     public static boolean isWeapon(ItemStack stack) {
         Item item = stack.getItem();
-        return item instanceof net.minecraft.world.item.SwordItem
+        if (item instanceof net.minecraft.world.item.SwordItem
                 || item instanceof net.minecraft.world.item.ProjectileWeaponItem
-                || item instanceof net.minecraft.world.item.TridentItem
-                || ForgeRegistries.ITEMS.getKey(item).getPath().contains("sword")
-                || ForgeRegistries.ITEMS.getKey(item).getPath().contains("bow");
+                || item instanceof net.minecraft.world.item.TridentItem) {
+            return true;
+        }
+        ResourceLocation rl = ForgeRegistries.ITEMS.getKey(item);
+        if (rl != null) {
+            String path = rl.getPath();
+            return path.contains("sword") || path.contains("bow");
+        }
+        return false;
     }
 
     public static void sendItemWarning(Player player, ItemStack stack) {
@@ -280,9 +292,9 @@ public class xdAbsoluteMastery {
         }
 
         // xam:universal/armor, weapons, tools
-        if (stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, "universal/armor")))
-                || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, "universal/weapons")))
-                || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, "universal/tools")))) {
+        if (stack.is(UNIVERSAL_ARMOR_TAG)
+                || stack.is(UNIVERSAL_WEAPONS_TAG)
+                || stack.is(UNIVERSAL_TOOLS_TAG)) {
             return true;
         }
 
@@ -321,10 +333,12 @@ public class xdAbsoluteMastery {
 
         // Fallback check for legacy path tags xam:path_id/...
         for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
-            if (stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, path.id + "/armor")))
-                    || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, path.id + "/weapons")))
-                    || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, path.id + "/tools")))) {
-                return path.id;
+            if (path.armorTag != null) {
+                if (stack.is(path.armorTag)
+                        || stack.is(path.weaponsTag)
+                        || stack.is(path.toolsTag)) {
+                    return path.id;
+                }
             }
         }
         return null;
@@ -355,26 +369,29 @@ public class xdAbsoluteMastery {
         // 2. O(1) tags check (second layer of classification) for active path
         String activePathId = data.getCurrentPath();
         if (activePathId != null) {
-            if (stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, activePathId + "/armor")))
-                    || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, activePathId + "/weapons")))
-                    || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, activePathId + "/tools")))) {
-                return true;
+            ConfigManager.PathInfo activePath = ConfigManager.PATHS_MAP.get(activePathId);
+            if (activePath != null && activePath.armorTag != null) {
+                if (stack.is(activePath.armorTag)
+                        || stack.is(activePath.weaponsTag)
+                        || stack.is(activePath.toolsTag)) {
+                    return true;
+                }
             }
         }
 
         // Check mastered paths (small loop, highly efficient)
         for (String pathId : data.getMasteredPaths()) {
-            for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
-                if (path.id.equals(pathId)) {
-                    if (namespace.equals(path.mod_id)) {
+            ConfigManager.PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
+            if (path != null) {
+                if (namespace.equals(path.mod_id)) {
+                    return true;
+                }
+                if (path.armorTag != null) {
+                    if (stack.is(path.armorTag)
+                            || stack.is(path.weaponsTag)
+                            || stack.is(path.toolsTag)) {
                         return true;
                     }
-                    if (stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, path.id + "/armor")))
-                            || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, path.id + "/weapons")))
-                            || stack.is(TagKey.create(Registries.ITEM, new ResourceLocation(MODID, path.id + "/tools")))) {
-                        return true;
-                    }
-                    break;
                 }
             }
         }
@@ -441,9 +458,17 @@ public class xdAbsoluteMastery {
         public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event) {
             if (event.getObject() instanceof Player) {
                 if (!event.getObject().getCapability(PlayerDataProvider.PLAYER_DATA).isPresent()) {
-                    event.addCapability(new ResourceLocation(MODID, "properties"), new PlayerDataProvider());
+                    event.addCapability(ResourceLocation.fromNamespaceAndPath(MODID, "properties"), new PlayerDataProvider());
                 }
             }
+        }
+
+        @SubscribeEvent
+        public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+            UUID uuid = event.getEntity().getUUID();
+            LAST_MAINHAND.remove(uuid);
+            LAST_OFFHAND.remove(uuid);
+            COOLDOWNS.entrySet().removeIf(e -> e.getKey().startsWith(uuid.toString()));
         }
 
         @SubscribeEvent
@@ -627,40 +652,50 @@ public class xdAbsoluteMastery {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     checkAndRefreshPlayerData(player, data);
 
-                    // ponytail: lazy inventory scanning for item collect requirements every 1 second
-                    if (player.tickCount % 20 == 0 && data.getCurrentPath() != null) {
-                        for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
-                            if (path.id.equals(data.getCurrentPath())) {
-                                for (ConfigManager.Requirement req : path.requirements) {
-                                    if (req.type.equals("collect")) {
-                                        if (hasItem(player, new ResourceLocation(req.id))) {
-                                            checkAndProgressRequirement((ServerPlayer) player, "collect", req.id);
+                    // ponytail: lazy inventory scanning and armor warning checks every 1 second
+                    if (player.tickCount % 20 == 0) {
+                        if (data.getCurrentPath() != null) {
+                            for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+                                if (path.id.equals(data.getCurrentPath())) {
+                                    for (ConfigManager.Requirement req : path.requirements) {
+                                        if (req.type.equals("collect")) {
+                                            ResourceLocation reqRl = ResourceLocation.tryParse(req.id);
+                                            if (reqRl != null && hasItem(player, reqRl)) {
+                                                checkAndProgressRequirement((ServerPlayer) player, "collect", req.id);
+                                            }
                                         }
                                     }
+                                    break;
                                 }
-                                break;
+                            }
+                        }
+
+                        // Check armor warning every 1s instead of every tick
+                        for (EquipmentSlot slot : EquipmentSlot.values()) {
+                            if (slot.getType() == EquipmentSlot.Type.ARMOR) {
+                                ItemStack armorStack = player.getItemBySlot(slot);
+                                if (!armorStack.isEmpty() && !isItemValid(armorStack, data)) {
+                                    sendWarning(player, "Tu maestría rechaza esta armadura, no te protegerá");
+                                    break; // Only send one warning per check
+                                }
                             }
                         }
                     }
 
-                    // Check armor warning continuously (repeats autonomously every 5s)
-                    for (EquipmentSlot slot : EquipmentSlot.values()) {
-                        if (slot.getType() == EquipmentSlot.Type.ARMOR) {
-                            ItemStack armorStack = player.getItemBySlot(slot);
-                            if (!armorStack.isEmpty() && !isItemValid(armorStack, data)) {
-                                sendWarning(player, "Tu maestría rechaza esta armadura, no te protegerá");
-                                break; // Only send one warning per tick
-                            }
-                        }
-                    }
                     ItemStack mainHand = player.getMainHandItem();
                     ItemStack offHand = player.getOffhandItem();
 
-                    String currentMain = ForgeRegistries.ITEMS.getKey(mainHand.getItem()).toString();
-                    if (mainHand.isEmpty()) currentMain = "minecraft:air";
+                    String currentMain = "minecraft:air";
+                    if (!mainHand.isEmpty()) {
+                        ResourceLocation rl = ForgeRegistries.ITEMS.getKey(mainHand.getItem());
+                        if (rl != null) currentMain = rl.toString();
+                    }
 
-                    String currentOff = ForgeRegistries.ITEMS.getKey(offHand.getItem()).toString();
-                    if (offHand.isEmpty()) currentOff = "minecraft:air";
+                    String currentOff = "minecraft:air";
+                    if (!offHand.isEmpty()) {
+                        ResourceLocation rl = ForgeRegistries.ITEMS.getKey(offHand.getItem());
+                        if (rl != null) currentOff = rl.toString();
+                    }
 
                     String lastMain = LAST_MAINHAND.getOrDefault(uuid, "minecraft:air");
                     String lastOff = LAST_OFFHAND.getOrDefault(uuid, "minecraft:air");
@@ -904,6 +939,7 @@ public class xdAbsoluteMastery {
     public static class ConfigManager {
         private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
         public static final List<PathInfo> PATHS = new ArrayList<>();
+        public static final Map<String, PathInfo> PATHS_MAP = new HashMap<>();
         public static final Set<String> UNIVERSAL_NAMESPACES = new HashSet<>(Arrays.asList("minecraft", "tconstruct"));
         private static long configVersion = 0;
 
@@ -935,6 +971,11 @@ public class xdAbsoluteMastery {
             public String name;
             public String mod_id;
             public List<Requirement> requirements = new ArrayList<>();
+
+            // Cached TagKeys to avoid allocation in hot paths
+            public TagKey<Item> armorTag;
+            public TagKey<Item> weaponsTag;
+            public TagKey<Item> toolsTag;
         }
 
         public static void loadConfig() {
@@ -973,6 +1014,7 @@ public class xdAbsoluteMastery {
             }
 
             PATHS.clear();
+            PATHS_MAP.clear();
             if (json != null && json.has("paths")) {
                 JsonArray pathsArray = json.getAsJsonArray("paths");
                 for (int i = 0; i < pathsArray.size(); i++) {
@@ -981,6 +1023,9 @@ public class xdAbsoluteMastery {
                     info.id = pObj.get("id").getAsString();
                     info.name = pObj.get("name").getAsString();
                     info.mod_id = pObj.has("mod_id") ? pObj.get("mod_id").getAsString() : info.id;
+                    info.armorTag = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(MODID, info.id + "/armor"));
+                    info.weaponsTag = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(MODID, info.id + "/weapons"));
+                    info.toolsTag = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(MODID, info.id + "/tools"));
                     info.requirements = new ArrayList<>();
                     if (pObj.has("requirements")) {
                         JsonArray reqs = pObj.getAsJsonArray("requirements");
@@ -1011,6 +1056,7 @@ public class xdAbsoluteMastery {
                         }
                     }
                     PATHS.add(info);
+                    PATHS_MAP.put(info.id, info);
                 }
             }
         }

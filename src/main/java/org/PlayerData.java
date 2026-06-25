@@ -14,6 +14,7 @@ public class PlayerData {
     private String currentPath = null;
     private final List<String> masteredPaths = new ArrayList<>();
     private final List<String> completedRequirements = new ArrayList<>();
+    // ponytail: initialized tracks if selection was opened this session; intentionally not persisted or copied in copyFrom
     private boolean initialized = false;
 
     // cache fields (ponytail: server cache optimization)
