@@ -77,6 +77,7 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
         graphics.drawString(this.font, this.title, containerX + 15, titleY, TEXT_PRIMARY, false);
+        drawBackButton(graphics, mouseX, mouseY);
     }
 
     @Override
@@ -162,6 +163,11 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && isBackButtonClicked(mouseX, mouseY)) {
+            playClickSound();
+            Minecraft.getInstance().setScreen(this.parent);
+            return true;
+        }
         int panelX = containerX;
 
         // Mod Filter Button click

@@ -74,6 +74,7 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
         graphics.drawString(this.font, "EDITAR REQUISITO", containerX + 15, titleY, TEXT_PRIMARY, false);
+        drawBackButton(graphics, mouseX, mouseY);
     }
 
     @Override
@@ -129,6 +130,11 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && isBackButtonClicked(mouseX, mouseY)) {
+            playClickSound();
+            this.minecraft.setScreen(this.parent);
+            return true;
+        }
         if (button == 0) {
             int panelW = (int) (containerW * 0.80);
             int panelX = containerX + (containerW - panelW) / 2;

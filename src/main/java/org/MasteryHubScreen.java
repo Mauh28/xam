@@ -142,7 +142,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 // Elegir Rama
                 if (mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
                     playClickSound();
-                    this.minecraft.setScreen(new PathSelectionScreen(playerData));
+                    this.minecraft.setScreen(new PathSelectionScreen(this, playerData));
                     return true;
                 }
                 // Editor
@@ -156,7 +156,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 int startX = containerX + (containerW - btnW) / 2;
                 if (mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
                     playClickSound();
-                    this.minecraft.setScreen(new PathSelectionScreen(playerData));
+                    this.minecraft.setScreen(new PathSelectionScreen(this, playerData));
                     return true;
                 }
             }

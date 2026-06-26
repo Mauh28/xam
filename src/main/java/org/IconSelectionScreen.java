@@ -101,6 +101,7 @@ public class IconSelectionScreen extends AbstractMasteryScreen {
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
         graphics.drawString(this.font, "Seleccionar Icono de Rama", containerX + 15, titleY, COLOR_BRASS, false);
+        drawBackButton(graphics, mouseX, mouseY);
     }
 
     @Override
@@ -203,6 +204,11 @@ public class IconSelectionScreen extends AbstractMasteryScreen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && isBackButtonClicked(mouseX, mouseY)) {
+            playClickSound();
+            Minecraft.getInstance().setScreen(this.parent);
+            return true;
+        }
         if (button == 0) {
             int panelX = containerX;
             

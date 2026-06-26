@@ -1,5 +1,6 @@
 package org;
 
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -11,14 +12,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PathSelectionScreen extends AbstractMasteryScreen {
+    private final Screen parent;
     private final PlayerData playerData;
     private final List<xdAbsoluteMastery.ConfigManager.PathInfo> availablePaths = new ArrayList<>();
     private int currentPage = 0;
     private int totalPages = 1;
 
-    public PathSelectionScreen(PlayerData playerData) {
+    public PathSelectionScreen(Screen parent, PlayerData playerData) {
         super(Component.literal("SELECCIÓN DE RAMA"));
+        this.parent = parent;
         this.playerData = playerData;
+    }
+
+    public PathSelectionScreen(PlayerData playerData) {
+        this(null, playerData);
     }
 
     @Override
@@ -42,6 +49,9 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
         graphics.drawString(this.font, "SELECCIÓN DE RAMA", containerX + 15, titleY, TEXT_PRIMARY, false);
+        if (canExit()) {
+            drawBackButton(graphics, mouseX, mouseY);
+        }
     }
 
     @Override
@@ -238,6 +248,15 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && canExit() && isBackButtonClicked(mouseX, mouseY)) {
+            playClickSound();
+            if (this.parent != null) {
+                this.minecraft.setScreen(this.parent);
+            } else {
+                this.onClose();
+            }
+            return true;
+        }
         if (button == 0) {
             // Check left page button
             int prevX = containerX + 10;
@@ -329,15 +348,19 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
         return name;
     }
 
-    @Override
-    public boolean shouldCloseOnEsc() {
-        if (playerData != null && playerData.getCurrentPath() == null) {
-            for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
-                if (!playerData.getMasteredPaths().contains(path.id) && xdAbsoluteMastery.areDependenciesMastered(playerData, path)) {
-                    return false;
-                }
+    private boolean canExit() {
+        if (playerData == null) return true;
+        if (playerData.getCurrentPath() != null) return true;
+        for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
+            if (!playerData.getMasteredPaths().contains(path.id) && xdAbsoluteMastery.areDependenciesMastered(playerData, path)) {
+                return false;
             }
         }
         return true;
+    }
+
+    @Override
+    public boolean shouldCloseOnEsc() {
+        return canExit();
     }
 }

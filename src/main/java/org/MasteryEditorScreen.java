@@ -152,6 +152,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
         graphics.drawString(this.font, "EDITOR DE MAESTRÍAS", containerX + 15, titleY, COLOR_BRASS, false);
+        drawBackButton(graphics, mouseX, mouseY);
     }
 
     @Override
@@ -492,6 +493,15 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && isBackButtonClicked(mouseX, mouseY)) {
+            playClickSound();
+            if (this.parent != null) {
+                this.minecraft.setScreen(this.parent);
+            } else {
+                this.onClose();
+            }
+            return true;
+        }
         int sidebarW = (int) (containerW * 0.25);
         int editorX = containerX + sidebarW + 2;
         int editorW = containerW - sidebarW - 4;

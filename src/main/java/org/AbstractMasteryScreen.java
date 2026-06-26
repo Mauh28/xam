@@ -101,6 +101,22 @@ public abstract class AbstractMasteryScreen extends Screen {
         );
     }
 
+    protected boolean drawBackButton(GuiGraphics graphics, int mouseX, int mouseY) {
+        int btnW = 60;
+        int btnH = 20;
+        int btnX = containerX + containerW - 15 - btnW;
+        int btnY = containerY + (headerH - btnH) / 2;
+        return drawFlatButton(graphics, btnX, btnY, btnW, btnH, "Volver", mouseX, mouseY, true);
+    }
+
+    protected boolean isBackButtonClicked(double mouseX, double mouseY) {
+        int btnW = 60;
+        int btnH = 20;
+        int btnX = containerX + containerW - 15 - btnW;
+        int btnY = containerY + (headerH - btnH) / 2;
+        return mouseX >= btnX && mouseX < btnX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
+    }
+
     @Override
     public void renderBackground(GuiGraphics graphics) {
         // Nativo blur overlay de Minecraft
