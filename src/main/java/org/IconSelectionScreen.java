@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class ItemSelectionScreen extends AbstractMasteryScreen {
+public class IconSelectionScreen extends AbstractMasteryScreen {
     private final Screen parent;
     private final Consumer<Item> onSelect;
     private final List<Item> allEntries = new ArrayList<>();
@@ -30,8 +30,8 @@ public class ItemSelectionScreen extends AbstractMasteryScreen {
     
     private boolean isDraggingScrollbar = false;
 
-    public ItemSelectionScreen(Screen parent, Consumer<Item> onSelect) {
-        super(Component.literal("Seleccionar Ítem"));
+    public IconSelectionScreen(Screen parent, Consumer<Item> onSelect) {
+        super(Component.literal("Seleccionar Icono"));
         this.parent = parent;
         this.onSelect = onSelect;
     }
@@ -89,7 +89,7 @@ public class ItemSelectionScreen extends AbstractMasteryScreen {
     @Override
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
-        graphics.drawString(this.font, "Seleccionar Ítem / Bloque", containerX + 15, titleY, COLOR_BRASS, false);
+        graphics.drawString(this.font, "Seleccionar Icono de Rama", containerX + 15, titleY, COLOR_BRASS, false);
     }
 
     @Override

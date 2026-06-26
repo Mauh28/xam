@@ -189,7 +189,7 @@ public class AdvancementSelectionScreen extends AbstractPickerScreen<Advancement
             idStr = idStr.substring(0, 28) + "..";
         }
         
-        guiGraphics.drawString(this.font, titleText, x + 6, y + 2, hovered ? 0xFFFFD700 : 0xFFFFFF, false);
+        guiGraphics.drawString(this.font, titleText, x + 6, y + 2, hovered ? COLOR_BRASS : 0xFFFFFF, false);
         guiGraphics.drawString(this.font, idStr, x + 6, y + 11, 0x888888, false);
     }
 

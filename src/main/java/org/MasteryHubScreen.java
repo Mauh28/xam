@@ -53,7 +53,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
         int panelX = containerX + (containerW - panelW) / 2;
         int panelY = bodyY + (bodyH - panelH) / 2;
 
-        drawFlatPanel(graphics, panelX, panelY, panelW, panelH, WIDGET_BACKGROUND, BORDER_STANDARD);
+        drawFlatPanel(graphics, panelX, panelY, panelW, panelH, currentWidgetBg, currentBorderStd);
 
         String activePath = "Ninguna";
         int activeColor = TEXT_MUTED;
@@ -91,7 +91,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
 
         // Row 1: Rama Activa
         int row1Y = panelY + (panelH / 2 - 8) / 2;
-        graphics.drawString(this.font, "Rama Activa:", panelX + 20, row1Y, TEXT_SECONDARY, false);
+        graphics.drawString(this.font, "Rama Activa:", panelX + 20, row1Y, COLOR_BRASS, false);
         
         int activeTextW = this.font.width(activePath);
         int maxValW = panelW / 2 - 25;
@@ -101,13 +101,13 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
         }
         graphics.drawString(this.font, activePath, panelX + panelW - 20 - activeTextW, row1Y, activeColor, false);
 
-        // Stats Separator Line: 1px (0xFF333333)
+        // Stats Separator Line: 1px
         int sepY = panelY + panelH / 2;
-        graphics.fill(panelX + 20, sepY, panelX + panelW - 20, sepY + 1, 0xFF333333);
+        graphics.fill(panelX + 20, sepY, panelX + panelW - 20, sepY + 1, currentBorderStd);
 
         // Row 2: Ramas Dominadas
         int row2Y = panelY + panelH / 2 + (panelH / 2 - 8) / 2;
-        graphics.drawString(this.font, "Ramas Dominadas:", panelX + 20, row2Y, TEXT_SECONDARY, false);
+        graphics.drawString(this.font, "Ramas Dominadas:", panelX + 20, row2Y, COLOR_BRASS, false);
         
         int masteredTextW = this.font.width(masteredPaths);
         if (masteredTextW > maxValW) {

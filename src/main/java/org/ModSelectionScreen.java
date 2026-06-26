@@ -40,7 +40,7 @@ public class ModSelectionScreen extends AbstractPickerScreen<String> {
 
     @Override
     protected void renderEntry(GuiGraphics guiGraphics, String entry, int x, int y, int index, boolean hovered) {
-        guiGraphics.drawString(this.font, entry, x + 6, y + 6, hovered ? 0xFFFFD700 : 0xFFFFFF, false);
+        guiGraphics.drawString(this.font, entry, x + 6, y + 6, hovered ? COLOR_BRASS : 0xFFFFFF, false);
     }
 
     @Override

@@ -103,11 +103,14 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             xdAbsoluteMastery.ConfigManager.PathInfo path = availablePaths.get(startIndex + i);
             int cardX = containerX + 60 + gap + i * (cardW + gap);
 
+            boolean isUnlocked = xdAbsoluteMastery.areDependenciesMastered(playerData, path);
             boolean cardHovered = mouseX >= cardX && mouseX < cardX + cardW && mouseY >= cardY && mouseY < cardY + cardH;
-            int borderColor = cardHovered ? 0xFFAAAAAA : BORDER_INNER;
+            
+            int cardBg = isUnlocked ? currentWidgetBg : 0xFF181515;
+            int cardBorder = isUnlocked ? (cardHovered ? COLOR_BRASS : currentBorderStd) : (cardHovered ? 0xFF884444 : 0xFF553333);
 
             // Draw Card Panel
-            drawFlatPanel(graphics, cardX, cardY, cardW, cardH, WIDGET_BACKGROUND, borderColor);
+            drawFlatPanel(graphics, cardX, cardY, cardW, cardH, cardBg, cardBorder);
 
             // Card Height Breakdowns:
             int cabH = (int) (cardH * 0.20);
@@ -120,7 +123,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             int sqY = cardY + (cabH - sqSize) / 2;
             drawFlatPanel(graphics, sqX, sqY, sqSize, sqSize, INPUT_BACKGROUND, 0xFF555555);
 
-            ItemStack icon = getIconForPath(path.id);
+            ItemStack icon = getIconForPath(path);
             graphics.renderFakeItem(icon, sqX + (sqSize - 16) / 2, sqY + (sqSize - 16) / 2);
 
             String nameText = path.name;
@@ -128,11 +131,11 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             if (this.font.width(nameText) > nameMaxW) {
                 nameText = this.font.plainSubstrByWidth(nameText, nameMaxW - 10) + "...";
             }
-            graphics.drawString(this.font, nameText, cardX + sqSize + 14, cardY + (cabH - 18) / 2, TEXT_PRIMARY, false);
+            graphics.drawString(this.font, nameText, cardX + sqSize + 14, cardY + (cabH - 18) / 2, COLOR_BRASS, false);
 
             String modText = path.mod_id;
             int labelW = Math.min(this.font.width(modText) + 8, nameMaxW);
-            drawFlatPanel(graphics, cardX + sqSize + 14, cardY + cabH - 14, labelW, 11, 0xFF353535, BORDER_INNER);
+            drawFlatPanel(graphics, cardX + sqSize + 14, cardY + cabH - 14, labelW, 11, 0xFF2A201C, currentBorderStd);
             String dispMod = modText;
             if (this.font.width(modText) > labelW - 6) {
                 dispMod = this.font.plainSubstrByWidth(modText, labelW - 10) + "..";
@@ -140,44 +143,71 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             graphics.drawString(this.font, dispMod, cardX + sqSize + 18, cardY + cabH - 12, TEXT_MUTED, false);
 
             // Cabeza bottom line divider
-            graphics.fill(cardX + 2, cardY + cabH, cardX + cardW - 2, cardY + cabH + 2, BORDER_INNER);
+            graphics.fill(cardX + 2, cardY + cabH, cardX + cardW - 2, cardY + cabH + 2, currentBorderStd);
 
             // 2. Cuerpo (60%)
-            graphics.drawString(this.font, "Requisitos", cardX + 10, cardY + cabH + 6, TEXT_MUTED, false);
-            int labelWidth = this.font.width("Requisitos");
-            graphics.fill(cardX + 10, cardY + cabH + 15, cardX + 10 + labelWidth, cardY + cabH + 16, 0xFF555555);
+            if (isUnlocked) {
+                graphics.drawString(this.font, "Requisitos", cardX + 10, cardY + cabH + 6, COLOR_BRASS, false);
+                int labelWidth = this.font.width("Requisitos");
+                graphics.fill(cardX + 10, cardY + cabH + 15, cardX + 10 + labelWidth, cardY + cabH + 16, COLOR_COPPER);
 
-            // Clipping/Scissor region for requirements list text
-            double scale = Minecraft.getInstance().getWindow().getGuiScale();
-            int scissorX = (int) (cardX * scale);
-            int scissorY = (int) ((this.height - (cardY + cabH + bodyReqH)) * scale);
-            int scissorW = (int) (cardW * scale);
-            int scissorH = (int) ((bodyReqH - 18) * scale);
+                // Clipping/Scissor region for requirements list text
+                double scale = Minecraft.getInstance().getWindow().getGuiScale();
+                int scissorX = (int) (cardX * scale);
+                int scissorY = (int) ((this.height - (cardY + cabH + bodyReqH)) * scale);
+                int scissorW = (int) (cardW * scale);
+                int scissorH = (int) ((bodyReqH - 18) * scale);
 
-            RenderSystem.enableScissor(scissorX, scissorY, scissorW, scissorH);
+                RenderSystem.enableScissor(scissorX, scissorY, scissorW, scissorH);
 
-            int reqY = cardY + cabH + 20;
-            for (xdAbsoluteMastery.ConfigManager.Requirement req : path.requirements) {
-                String label = formatRequirement(req);
-                if (this.font.width(label) > cardW - 26) {
-                    label = this.font.plainSubstrByWidth(label, cardW - 36) + "...";
+                int reqY = cardY + cabH + 20;
+                for (xdAbsoluteMastery.ConfigManager.Requirement req : path.requirements) {
+                    String label = formatRequirement(req);
+                    if (this.font.width(label) > cardW - 26) {
+                        label = this.font.plainSubstrByWidth(label, cardW - 36) + "...";
+                    }
+                    graphics.fill(cardX + 10, reqY + 2, cardX + 14, reqY + 6, TEXT_MUTED);
+                    graphics.drawString(this.font, label, cardX + 18, reqY, TEXT_SECONDARY, false);
+                    reqY += 10;
                 }
-                graphics.fill(cardX + 10, reqY + 2, cardX + 14, reqY + 6, TEXT_MUTED);
-                graphics.drawString(this.font, label, cardX + 18, reqY, TEXT_SECONDARY, false);
-                reqY += 10;
+
+                RenderSystem.disableScissor();
+            } else {
+                graphics.drawString(this.font, "Requiere Dominar:", cardX + 10, cardY + cabH + 6, 0xFFFF5555, false);
+                int labelWidth = this.font.width("Requiere Dominar:");
+                graphics.fill(cardX + 10, cardY + cabH + 15, cardX + 10 + labelWidth, cardY + cabH + 16, 0xFF772222);
+
+                int reqY = cardY + cabH + 20;
+                List<String> missingNames = new ArrayList<>();
+                for (String depId : path.dependencies) {
+                    if (playerData == null || !playerData.getMasteredPaths().contains(depId)) {
+                        xdAbsoluteMastery.ConfigManager.PathInfo depPath = xdAbsoluteMastery.ConfigManager.PATHS_MAP.get(depId);
+                        if (depPath != null) {
+                            missingNames.add(depPath.name);
+                        } else {
+                            missingNames.add(depId);
+                        }
+                    }
+                }
+                for (String missingName : missingNames) {
+                    String label = "• " + missingName;
+                    if (this.font.width(label) > cardW - 20) {
+                        label = this.font.plainSubstrByWidth(label, cardW - 30) + "...";
+                    }
+                    graphics.drawString(this.font, label, cardX + 10, reqY, TEXT_MUTED, false);
+                    reqY += 10;
+                }
             }
 
-            RenderSystem.disableScissor();
-
             // Cuerpo bottom line divider
-            graphics.fill(cardX + 2, cardY + cabH + bodyReqH, cardX + cardW - 2, cardY + cabH + bodyReqH + 2, BORDER_INNER);
+            graphics.fill(cardX + 2, cardY + cabH + bodyReqH, cardX + cardW - 2, cardY + cabH + bodyReqH + 2, currentBorderStd);
 
             // 3. Pie (20%)
             int btnX = cardX + 8;
             int btnY = cardY + cabH + bodyReqH + 4;
             int btnW = cardW - 16;
             int btnH = pieH - 8;
-            drawFlatButton(graphics, btnX, btnY, btnW, btnH, "ELEGIR CAMINO", mouseX, mouseY, true);
+            drawFlatButton(graphics, btnX, btnY, btnW, btnH, isUnlocked ? "ELEGIR CAMINO" : "BLOQUEADO", mouseX, mouseY, isUnlocked);
         }
     }
 
@@ -218,13 +248,14 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
 
             for (int i = 0; i < (endIndex - startIndex); i++) {
                 xdAbsoluteMastery.ConfigManager.PathInfo path = availablePaths.get(startIndex + i);
+                boolean isUnlocked = xdAbsoluteMastery.areDependenciesMastered(playerData, path);
                 int cardX = containerX + 60 + gap + i * (cardW + gap);
                 int btnX = cardX + 8;
                 int btnY = cardY + cabH + bodyReqH + 4;
                 int btnW = cardW - 16;
                 int btnH = pieH - 8;
 
-                if (mouseX >= btnX && mouseX < btnX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
+                if (isUnlocked && mouseX >= btnX && mouseX < btnX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
                     playClickSound();
                     xdAbsoluteMastery.CHANNEL.sendToServer(new xdAbsoluteMastery.SelectPathPacket(path.id));
                     this.onClose();
@@ -235,10 +266,16 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    private ItemStack getIconForPath(String pathId) {
-        if (pathId.equals("botania")) {
+    private ItemStack getIconForPath(xdAbsoluteMastery.ConfigManager.PathInfo path) {
+        if (path.icon != null) {
+            net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(path.icon));
+            if (item != null) {
+                return new ItemStack(item);
+            }
+        }
+        if (path.id.equals("botania")) {
             return new ItemStack(Items.POPPY);
-        } else if (pathId.equals("mekanism")) {
+        } else if (path.id.equals("mekanism")) {
             return new ItemStack(Items.REDSTONE);
         }
         return new ItemStack(Items.WRITABLE_BOOK);
@@ -267,7 +304,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
     public boolean shouldCloseOnEsc() {
         if (playerData != null && playerData.getCurrentPath() == null) {
             for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
-                if (!playerData.getMasteredPaths().contains(path.id)) {
+                if (!playerData.getMasteredPaths().contains(path.id) && xdAbsoluteMastery.areDependenciesMastered(playerData, path)) {
                     return false;
                 }
             }

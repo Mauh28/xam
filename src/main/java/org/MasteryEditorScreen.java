@@ -38,6 +38,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             p.id = path.id;
             p.name = path.name;
             p.mod_id = path.mod_id;
+            p.icon = path.icon;
+            p.dependencies = new ArrayList<>(path.dependencies);
             p.requirements = new ArrayList<>();
             for (Requirement req : path.requirements) {
                 Requirement r = new Requirement();
@@ -66,11 +68,15 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
 
         int inputH = (int) (editorH * 0.10);
 
-        int titleW = (int) ((editorW - 50) * 0.60);
-        int titleX = editorX + 20;
+        int iconW = 20;
+        int iconX = editorX + 20;
+        int iconY = bodyY + 15;
+
+        int titleW = (int) ((editorW - 80) * 0.60);
+        int titleX = iconX + iconW + 10;
         int titleY = bodyY + 15;
 
-        int modW = (int) ((editorW - 50) * 0.40);
+        int modW = (int) ((editorW - 80) * 0.40);
         int modX = titleX + titleW + 10;
         int modY = bodyY + 15;
 
@@ -141,7 +147,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     @Override
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
-        graphics.drawString(this.font, "EDITOR DE MAESTRÍAS", containerX + 15, titleY, TEXT_PRIMARY, false);
+        graphics.drawString(this.font, "EDITOR DE MAESTRÍAS", containerX + 15, titleY, COLOR_BRASS, false);
     }
 
     @Override
@@ -151,8 +157,20 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int startX = containerX + containerW - 15 - (btnW * 2 + 10);
         int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
 
-        drawFlatButton(graphics, startX, btnY, btnW, btnH, "Descartar Todo", mouseX, mouseY, true);
-        drawFlatButton(graphics, startX + btnW + 10, btnY, btnW, btnH, "Guardar Estructura", mouseX, mouseY, true, true);
+        // Custom Discard button (dark red/grey)
+        boolean discHovered = mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
+        int discBg = discHovered ? 0xFF2A1C1A : 0xFF1C1312;
+        int discBorder = discHovered ? 0xFFFF5555 : 0xFF3E2D2B;
+        drawFlatPanel(graphics, startX, btnY, btnW, btnH, discBg, discBorder);
+        graphics.drawCenteredString(this.font, "Descartar Todo", startX + btnW / 2, btnY + 6, discHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
+
+        // Custom Save button (copper/brass)
+        int saveX = startX + btnW + 10;
+        boolean saveHovered = mouseX >= saveX && mouseX < saveX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
+        int saveBg = saveHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
+        int saveBorder = saveHovered ? COLOR_BRASS : 0xFF2C221D;
+        drawFlatPanel(graphics, saveX, btnY, btnW, btnH, saveBg, saveBorder);
+        graphics.drawCenteredString(this.font, "Guardar Estructura", saveX + btnW / 2, btnY + 6, TEXT_PRIMARY);
     }
 
     @Override
@@ -166,11 +184,11 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int sidebarY = bodyY;
 
         // Draw Sidebar Background & Border right
-        graphics.fill(sidebarX, sidebarY, sidebarX + sidebarW, sidebarY + sidebarH, WIDGET_BACKGROUND);
-        graphics.fill(sidebarX + sidebarW, sidebarY, sidebarX + sidebarW + 2, sidebarY + sidebarH, BORDER_STANDARD);
+        graphics.fill(sidebarX, sidebarY, sidebarX + sidebarW, sidebarY + sidebarH, PANEL_INNER_BG);
+        graphics.fill(sidebarX + sidebarW, sidebarY, sidebarX + sidebarW + 2, sidebarY + sidebarH, COLOR_COPPER);
 
         // Sidebar title
-        graphics.drawString(this.font, "RAMAS", sidebarX + 15, sidebarY + 10, TEXT_MUTED, false);
+        graphics.drawString(this.font, "RAMAS", sidebarX + 15, sidebarY + 10, COLOR_BRASS, false);
 
         // Render sidebar branch items
         int listX = sidebarX + 10;
@@ -185,21 +203,50 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             boolean itemHovered = mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + itemH;
             boolean isActive = (i == selectedPathIndex);
 
-            int bg = isActive ? 0xFF353535 : (itemHovered ? 0xFF2F2F2F : WIDGET_INNER);
-            int border = isActive ? BORDER_STANDARD : BORDER_INNER;
+            int bg = isActive ? 0xFF2C221D : (itemHovered ? 0xFF1C1613 : 0xFF14100E);
+            int border = isActive ? COLOR_BRASS : (itemHovered ? COLOR_COPPER : 0xFF332D29);
 
             drawFlatPanel(graphics, listX, itemY, itemW, itemH, bg, border);
 
             String name = p.name;
-            if (this.font.width(name) > itemW - 16) {
-                name = this.font.plainSubstrByWidth(name, itemW - 24) + "..";
+            int textX = listX + 8;
+
+            net.minecraft.world.item.ItemStack iconStack = net.minecraft.world.item.ItemStack.EMPTY;
+            if (p.icon != null) {
+                net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(p.icon));
+                if (item != null) {
+                    iconStack = new net.minecraft.world.item.ItemStack(item);
+                }
             }
-            graphics.drawString(this.font, name, listX + 8, itemY + 5, TEXT_PRIMARY, false);
+            if (iconStack.isEmpty()) {
+                if (p.id.equals("botania")) {
+                    iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.POPPY);
+                } else if (p.id.equals("mekanism")) {
+                    iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE);
+                } else {
+                    iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
+                }
+            }
+
+            if (!iconStack.isEmpty()) {
+                graphics.renderFakeItem(iconStack, listX + 2, itemY + 1);
+                textX = listX + 20;
+            }
+
+            int textMaxW = itemW - (textX - listX) - 4;
+            if (this.font.width(name) > textMaxW) {
+                name = this.font.plainSubstrByWidth(name, textMaxW - 8) + "..";
+            }
+            graphics.drawString(this.font, name, textX, itemY + 5, isActive ? COLOR_BRASS : (itemHovered ? TEXT_PRIMARY : TEXT_SECONDARY), false);
         }
 
         // Sidebar Add Branch Button
         int addPathBtnY = sidebarY + sidebarH - 25;
-        drawFlatButton(graphics, listX, addPathBtnY, itemW, 18, "+ AÑADIR RAMA", mouseX, mouseY, true);
+        boolean addHovered = mouseX >= listX && mouseX < listX + itemW && mouseY >= addPathBtnY && mouseY < addPathBtnY + 18;
+        int addBg = addHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
+        int addBorder = addHovered ? COLOR_BRASS : 0xFF2C221D;
+        drawFlatPanel(graphics, listX, addPathBtnY, itemW, 18, addBg, addBorder);
+        graphics.drawCenteredString(this.font, "+ AÑADIR RAMA", listX + itemW / 2, addPathBtnY + 5, TEXT_PRIMARY);
 
         // --- RIGHT COLUMN (Editor - 75% of body width) ---
         int editorX = containerX + sidebarW + 2;
@@ -210,36 +257,81 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             PathInfo p = localPaths.get(selectedPathIndex);
 
             int inputH = (int) (editorH * 0.10);
-            int titleW = (int) ((editorW - 50) * 0.60);
-            int titleX = editorX + 20;
+            
+            int iconW = 20;
+            int iconX = editorX + 20;
+            int iconY = bodyY + 15;
+
+            int titleW = (int) ((editorW - 80) * 0.60);
+            int titleX = iconX + iconW + 10;
             int titleY = bodyY + 15;
 
-            int modW = (int) ((editorW - 50) * 0.40);
+            int modW = (int) ((editorW - 80) * 0.40);
             int modX = titleX + titleW + 10;
             int modY = bodyY + 15;
 
+            // Enclosing metadata frame
+            drawFlatPanel(graphics, editorX + 10, bodyY + 5, editorW - 20, inputH + 18, PANEL_INNER_BG, 0xFF2A201C);
+
             // Inputs Labels
-            graphics.drawString(this.font, "Título", titleX, titleY - 11, TEXT_MUTED, false);
-            graphics.drawString(this.font, "Namespace MOD", modX, modY - 11, TEXT_MUTED, false);
+            graphics.drawString(this.font, "Icono", iconX, iconY - 11, COLOR_BRASS, false);
+            graphics.drawString(this.font, "Título", titleX, titleY - 11, COLOR_BRASS, false);
+            graphics.drawString(this.font, "Namespace MOD", modX, modY - 11, COLOR_BRASS, false);
+
+            // Icon background panel
+            boolean iconHovered = mouseX >= iconX && mouseX < iconX + iconW && mouseY >= iconY && mouseY < iconY + iconW;
+            int iconBg = iconHovered ? 0xFF2C221D : INPUT_BACKGROUND;
+            int iconBorder = iconHovered ? COLOR_BRASS : COLOR_COPPER;
+            drawFlatPanel(graphics, iconX, iconY, iconW, iconW, iconBg, iconBorder);
+
+            // Render current path icon in slot
+            net.minecraft.world.item.ItemStack branchIconStack = net.minecraft.world.item.ItemStack.EMPTY;
+            if (p.icon != null) {
+                net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(p.icon));
+                if (item != null) {
+                    branchIconStack = new net.minecraft.world.item.ItemStack(item);
+                }
+            }
+            if (branchIconStack.isEmpty()) {
+                if (p.id.equals("botania")) {
+                    branchIconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.POPPY);
+                } else if (p.id.equals("mekanism")) {
+                    branchIconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE);
+                } else {
+                    branchIconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
+                }
+            }
+            graphics.renderFakeItem(branchIconStack, iconX + 2, iconY + 2);
 
             // Inputs Background Panels
             int modEditW = modW - 25;
-            drawFlatPanel(graphics, titleX, titleY, titleW, 20, INPUT_BACKGROUND, BORDER_STANDARD);
-            drawFlatPanel(graphics, modX, modY, modEditW, 20, INPUT_BACKGROUND, BORDER_STANDARD);
-            drawFlatButton(graphics, modX + modEditW + 5, modY, 20, 20, "...", mouseX, mouseY, true);
+            drawFlatPanel(graphics, titleX, titleY, titleW, 20, INPUT_BACKGROUND, COLOR_COPPER);
+            drawFlatPanel(graphics, modX, modY, modEditW, 20, INPUT_BACKGROUND, COLOR_COPPER);
+
+            // Copper "..." selection button
+            int browseX = modX + modEditW + 5;
+            boolean browseHovered = mouseX >= browseX && mouseX < browseX + 20 && mouseY >= modY && mouseY < modY + 20;
+            int browseBg = browseHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
+            int browseBorder = browseHovered ? COLOR_BRASS : 0xFF2C221D;
+            drawFlatPanel(graphics, browseX, modY, 20, 20, browseBg, browseBorder);
+            graphics.drawCenteredString(this.font, "...", browseX + 10, modY + 6, TEXT_PRIMARY);
 
             // Requisitos Section
             int reqTitleY = bodyY + 15 + inputH + 15;
-            graphics.drawString(this.font, "REQUISITOS", editorX + 20, reqTitleY, TEXT_MUTED, false);
+            graphics.drawString(this.font, "REQUISITOS", editorX + 20, reqTitleY, COLOR_BRASS, false);
             int reqTitleW = this.font.width("REQUISITOS");
-            graphics.fill(editorX + 20, reqTitleY + 10, editorX + 20 + reqTitleW, reqTitleY + 11, 0xFF555555);
+            graphics.fill(editorX + 20, reqTitleY + 10, editorX + 20 + reqTitleW, reqTitleY + 11, COLOR_COPPER);
 
-            // Button "+ AÑADIR ESCENA"
+            // Button "+ AÑADIR ESCENA" with Cobre Ponder style
             int addReqBtnX = editorX + editorW - 120;
             int addReqBtnY = reqTitleY - 4;
             int addReqBtnW = 100;
             int addReqBtnH = 16;
-            drawFlatButton(graphics, addReqBtnX, addReqBtnY, addReqBtnW, addReqBtnH, "+ AÑADIR ESCENA", mouseX, mouseY, true);
+            boolean addReqHovered = mouseX >= addReqBtnX && mouseX < addReqBtnX + addReqBtnW && mouseY >= addReqBtnY && mouseY < addReqBtnY + addReqBtnH;
+            int addReqBg = addReqHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
+            int addReqBorder = addReqHovered ? COLOR_BRASS : 0xFF2C221D;
+            drawFlatPanel(graphics, addReqBtnX, addReqBtnY, addReqBtnW, addReqBtnH, addReqBg, addReqBorder);
+            graphics.drawCenteredString(this.font, "+ AÑADIR ESCENA", addReqBtnX + addReqBtnW / 2, addReqBtnY + 4, TEXT_PRIMARY);
 
             // Requirements Scissor Region & Scrollbar logic
             int startCardY = reqTitleY + 16;
@@ -264,28 +356,50 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 // Render requirement card
                 boolean delHovered = mouseX >= cardX + cardW - 40 && mouseX < cardX + cardW && mouseY >= cardY && mouseY < cardY + cardH;
 
-                drawFlatPanel(graphics, cardX, cardY, cardW, cardH, PANEL_BACKGROUND, BORDER_INNER);
+                drawFlatPanel(graphics, cardX, cardY, cardW, cardH, PANEL_INNER_BG, 0xFF2A201C);
 
-                // 1. Caja de Tipo (80px wide)
-                int typeBg = 0xFF2A2200; // Craft
+                // 1. Tag Pill & Dynamic Icon
+                net.minecraft.world.item.ItemStack renderStack = net.minecraft.world.item.ItemStack.EMPTY;
+                int typeBg = 0xFF2C221A;
+                int typeBorder = COLOR_COPPER;
                 int typeFg = 0xFFFFAA00;
                 String typeLabel = "CRAFT";
-                if (req.type.equals("kill")) {
-                    typeBg = 0xFF2A0000;
-                    typeFg = 0xFFFF5555;
-                    typeLabel = "KILL";
+
+                if (req.type.equals("craft")) {
+                    typeBg = 0xFF2C221A;
+                    typeBorder = COLOR_COPPER;
+                    typeFg = 0xFFFFAA00;
+                    typeLabel = "CRAFT";
+                    net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(req.id));
+                    if (item != null) renderStack = new net.minecraft.world.item.ItemStack(item);
                 } else if (req.type.equals("collect")) {
-                    typeBg = 0xFF002A00;
+                    typeBg = 0xFF152615;
+                    typeBorder = 0xFF3F8F3F;
                     typeFg = 0xFF55FF55;
                     typeLabel = "COLLECT";
+                    net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(req.id));
+                    if (item != null) renderStack = new net.minecraft.world.item.ItemStack(item);
+                } else if (req.type.equals("kill")) {
+                    typeBg = 0xFF2A1515;
+                    typeBorder = 0xFF9E2A2A;
+                    typeFg = 0xFFFF5555;
+                    typeLabel = "KILL";
+                    renderStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_SWORD);
                 } else if (req.type.equals("advancement")) {
-                    typeBg = 0xFF002A2A;
+                    typeBg = 0xFF152A2A;
+                    typeBorder = 0xFF2A9E9E;
                     typeFg = 0xFF55FFFF;
                     typeLabel = "LOGRO";
+                    renderStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
                 }
-                graphics.fill(cardX + 2, cardY + 2, cardX + 80, cardY + cardH - 2, typeBg);
-                graphics.fill(cardX + 80, cardY + 2, cardX + 82, cardY + cardH - 2, BORDER_INNER); // Separator
-                graphics.drawCenteredString(this.font, typeLabel, cardX + 41, cardY + (cardH - 8) / 2, typeFg);
+
+                drawFlatPanel(graphics, cardX + 4, cardY + 4, 76, cardH - 8, typeBg, typeBorder);
+                if (!renderStack.isEmpty()) {
+                    graphics.renderFakeItem(renderStack, cardX + 8, cardY + 12);
+                    graphics.drawString(this.font, typeLabel, cardX + 28, cardY + 16, typeFg, false);
+                } else {
+                    graphics.drawCenteredString(this.font, typeLabel, cardX + 42, cardY + 16, typeFg);
+                }
 
                 // 2. Info (Flex width: cardW - 120)
                 String nameText = req.name;
@@ -294,36 +408,36 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 if (this.font.width(nameText) > infoMaxW) {
                     nameText = this.font.plainSubstrByWidth(nameText, infoMaxW - 10) + "...";
                 }
-                graphics.drawString(this.font, nameText, cardX + 86, cardY + 8, TEXT_PRIMARY, false);
+                graphics.drawString(this.font, nameText, cardX + 86, cardY + 8, COLOR_BRASS, false);
 
                 String descText = req.description;
                 if (descText.isEmpty()) descText = req.id;
                 if (this.font.width(descText) > infoMaxW) {
                     descText = this.font.plainSubstrByWidth(descText, infoMaxW - 10) + "...";
                 }
-                graphics.drawString(this.font, descText, cardX + 86, cardY + 24, TEXT_MUTED, false);
+                graphics.drawString(this.font, descText, cardX + 86, cardY + 24, TEXT_SECONDARY, false);
 
-                // 3. Botón Eliminar (40px wide)
-                int delBg = 0xFF1E1E1E;
-                int delFg = delHovered ? 0xFFFF4444 : TEXT_MUTED;
+                // 3. Botón Eliminar (40px wide) with Ponder copper/red style
+                int delBg = delHovered ? 0xFF3A1111 : 0xFF140F0D;
+                int delFg = delHovered ? 0xFFFF5555 : TEXT_MUTED;
                 graphics.fill(cardX + cardW - 40, cardY + 2, cardX + cardW - 2, cardY + cardH - 2, delBg);
-                graphics.fill(cardX + cardW - 40, cardY + 2, cardX + cardW - 38, cardY + cardH - 2, BORDER_INNER); // Separator
-                graphics.drawCenteredString(this.font, "✕", cardX + cardW - 20, cardY + (cardH - 8) / 2, delFg);
+                graphics.fill(cardX + cardW - 40, cardY + 2, cardX + cardW - 38, cardY + cardH - 2, 0xFF2A201C); // Separator
+                graphics.drawCenteredString(this.font, "✕", cardX + cardW - 20, cardY + 16, delFg);
             }
 
             RenderSystem.disableScissor();
 
-            // Render scrollbar if visible cards overflow
+            // Render scrollbar if visible cards overflow with Cobre style
             int totalReqsH = p.requirements.size() * 46;
             if (totalReqsH > reqListH) {
                 int scrollbarX = editorX + editorW - 15;
                 int scrollbarY = startCardY;
-                graphics.fill(scrollbarX, scrollbarY, scrollbarX + 4, scrollbarY + reqListH, 0x33FFFFFF);
+                graphics.fill(scrollbarX, scrollbarY, scrollbarX + 4, scrollbarY + reqListH, 0xFF2A201C);
 
                 float fraction = (float) scrollY / (totalReqsH - reqListH);
                 int thumbH = Math.max(12, (int) (((float) reqListH / totalReqsH) * reqListH));
                 int thumbY = scrollbarY + (int) (fraction * (reqListH - thumbH));
-                graphics.fill(scrollbarX, thumbY, scrollbarX + 4, thumbY + thumbH, BORDER_STANDARD);
+                graphics.fill(scrollbarX, thumbY, scrollbarX + 4, thumbY + thumbH, COLOR_COPPER);
             }
 
             // Render context menu if active
@@ -427,18 +541,37 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         }
 
         if (button == 0) {
-            // Mod ID "..." button click
             if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
                 PathInfo p = localPaths.get(selectedPathIndex);
                 int inputH = (int) (editorH * 0.10);
-                int titleW = (int) ((editorW - 50) * 0.60);
-                int titleX = editorX + 20;
-                int modW = (int) ((editorW - 50) * 0.40);
+                
+                int iconW = 20;
+                int iconX = editorX + 20;
+                int iconY = bodyY + 15;
+
+                int titleW = (int) ((editorW - 80) * 0.60);
+                int titleX = iconX + iconW + 10;
+
+                int modW = (int) ((editorW - 80) * 0.40);
                 int modX = titleX + titleW + 10;
                 int modY = bodyY + 15;
                 int modEditW = modW - 25;
-                int btnX = modX + modEditW + 5;
+                
+                // Icon button click
+                if (mouseX >= iconX && mouseX < iconX + iconW && mouseY >= iconY && mouseY < iconY + iconW) {
+                    playClickSound();
+                    Minecraft.getInstance().setScreen(new IconSelectionScreen(this, item -> {
+                        net.minecraft.resources.ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(item);
+                        if (rl != null) {
+                            p.icon = rl.toString();
+                        }
+                        Minecraft.getInstance().setScreen(this);
+                    }));
+                    return true;
+                }
 
+                // Mod ID "..." button click
+                int btnX = modX + modEditW + 5;
                 if (mouseX >= btnX && mouseX < btnX + 20 && mouseY >= modY && mouseY < modY + 20) {
                     playClickSound();
                     Minecraft.getInstance().setScreen(new ModSelectionScreen(this, modId -> {
@@ -570,6 +703,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         p.id = "nueva_rama_" + (System.currentTimeMillis() % 1000);
         p.name = "Nueva Rama";
         p.mod_id = "modid";
+        p.icon = "minecraft:writable_book";
         p.requirements = new ArrayList<>();
         localPaths.add(p);
         selectedPathIndex = localPaths.size() - 1;

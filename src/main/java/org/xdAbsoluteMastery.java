@@ -221,15 +221,25 @@ public class xdAbsoluteMastery {
         });
     }
 
+    public static boolean areDependenciesMastered(PlayerData data, ConfigManager.PathInfo path) {
+        if (path.dependencies == null || path.dependencies.isEmpty()) return true;
+        for (String dep : path.dependencies) {
+            if (!data.getMasteredPaths().contains(dep)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // ponytail: returns true if the player must select a path before doing anything
     public static boolean mustSelectPath(PlayerData data) {
         if (data.getCurrentPath() != null) return false;
         for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
-            if (!data.getMasteredPaths().contains(path.id)) {
+            if (!data.getMasteredPaths().contains(path.id) && areDependenciesMastered(data, path)) {
                 return true;
             }
         }
-        return false; // all paths mastered, no restriction
+        return false; // all paths mastered or none unlocked, no restriction
     }
 
     private static final String MUST_SELECT_MSG = "Debes elegir una maestría antes de realizar acciones. Presiona M para abrir el menú.";
@@ -277,12 +287,6 @@ public class xdAbsoluteMastery {
 
         // Check dynamic universal namespaces
         if (ConfigManager.UNIVERSAL_NAMESPACES.contains(namespace)) {
-            // ponytail: native platform simulations override for testing
-            if (namespace.equals("minecraft")) {
-                if (rl.getPath().equals("wooden_hoe") || rl.getPath().equals("leather_chestplate") || rl.getPath().equals("wooden_sword")) {
-                    return false;
-                }
-            }
             return true;
         }
 
@@ -317,12 +321,7 @@ public class xdAbsoluteMastery {
         ResourceLocation rl = ForgeRegistries.ITEMS.getKey(stack.getItem());
         if (rl == null) return null;
 
-        // ponytail: temporary simulation overrides for testing
-        if (rl.getNamespace().equals("minecraft")) {
-            if (rl.getPath().equals("wooden_hoe") || rl.getPath().equals("leather_chestplate") || rl.getPath().equals("wooden_sword")) {
-                return "mekanism"; // Path 2 in default config
-            }
-        }
+
 
         // Check if item namespace matches path.mod_id
         for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
@@ -353,12 +352,7 @@ public class xdAbsoluteMastery {
 
         String namespace = rl.getNamespace();
 
-        // ponytail: temporary simulation overrides for testing
-        if (namespace.equals("minecraft")) {
-            if (rl.getPath().equals("wooden_hoe") || rl.getPath().equals("leather_chestplate") || rl.getPath().equals("wooden_sword")) {
-                namespace = "mekanism"; // Path 2 in default config
-            }
-        }
+
 
         // 1. O(1) compare namespace against active path mod id
         String activeModId = data.getActivePathModId();
@@ -822,16 +816,21 @@ public class xdAbsoluteMastery {
                 ServerPlayer player = ctx.get().getSender();
                 if (player != null) {
                     player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                        if (pkt.pathId != null) {
+                            ConfigManager.PathInfo targetPath = ConfigManager.PATHS_MAP.get(pkt.pathId);
+                            if (targetPath == null || data.getMasteredPaths().contains(pkt.pathId) || !areDependenciesMastered(data, targetPath)) {
+                                sync(player);
+                                return;
+                            }
+                        }
                         data.setCurrentPath(pkt.pathId);
                         data.clearCompletedRequirements();
                         sync(player);
                         updateArmorModifiers(player);
                         if (pkt.pathId != null) {
-                            for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
-                                if (path.id.equals(pkt.pathId)) {
-                                    checkPathCompletion(player, data, path);
-                                    break;
-                                }
+                            ConfigManager.PathInfo targetPath = ConfigManager.PATHS_MAP.get(pkt.pathId);
+                            if (targetPath != null) {
+                                checkPathCompletion(player, data, targetPath);
                             }
                         }
                     });
@@ -970,6 +969,8 @@ public class xdAbsoluteMastery {
             public String id;
             public String name;
             public String mod_id;
+            public String icon = "minecraft:writable_book";
+            public List<String> dependencies = new ArrayList<>();
             public List<Requirement> requirements = new ArrayList<>();
 
             // Cached TagKeys to avoid allocation in hot paths
@@ -1023,6 +1024,25 @@ public class xdAbsoluteMastery {
                     info.id = pObj.get("id").getAsString();
                     info.name = pObj.get("name").getAsString();
                     info.mod_id = pObj.has("mod_id") ? pObj.get("mod_id").getAsString() : info.id;
+                    if (pObj.has("icon")) {
+                        info.icon = pObj.get("icon").getAsString();
+                    } else {
+                        // Compatibility fallbacks:
+                        if (info.id.equals("botania")) {
+                            info.icon = "minecraft:poppy";
+                        } else if (info.id.equals("mekanism")) {
+                            info.icon = "minecraft:redstone";
+                        } else {
+                            info.icon = "minecraft:writable_book";
+                        }
+                    }
+                    info.dependencies = new ArrayList<>();
+                    if (pObj.has("dependencies")) {
+                        JsonArray deps = pObj.getAsJsonArray("dependencies");
+                        for (int j = 0; j < deps.size(); j++) {
+                            info.dependencies.add(deps.get(j).getAsString());
+                        }
+                    }
                     info.armorTag = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(MODID, info.id + "/armor"));
                     info.weaponsTag = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(MODID, info.id + "/weapons"));
                     info.toolsTag = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(MODID, info.id + "/tools"));
@@ -1076,6 +1096,12 @@ public class xdAbsoluteMastery {
                 pObj.addProperty("id", path.id);
                 pObj.addProperty("name", path.name);
                 pObj.addProperty("mod_id", path.mod_id);
+                pObj.addProperty("icon", path.icon != null ? path.icon : "minecraft:writable_book");
+                JsonArray depsArray = new JsonArray();
+                for (String dep : path.dependencies) {
+                    depsArray.add(dep);
+                }
+                pObj.add("dependencies", depsArray);
                 JsonArray reqsArray = new JsonArray();
                 for (Requirement req : path.requirements) {
                     JsonObject rObj = new JsonObject();

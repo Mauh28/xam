@@ -22,6 +22,14 @@ public abstract class AbstractMasteryScreen extends Screen {
     public static final int BUTTON_HOVER_BORDER = 0xFF777777;
     public static final int ACCENT_OP_BORDER = 0xFFFFFFFF;
 
+    // Create Ponder Aesthetic Constants
+    public static final int PONDER_BG = 0xFF1C1A1A;
+    public static final int COLOR_BRASS = 0xFFDF9E3F;
+    public static final int COLOR_COPPER = 0xFFCD613C;
+    public static final int COLOR_COPPER_HOVER = 0xFFE07853;
+    public static final int PANEL_INNER_BG = 0xFF120E0D;
+    public static final int WARM_BORDER = 0xFF2A201C;
+
     // Relative container geometry
     protected int containerW;
     protected int containerH;
@@ -32,6 +40,11 @@ public abstract class AbstractMasteryScreen extends Screen {
     protected int footerH;
     protected int bodyH;
     protected int bodyY;
+
+    // Overridable style variables
+    protected int currentPanelBg = PONDER_BG;
+    protected int currentWidgetBg = PANEL_INNER_BG;
+    protected int currentBorderStd = WARM_BORDER;
 
     protected AbstractMasteryScreen(Component title) {
         super(title);
@@ -62,14 +75,14 @@ public abstract class AbstractMasteryScreen extends Screen {
     // Helper: draw flat button with hover states
     public boolean drawFlatButton(GuiGraphics graphics, int x, int y, int w, int h, String text, int mouseX, int mouseY, boolean enabled, boolean isOp) {
         boolean hovered = enabled && mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
-        int bg = hovered ? BUTTON_HOVER_BG : BUTTON_BACKGROUND;
-        int border = isOp ? ACCENT_OP_BORDER : (hovered ? BUTTON_HOVER_BORDER : BUTTON_BORDER);
+        int bg = hovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
+        int border = isOp ? ACCENT_OP_BORDER : (hovered ? COLOR_BRASS : 0xFF2C221D);
         if (!enabled) {
             bg = 0xFF222222;
             border = 0xFF444444;
         }
         drawFlatPanel(graphics, x, y, w, h, bg, border);
-        int textColor = enabled ? (hovered ? TEXT_PRIMARY : TEXT_SECONDARY) : TEXT_MUTED;
+        int textColor = enabled ? TEXT_PRIMARY : TEXT_MUTED;
         int textX = x + (w - this.font.width(text)) / 2;
         int textY = y + (h - 8) / 2;
         graphics.drawString(this.font, text, textX, textY, textColor, false);
@@ -102,15 +115,15 @@ public abstract class AbstractMasteryScreen extends Screen {
         renderBackground(graphics);
 
         // Main Panel Container
-        drawFlatPanel(graphics, containerX, containerY, containerW, containerH, PANEL_BACKGROUND, BORDER_STANDARD);
+        drawFlatPanel(graphics, containerX, containerY, containerW, containerH, currentPanelBg, currentBorderStd);
 
         // Header Background & Border
-        graphics.fill(containerX + 2, containerY + 2, containerX + containerW - 2, containerY + headerH, WIDGET_BACKGROUND);
-        graphics.fill(containerX + 2, containerY + headerH - 2, containerX + containerW - 2, containerY + headerH, BORDER_STANDARD);
+        graphics.fill(containerX + 2, containerY + 2, containerX + containerW - 2, containerY + headerH, currentWidgetBg);
+        graphics.fill(containerX + 2, containerY + headerH - 2, containerX + containerW - 2, containerY + headerH, currentBorderStd);
 
         // Footer Background & Border
-        graphics.fill(containerX + 2, containerY + containerH - footerH, containerX + containerW - 2, containerY + containerH - 2, WIDGET_BACKGROUND);
-        graphics.fill(containerX + 2, containerY + containerH - footerH, containerX + containerW - 2, containerY + containerH - footerH + 2, BORDER_STANDARD);
+        graphics.fill(containerX + 2, containerY + containerH - footerH, containerX + containerW - 2, containerY + containerH - 2, currentWidgetBg);
+        graphics.fill(containerX + 2, containerY + containerH - footerH, containerX + containerW - 2, containerY + containerH - footerH + 2, currentBorderStd);
 
         renderHeader(graphics, mouseX, mouseY);
         renderFooter(graphics, mouseX, mouseY);

@@ -19,8 +19,10 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
     protected EditBox searchBox;
     protected String selectedModFilter = "Todos";
     protected int scrollOffset = 0;
-    protected final int entryHeight = 20;
+    protected int entryHeight = 20;
     protected int maxVisible = 7;
+    protected int lastMouseX;
+    protected int lastMouseY;
     
     private boolean isDraggingScrollbar = false;
 
@@ -89,6 +91,8 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        this.lastMouseX = mouseX;
+        this.lastMouseY = mouseY;
         super.render(guiGraphics, mouseX, mouseY, partialTick);
 
         int panelX = containerX;
@@ -114,7 +118,7 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
 
         // Draw search box background panel
         int searchY = bodyY + (shouldShowNamespaceFilter() ? 37 : 15);
-        drawFlatPanel(guiGraphics, panelX + 20, searchY, containerW - 40, 20, INPUT_BACKGROUND, BORDER_STANDARD);
+        drawFlatPanel(guiGraphics, panelX + 20, searchY, containerW - 40, 20, INPUT_BACKGROUND, COLOR_COPPER);
 
         // Render virtual list entries
         int startY = bodyY + (shouldShowNamespaceFilter() ? 62 : 40);
@@ -144,15 +148,15 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
             int scrollbarY = startY;
             int scrollbarHeight = maxVisible * entryHeight;
             
-            // Track
-            guiGraphics.fill(scrollbarX, scrollbarY, scrollbarX + 4, scrollbarY + scrollbarHeight, 0x33FFFFFF);
+            // Track in dark copper
+            guiGraphics.fill(scrollbarX, scrollbarY, scrollbarX + 4, scrollbarY + scrollbarHeight, 0xFF2A201C);
             
-            // Scroll thumb
+            // Scroll thumb in copper
             float fraction = (float) scrollOffset / (filteredEntries.size() - maxVisible);
             int thumbHeight = Math.max(15, (int) (((float) maxVisible / filteredEntries.size()) * scrollbarHeight));
             int thumbY = scrollbarY + (int) (fraction * (scrollbarHeight - thumbHeight));
             
-            guiGraphics.fill(scrollbarX, thumbY, scrollbarX + 4, thumbY + thumbHeight, BORDER_STANDARD);
+            guiGraphics.fill(scrollbarX, thumbY, scrollbarX + 4, thumbY + thumbHeight, COLOR_COPPER);
         }
     }
 

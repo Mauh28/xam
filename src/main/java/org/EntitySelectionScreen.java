@@ -11,8 +11,27 @@ import net.minecraftforge.registries.ForgeRegistries;
 import java.util.function.Consumer;
 
 public class EntitySelectionScreen extends AbstractPickerScreen<EntityType<?>> {
+    private final java.util.Map<EntityType<?>, net.minecraft.world.entity.LivingEntity> entityCache = new java.util.HashMap<>();
+
     public EntitySelectionScreen(Screen parent, Consumer<EntityType<?>> onSelect) {
         super(parent, Component.literal("Seleccionar Entidad"), onSelect);
+        this.entryHeight = 32;
+    }
+
+    private net.minecraft.world.entity.LivingEntity getOrCreateEntity(EntityType<?> type) {
+        return entityCache.computeIfAbsent(type, t -> {
+            try {
+                if (this.minecraft != null && this.minecraft.level != null) {
+                    net.minecraft.world.entity.Entity entity = t.create(this.minecraft.level);
+                    if (entity instanceof net.minecraft.world.entity.LivingEntity living) {
+                        return living;
+                    }
+                }
+            } catch (Exception e) {
+                // Ignore entity types that cannot be instantiated client-side
+            }
+            return null;
+        });
     }
 
     @Override
@@ -46,7 +65,30 @@ public class EntitySelectionScreen extends AbstractPickerScreen<EntityType<?>> {
 
     @Override
     protected void renderEntry(GuiGraphics guiGraphics, EntityType<?> entry, int x, int y, int index, boolean hovered) {
-        // Render entity name
+        // Render entity preview
+        net.minecraft.world.entity.LivingEntity living = getOrCreateEntity(entry);
+        if (living != null) {
+            float width = living.getBbWidth();
+            float height = living.getBbHeight();
+            float maxDim = Math.max(width, height);
+            int scale = (int) (10.0F / Math.max(0.1F, maxDim));
+
+            try {
+                net.minecraft.client.gui.screens.inventory.InventoryScreen.renderEntityInInventoryFollowsMouse(
+                        guiGraphics,
+                        x + 16,
+                        y + 26,
+                        scale,
+                        (float) (x + 16) - this.lastMouseX,
+                        (float) (y + 15) - this.lastMouseY,
+                        living
+                );
+            } catch (Exception e) {
+                // Ignore rendering errors for entities that fail to render on client-side
+            }
+        }
+
+        // Render entity name (shifted to x + 34)
         String name = entry.getDescription().getString();
         if (name.length() > 22) {
             name = name.substring(0, 20) + "..";
@@ -58,8 +100,8 @@ public class EntitySelectionScreen extends AbstractPickerScreen<EntityType<?>> {
             idStr = idStr.substring(0, 28) + "..";
         }
 
-        guiGraphics.drawString(this.font, name, x + 6, y + 2, hovered ? 0xFFFFD700 : 0xFFFFFF, false);
-        guiGraphics.drawString(this.font, idStr, x + 6, y + 11, 0x888888, false);
+        guiGraphics.drawString(this.font, name, x + 34, y + 4, hovered ? COLOR_BRASS : 0xFFFFFF, false);
+        guiGraphics.drawString(this.font, idStr, x + 34, y + 15, 0x888888, false);
     }
 
     @Override
