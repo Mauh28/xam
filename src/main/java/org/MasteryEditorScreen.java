@@ -29,6 +29,10 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     private EditBox pathNameEdit;
     private EditBox pathModIdEdit;
 
+    // Notification state
+    private long saveNotificationTime = 0;
+    private String saveNotificationMsg = "";
+
     public MasteryEditorScreen(Screen parent) {
         super(Component.literal("EDITOR DE MAESTRÍAS"));
         this.parent = parent;
@@ -156,6 +160,12 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int btnH = 20;
         int startX = containerX + containerW - 15 - (btnW * 2 + 10);
         int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
+
+        // Render Save Notification if active
+        if (System.currentTimeMillis() - saveNotificationTime < 3000) {
+            int msgY = containerY + containerH - footerH + (footerH - 8) / 2;
+            graphics.drawString(this.font, saveNotificationMsg, containerX + 15, msgY, 0xFF55FF55, false);
+        }
 
         // Custom Discard button (dark red/grey)
         boolean discHovered = mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
@@ -840,6 +850,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         String json = xdAbsoluteMastery.ConfigManager.serializePaths(localPaths);
         xdAbsoluteMastery.CHANNEL.sendToServer(new xdAbsoluteMastery.UpdateConfigPacket(json));
 
-        this.onClose();
+        this.saveNotificationMsg = "✔ ¡Maestría guardada correctamente!";
+        this.saveNotificationTime = System.currentTimeMillis();
     }
 }
