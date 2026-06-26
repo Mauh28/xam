@@ -13,6 +13,23 @@ import java.util.function.Consumer;
 public class EntitySelectionScreen extends AbstractPickerScreen<EntityType<?>> {
     private final java.util.Map<EntityType<?>, net.minecraft.world.entity.LivingEntity> entityCache = new java.util.HashMap<>();
 
+    private static class EntitySearchEntry {
+        final EntityType<?> type;
+        final String idLower;
+        final String nameLower;
+        final String namespaceLower;
+
+        EntitySearchEntry(EntityType<?> type) {
+            this.type = type;
+            ResourceLocation rl = ForgeRegistries.ENTITY_TYPES.getKey(type);
+            this.idLower = rl != null ? rl.toString().toLowerCase() : "";
+            this.nameLower = type.getDescription().getString().toLowerCase();
+            this.namespaceLower = rl != null ? rl.getNamespace().toLowerCase() : "";
+        }
+    }
+
+    private final java.util.List<EntitySearchEntry> cachedEntries = new java.util.ArrayList<>();
+
     public EntitySelectionScreen(Screen parent, Consumer<EntityType<?>> onSelect) {
         super(parent, Component.literal("Seleccionar Entidad"), onSelect);
         this.entryHeight = 32;
@@ -37,9 +54,11 @@ public class EntitySelectionScreen extends AbstractPickerScreen<EntityType<?>> {
     @Override
     protected void populateEntries() {
         // ponytail: filtering entities by category != MISC. Ceilings: might exclude some custom entities of MISC type that are alive. Upgrade path: check EntityType hierarchy.
+        this.cachedEntries.clear();
         for (EntityType<?> type : ForgeRegistries.ENTITY_TYPES.getValues()) {
             if (type != null && type.getCategory() != MobCategory.MISC) {
                 this.allEntries.add(type);
+                this.cachedEntries.add(new EntitySearchEntry(type));
             }
         }
     }
@@ -49,16 +68,12 @@ public class EntitySelectionScreen extends AbstractPickerScreen<EntityType<?>> {
         this.filteredEntries.clear();
         String q = query.toLowerCase();
         String nsFilter = getNamespaceFilter().toLowerCase();
-        for (EntityType<?> type : this.allEntries) {
-            ResourceLocation rl = ForgeRegistries.ENTITY_TYPES.getKey(type);
-            if (rl == null) continue;
-            String idStr = rl.toString().toLowerCase();
-            String nameStr = type.getDescription().getString().toLowerCase();
-            if (!nsFilter.isEmpty() && !rl.getNamespace().toLowerCase().contains(nsFilter)) {
+        for (EntitySearchEntry entry : this.cachedEntries) {
+            if (!nsFilter.isEmpty() && !entry.namespaceLower.contains(nsFilter)) {
                 continue;
             }
-            if (idStr.contains(q) || nameStr.contains(q)) {
-                this.filteredEntries.add(type);
+            if (entry.idLower.contains(q) || entry.nameLower.contains(q)) {
+                this.filteredEntries.add(entry.type);
             }
         }
     }

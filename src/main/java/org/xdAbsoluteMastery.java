@@ -1037,17 +1037,15 @@ public class xdAbsoluteMastery {
                     // ponytail: lazy inventory scanning and armor warning checks every 1 second
                     if (player.tickCount % 20 == 0) {
                         if (data.getCurrentPath() != null) {
-                            for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
-                                if (path.id.equals(data.getCurrentPath())) {
-                                    for (ConfigManager.Requirement req : path.requirements) {
-                                        if (req.type.equals("collect")) {
-                                            ResourceLocation reqRl = ResourceLocation.tryParse(req.id);
-                                            if (reqRl != null && hasItem(player, reqRl)) {
-                                                checkAndProgressRequirement((ServerPlayer) player, "collect", req.id);
-                                            }
+                            ConfigManager.PathInfo path = ConfigManager.PATHS_MAP.get(data.getCurrentPath());
+                            if (path != null) {
+                                for (ConfigManager.Requirement req : path.requirements) {
+                                    if (req.type.equals("collect")) {
+                                        ResourceLocation reqRl = ResourceLocation.tryParse(req.id);
+                                        if (reqRl != null && hasItem(player, reqRl)) {
+                                            checkAndProgressRequirement((ServerPlayer) player, "collect", req.id);
                                         }
                                     }
-                                    break;
                                 }
                             }
                         }
@@ -1127,11 +1125,9 @@ public class xdAbsoluteMastery {
                 serverPlayer.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     String currentPath = data.getCurrentPath();
                     if (currentPath == null) return;
-                    for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
-                        if (path.id.equals(currentPath)) {
-                            checkPathCompletion(serverPlayer, data, path);
-                            break;
-                        }
+                    ConfigManager.PathInfo path = ConfigManager.PATHS_MAP.get(currentPath);
+                    if (path != null) {
+                        checkPathCompletion(serverPlayer, data, path);
                     }
                 });
             }
@@ -1373,7 +1369,7 @@ public class xdAbsoluteMastery {
             if (!file.exists()) {
                 createDefaultConfig(file);
             }
-            try (FileReader reader = new FileReader(file)) {
+            try (java.io.BufferedReader reader = java.nio.file.Files.newBufferedReader(configPath, java.nio.charset.StandardCharsets.UTF_8)) {
                 JsonObject json = GSON.fromJson(reader, JsonObject.class);
                 parseJson(json);
             } catch (IOException e) {
@@ -1513,10 +1509,9 @@ public class xdAbsoluteMastery {
         public static void saveConfigFromServer(net.minecraft.server.MinecraftServer server, String jsonString) {
             java.util.concurrent.CompletableFuture.runAsync(() -> {
                 Path configPath = FMLPaths.CONFIGDIR.get().resolve("xam_paths.json");
-                File file = configPath.toFile();
                 try {
-                    file.getParentFile().mkdirs();
-                    try (FileWriter writer = new FileWriter(file)) {
+                    java.nio.file.Files.createDirectories(configPath.getParent());
+                    try (java.io.BufferedWriter writer = java.nio.file.Files.newBufferedWriter(configPath, java.nio.charset.StandardCharsets.UTF_8)) {
                         writer.write(jsonString);
                     }
                     if (server != null) {
@@ -1591,7 +1586,7 @@ public class xdAbsoluteMastery {
                 pathsArray.add(mekanism);
                 defaultJson.add("paths", pathsArray);
 
-                try (FileWriter writer = new FileWriter(file)) {
+                try (java.io.BufferedWriter writer = java.nio.file.Files.newBufferedWriter(file.toPath(), java.nio.charset.StandardCharsets.UTF_8)) {
                     GSON.toJson(defaultJson, writer);
                 }
             } catch (IOException e) {
@@ -1621,25 +1616,23 @@ public class xdAbsoluteMastery {
                                 // Find the name and icon of the mastered path
                                 String pathName = pathId;
                                 net.minecraft.world.item.ItemStack iconStack = net.minecraft.world.item.ItemStack.EMPTY;
-                                for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
-                                    if (path.id.equals(pathId)) {
-                                        pathName = path.name;
-                                        if (path.icon != null) {
-                                            net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(path.icon));
-                                            if (item != null) {
-                                                iconStack = new net.minecraft.world.item.ItemStack(item);
-                                            }
+                                ConfigManager.PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
+                                if (path != null) {
+                                    pathName = path.name;
+                                    if (path.icon != null) {
+                                        net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(path.icon));
+                                        if (item != null) {
+                                            iconStack = new net.minecraft.world.item.ItemStack(item);
                                         }
-                                        if (iconStack.isEmpty()) {
-                                            if (path.id.equals("botania")) {
-                                                iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.POPPY);
-                                            } else if (path.id.equals("mekanism")) {
-                                                iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE);
-                                            } else {
-                                                iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
-                                            }
-                                        }
-                                        break;
+                                    }
+                                }
+                                if (iconStack.isEmpty()) {
+                                    if (pathId.equals("botania")) {
+                                        iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.POPPY);
+                                    } else if (pathId.equals("mekanism")) {
+                                        iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE);
+                                    } else {
+                                        iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
                                     }
                                 }
                                 // Show custom premium left-aligned client-side toast notification
