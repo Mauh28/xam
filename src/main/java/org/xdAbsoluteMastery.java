@@ -221,6 +221,159 @@ public class xdAbsoluteMastery {
         });
     }
 
+    private static void printPlayerInfo(net.minecraft.commands.CommandSourceStack source, ServerPlayer player) {
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            final String active = data.getCurrentPath() != null ? data.getCurrentPath() : "Ninguna";
+            final String mastered = data.getMasteredPaths().isEmpty() ? "Ninguna" : String.join(", ", data.getMasteredPaths());
+            final boolean devMode = data.isDevMode();
+            source.sendSuccess(() -> Component.literal("=== Información de " + player.getGameProfile().getName() + " ==="), false);
+            source.sendSuccess(() -> Component.literal("Rama Activa: " + active), false);
+            source.sendSuccess(() -> Component.literal("Ramas Dominadas: " + mastered), false);
+            source.sendSuccess(() -> Component.literal("Modo Dev: " + (devMode ? "Activo" : "Inactivo")), false);
+        });
+    }
+
+    private static void masterPath(net.minecraft.commands.CommandSourceStack source, ServerPlayer player, String pathId, boolean mastered) {
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            boolean exists = false;
+            for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+                if (path.id.equals(pathId)) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                source.sendFailure(Component.literal("La rama '" + pathId + "' no existe."));
+                return;
+            }
+            if (mastered) {
+                data.addMasteredPath(pathId);
+                if (pathId.equals(data.getCurrentPath())) {
+                    data.setCurrentPath(null);
+                    data.clearCompletedRequirements();
+                }
+                sync(player);
+                updateArmorModifiers(player);
+                source.sendSuccess(() -> Component.literal("Rama '" + pathId + "' dominada para " + player.getGameProfile().getName()), true);
+            } else {
+                data.getMasteredPaths().remove(pathId);
+                sync(player);
+                updateArmorModifiers(player);
+                source.sendSuccess(() -> Component.literal("Rama '" + pathId + "' desmarcada como dominada para " + player.getGameProfile().getName()), true);
+            }
+        });
+    }
+
+    private static void selectPath(net.minecraft.commands.CommandSourceStack source, ServerPlayer player, String pathId) {
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            ConfigManager.PathInfo targetPath = ConfigManager.PATHS_MAP.get(pathId);
+            if (targetPath == null) {
+                source.sendFailure(Component.literal("La rama '" + pathId + "' no existe."));
+                return;
+            }
+            data.setCurrentPath(pathId);
+            data.clearCompletedRequirements();
+            sync(player);
+            updateArmorModifiers(player);
+            source.sendSuccess(() -> Component.literal("Rama '" + pathId + "' seleccionada para " + player.getGameProfile().getName()), true);
+        });
+    }
+
+    private static String formatRequirementDescription(ConfigManager.Requirement req) {
+        String name = req.id;
+        if (name.contains(":")) {
+            String[] split = name.split(":");
+            name = split[split.length - 1].replace("_", " ");
+        }
+        if (!name.isEmpty()) {
+            name = Character.toUpperCase(name.charAt(0)) + name.substring(1);
+        }
+        switch (req.type) {
+            case "craft": return "Craftear " + name;
+            case "collect": return "Recolectar " + name;
+            case "combat": return "Derrotar " + name;
+            case "advancement": return "Completar logro " + name;
+            default: return req.type + " " + name;
+        }
+    }
+
+    private static void showPlayerProgress(net.minecraft.commands.CommandSourceStack source, ServerPlayer player) {
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            String currentPath = data.getCurrentPath();
+            if (currentPath == null) {
+                source.sendSuccess(() -> Component.literal(player.getGameProfile().getName() + " no tiene ninguna maestría activa."), false);
+                return;
+            }
+            ConfigManager.PathInfo pathInfo = ConfigManager.PATHS_MAP.get(currentPath);
+            if (pathInfo == null) {
+                source.sendSuccess(() -> Component.literal(player.getGameProfile().getName() + " tiene una maestría activa inválida."), false);
+                return;
+            }
+            source.sendSuccess(() -> Component.literal("=== Progreso de " + player.getGameProfile().getName() + " en " + pathInfo.name + " ==="), false);
+            for (ConfigManager.Requirement req : pathInfo.requirements) {
+                boolean done = isRequirementCompleted(player, data, req);
+                String symbol = done ? "§a[✔]§r" : "§c[✘]§r";
+                String reqDesc = formatRequirementDescription(req);
+                source.sendSuccess(() -> Component.literal(symbol + " " + reqDesc + " (" + req.type + ":" + req.id + ")"), false);
+            }
+        });
+    }
+
+    private static void completeRequirement(net.minecraft.commands.CommandSourceStack source, ServerPlayer player, String reqKey) {
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            String currentPath = data.getCurrentPath();
+            if (currentPath == null) {
+                source.sendFailure(Component.literal(player.getGameProfile().getName() + " no tiene ninguna maestría activa."));
+                return;
+            }
+            ConfigManager.PathInfo pathInfo = ConfigManager.PATHS_MAP.get(currentPath);
+            if (pathInfo == null) {
+                source.sendFailure(Component.literal("La maestría del jugador es inválida."));
+                return;
+            }
+            boolean exists = false;
+            String type = "";
+            String targetId = "";
+            if (reqKey.contains(":")) {
+                int firstColon = reqKey.indexOf(":");
+                type = reqKey.substring(0, firstColon);
+                targetId = reqKey.substring(firstColon + 1);
+            }
+            for (ConfigManager.Requirement req : pathInfo.requirements) {
+                if (req.type.equals(type) && req.id.equals(targetId)) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                source.sendFailure(Component.literal("El requisito '" + reqKey + "' no pertenece a la maestría activa '" + currentPath + "'."));
+                return;
+            }
+
+            if (type.equals("advancement")) {
+                ResourceLocation resLoc = ResourceLocation.tryParse(targetId);
+                if (resLoc != null) {
+                    net.minecraft.advancements.Advancement adv = player.server.getAdvancements().getAdvancement(resLoc);
+                    if (adv != null) {
+                        net.minecraft.advancements.AdvancementProgress progress = player.getAdvancements().getOrStartProgress(adv);
+                        if (!progress.isDone()) {
+                            for (String criteria : progress.getRemainingCriteria()) {
+                                player.getAdvancements().award(adv, criteria);
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (!data.getCompletedRequirements().contains(reqKey)) {
+                    data.addCompletedRequirement(reqKey);
+                    sync(player);
+                    checkPathCompletion(player, data, pathInfo);
+                }
+            }
+            source.sendSuccess(() -> Component.literal("Requisito '" + reqKey + "' marcado como completado para " + player.getGameProfile().getName()), true);
+        });
+    }
+
     public static boolean areDependenciesMastered(PlayerData data, ConfigManager.PathInfo path) {
         if (path.dependencies == null || path.dependencies.isEmpty()) return true;
         for (String dep : path.dependencies) {
@@ -233,6 +386,7 @@ public class xdAbsoluteMastery {
 
     // ponytail: returns true if the player must select a path before doing anything
     public static boolean mustSelectPath(PlayerData data) {
+        if (data != null && data.isDevMode()) return false;
         if (data.getCurrentPath() != null) return false;
         for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
             if (!data.getMasteredPaths().contains(path.id) && areDependenciesMastered(data, path)) {
@@ -345,6 +499,7 @@ public class xdAbsoluteMastery {
 
     public static boolean isItemValid(ItemStack stack, PlayerData data) {
         if (stack.isEmpty()) return true;
+        if (data != null && data.isDevMode()) return true;
         if (isUniversal(stack)) return true;
 
         ResourceLocation rl = ForgeRegistries.ITEMS.getKey(stack.getItem());
@@ -499,6 +654,239 @@ public class xdAbsoluteMastery {
                 sync(player);
                 updateArmorModifiers(player);
             }
+        }
+
+        @SubscribeEvent
+        public static void onRegisterCommands(net.minecraftforge.event.RegisterCommandsEvent event) {
+            com.mojang.brigadier.CommandDispatcher<net.minecraft.commands.CommandSourceStack> dispatcher = event.getDispatcher();
+            com.mojang.brigadier.builder.LiteralArgumentBuilder<net.minecraft.commands.CommandSourceStack> xamCommand = net.minecraft.commands.Commands.literal("xam");
+
+            // dev subcommand
+            xamCommand.then(net.minecraft.commands.Commands.literal("dev")
+                .requires(source -> source.hasPermission(2))
+                .executes(context -> {
+                    ServerPlayer player = context.getSource().getPlayerOrException();
+                    player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                        boolean newDev = !data.isDevMode();
+                        data.setDevMode(newDev);
+                        sync(player);
+                        updateArmorModifiers(player);
+                        context.getSource().sendSuccess(() -> Component.literal("Modo Dev " + (newDev ? "ACTIVADO" : "DESACTIVADO") + " para " + player.getGameProfile().getName()), true);
+                    });
+                    return 1;
+                })
+            );
+
+            // info subcommand
+            xamCommand.then(net.minecraft.commands.Commands.literal("info")
+                .executes(context -> {
+                    ServerPlayer player = context.getSource().getPlayerOrException();
+                    printPlayerInfo(context.getSource(), player);
+                    return 1;
+                })
+                .then(net.minecraft.commands.Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                    .requires(source -> source.hasPermission(2))
+                    .executes(context -> {
+                        ServerPlayer player = net.minecraft.commands.arguments.EntityArgument.getPlayer(context, "player");
+                        printPlayerInfo(context.getSource(), player);
+                        return 1;
+                    })
+                )
+            );
+
+            // reset subcommand
+            xamCommand.then(net.minecraft.commands.Commands.literal("reset")
+                .requires(source -> source.hasPermission(2))
+                .then(net.minecraft.commands.Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                    .executes(context -> {
+                        ServerPlayer player = net.minecraft.commands.arguments.EntityArgument.getPlayer(context, "player");
+                        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                            data.setCurrentPath(null);
+                            data.getMasteredPaths().clear();
+                            data.clearCompletedRequirements();
+                            data.setDevMode(false);
+                            sync(player);
+                            updateArmorModifiers(player);
+                            context.getSource().sendSuccess(() -> Component.literal("Progreso de maestría restablecido para " + player.getGameProfile().getName()), true);
+                        });
+                        return 1;
+                    })
+                )
+            );
+
+            // master subcommand
+            xamCommand.then(net.minecraft.commands.Commands.literal("master")
+                .requires(source -> source.hasPermission(2))
+                .then(net.minecraft.commands.Commands.argument("path_id", net.minecraft.commands.arguments.ResourceLocationArgument.id())
+                    .suggests((context, builder) -> {
+                        for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+                            builder.suggest(path.id);
+                        }
+                        return builder.buildFuture();
+                    })
+                    .executes(context -> {
+                        ServerPlayer player = context.getSource().getPlayerOrException();
+                        ResourceLocation rl = net.minecraft.commands.arguments.ResourceLocationArgument.getId(context, "path_id");
+                        String pathId = rl.getPath();
+                        masterPath(context.getSource(), player, pathId, true);
+                        return 1;
+                    })
+                    .then(net.minecraft.commands.Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                        .executes(context -> {
+                            ServerPlayer player = net.minecraft.commands.arguments.EntityArgument.getPlayer(context, "player");
+                            ResourceLocation rl = net.minecraft.commands.arguments.ResourceLocationArgument.getId(context, "path_id");
+                            String pathId = rl.getPath();
+                            masterPath(context.getSource(), player, pathId, true);
+                            return 1;
+                        })
+                    )
+                    .then(net.minecraft.commands.Commands.argument("mastered", com.mojang.brigadier.arguments.BoolArgumentType.bool())
+                        .executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            ResourceLocation rl = net.minecraft.commands.arguments.ResourceLocationArgument.getId(context, "path_id");
+                            String pathId = rl.getPath();
+                            boolean mastered = com.mojang.brigadier.arguments.BoolArgumentType.getBool(context, "mastered");
+                            masterPath(context.getSource(), player, pathId, mastered);
+                            return 1;
+                        })
+                        .then(net.minecraft.commands.Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                            .executes(context -> {
+                                ServerPlayer player = net.minecraft.commands.arguments.EntityArgument.getPlayer(context, "player");
+                                ResourceLocation rl = net.minecraft.commands.arguments.ResourceLocationArgument.getId(context, "path_id");
+                                String pathId = rl.getPath();
+                                boolean mastered = com.mojang.brigadier.arguments.BoolArgumentType.getBool(context, "mastered");
+                                masterPath(context.getSource(), player, pathId, mastered);
+                                return 1;
+                            })
+                        )
+                    )
+                )
+            );
+
+            // select subcommand
+            xamCommand.then(net.minecraft.commands.Commands.literal("select")
+                .requires(source -> source.hasPermission(2))
+                .then(net.minecraft.commands.Commands.argument("path_id", net.minecraft.commands.arguments.ResourceLocationArgument.id())
+                    .suggests((context, builder) -> {
+                        for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+                            builder.suggest(path.id);
+                        }
+                        return builder.buildFuture();
+                    })
+                    .executes(context -> {
+                        ServerPlayer player = context.getSource().getPlayerOrException();
+                        ResourceLocation rl = net.minecraft.commands.arguments.ResourceLocationArgument.getId(context, "path_id");
+                        String pathId = rl.getPath();
+                        selectPath(context.getSource(), player, pathId);
+                        return 1;
+                    })
+                    .then(net.minecraft.commands.Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                        .executes(context -> {
+                            ServerPlayer player = net.minecraft.commands.arguments.EntityArgument.getPlayer(context, "player");
+                            ResourceLocation rl = net.minecraft.commands.arguments.ResourceLocationArgument.getId(context, "path_id");
+                            String pathId = rl.getPath();
+                            selectPath(context.getSource(), player, pathId);
+                            return 1;
+                        })
+                    )
+                )
+            );
+
+            // reload subcommand
+            xamCommand.then(net.minecraft.commands.Commands.literal("reload")
+                .requires(source -> source.hasPermission(2))
+                .executes(context -> {
+                    ConfigManager.loadConfig();
+                    String pathsJson = ConfigManager.getPathsJson();
+                    CHANNEL.send(net.minecraftforge.network.PacketDistributor.ALL.noArg(), new SyncConfigPacket(pathsJson));
+                    for (ServerPlayer player : context.getSource().getServer().getPlayerList().getPlayers()) {
+                        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                            checkAndRefreshPlayerData(player, data);
+                            updateArmorModifiers(player);
+                        });
+                    }
+                    context.getSource().sendSuccess(() -> Component.literal("Configuración de maestrías recargada y sincronizada correctamente."), true);
+                    return 1;
+                })
+            );
+
+            // progress subcommand
+            xamCommand.then(net.minecraft.commands.Commands.literal("progress")
+                .executes(context -> {
+                    ServerPlayer player = context.getSource().getPlayerOrException();
+                    showPlayerProgress(context.getSource(), player);
+                    return 1;
+                })
+                .then(net.minecraft.commands.Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                    .requires(source -> source.hasPermission(2))
+                    .executes(context -> {
+                        ServerPlayer player = net.minecraft.commands.arguments.EntityArgument.getPlayer(context, "player");
+                        showPlayerProgress(context.getSource(), player);
+                        return 1;
+                    })
+                )
+            );
+
+            // complete_req subcommand
+            xamCommand.then(net.minecraft.commands.Commands.literal("complete_req")
+                .requires(source -> source.hasPermission(2))
+                .then(net.minecraft.commands.Commands.argument("requirement", com.mojang.brigadier.arguments.StringArgumentType.string())
+                    .suggests((context, builder) -> {
+                        try {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                                String currentPath = data.getCurrentPath();
+                                if (currentPath != null) {
+                                    ConfigManager.PathInfo path = ConfigManager.PATHS_MAP.get(currentPath);
+                                    if (path != null) {
+                                        for (ConfigManager.Requirement req : path.requirements) {
+                                            builder.suggest(req.type + ":" + req.id);
+                                        }
+                                    }
+                                }
+                            });
+                        } catch (Exception ignored) {}
+                        return builder.buildFuture();
+                    })
+                    .executes(context -> {
+                        ServerPlayer player = context.getSource().getPlayerOrException();
+                        String reqKey = com.mojang.brigadier.arguments.StringArgumentType.getString(context, "requirement");
+                        completeRequirement(context.getSource(), player, reqKey);
+                        return 1;
+                    })
+                    .then(net.minecraft.commands.Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                        .executes(context -> {
+                            ServerPlayer player = net.minecraft.commands.arguments.EntityArgument.getPlayer(context, "player");
+                            String reqKey = com.mojang.brigadier.arguments.StringArgumentType.getString(context, "requirement");
+                            completeRequirement(context.getSource(), player, reqKey);
+                            return 1;
+                        })
+                    )
+                )
+            );
+
+            // help subcommand
+            xamCommand.then(net.minecraft.commands.Commands.literal("help")
+                .executes(context -> {
+                    net.minecraft.commands.CommandSourceStack source = context.getSource();
+                    boolean isOp = source.hasPermission(2);
+                    source.sendSuccess(() -> Component.literal("=== Comandos de xd Absolute Mastery ==="), false);
+                    source.sendSuccess(() -> Component.literal("/xam info [jugador] - Muestra información de maestría del jugador."), false);
+                    source.sendSuccess(() -> Component.literal("/xam progress [jugador] - Muestra el progreso de requisitos actuales."), false);
+                    source.sendSuccess(() -> Component.literal("/xam help - Muestra esta lista de ayuda."), false);
+                    if (isOp) {
+                        source.sendSuccess(() -> Component.literal("/xam dev - Activa/desactiva el modo desarrollador (sin restricciones)."), false);
+                        source.sendSuccess(() -> Component.literal("/xam select <rama_id> [jugador] - Selecciona una rama activa."), false);
+                        source.sendSuccess(() -> Component.literal("/xam master <rama_id> [true/false] [jugador] - Domina o desmarca una rama."), false);
+                        source.sendSuccess(() -> Component.literal("/xam complete_req <requisito_id> [jugador] - Completa un requisito manual."), false);
+                        source.sendSuccess(() -> Component.literal("/xam reset <jugador> - Restablece todo el progreso de maestría."), false);
+                        source.sendSuccess(() -> Component.literal("/xam reload - Recarga la configuración xam_paths.json desde disco."), false);
+                    }
+                    return 1;
+                })
+            );
+
+            dispatcher.register(xamCommand);
         }
 
         @SubscribeEvent
@@ -1230,21 +1618,36 @@ public class xdAbsoluteMastery {
                         List<String> newMastered = data.getMasteredPaths();
                         for (String pathId : newMastered) {
                             if (!oldMastered.contains(pathId)) {
-                                // Find the name of the mastered path
+                                // Find the name and icon of the mastered path
                                 String pathName = pathId;
+                                net.minecraft.world.item.ItemStack iconStack = net.minecraft.world.item.ItemStack.EMPTY;
                                 for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
                                     if (path.id.equals(pathId)) {
                                         pathName = path.name;
+                                        if (path.icon != null) {
+                                            net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(path.icon));
+                                            if (item != null) {
+                                                iconStack = new net.minecraft.world.item.ItemStack(item);
+                                            }
+                                        }
+                                        if (iconStack.isEmpty()) {
+                                            if (path.id.equals("botania")) {
+                                                iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.POPPY);
+                                            } else if (path.id.equals("mekanism")) {
+                                                iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE);
+                                            } else {
+                                                iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
+                                            }
+                                        }
                                         break;
                                     }
                                 }
-                                // Show premium client-side toast notification
-                                net.minecraft.client.gui.components.toasts.SystemToast.add(
-                                        mc.getToasts(),
-                                        net.minecraft.client.gui.components.toasts.SystemToast.SystemToastIds.TUTORIAL_HINT,
+                                // Show custom premium left-aligned client-side toast notification
+                                mc.getToasts().addToast(new MasteryCompletionToast(
                                         Component.literal("¡Maestría Completada!"),
-                                        Component.literal("Has dominado: " + pathName)
-                                );
+                                        Component.literal("Has dominado: " + pathName),
+                                        iconStack
+                                ));
                                 break;
                             }
                         }
@@ -1340,9 +1743,6 @@ public class xdAbsoluteMastery {
             }
         }
 
-        private static net.minecraft.client.gui.components.Button masteryButton;
-        private static net.minecraft.client.gui.screens.Screen lastScreen;
-
         public static void addWidgetToScreen(net.minecraft.client.gui.screens.Screen screen, net.minecraft.client.gui.components.AbstractWidget widget) {
             try {
                 java.lang.reflect.Method method = null;
@@ -1362,7 +1762,7 @@ public class xdAbsoluteMastery {
         }
 
         @SubscribeEvent
-        public static void onScreenRenderPre(net.minecraftforge.client.event.ScreenEvent.Render.Pre event) {
+        public static void onScreenInitPost(net.minecraftforge.client.event.ScreenEvent.Init.Post event) {
             net.minecraft.client.gui.screens.Screen screen = event.getScreen();
             if (screen instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen || screen instanceof net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen) {
                 net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> containerScreen = (net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) screen;
@@ -1372,36 +1772,42 @@ public class xdAbsoluteMastery {
                 int btnX = leftPos - 22;
                 int btnY = topPos + 8;
 
-                if (lastScreen != screen || masteryButton == null) {
-                    lastScreen = screen;
-                    masteryButton = new net.minecraft.client.gui.components.Button(
-                            btnX, btnY, 20, 20, Component.empty(),
-                            b -> {
-                                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-                                if (mc.player != null) {
-                                    mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                                        mc.setScreen(new MasteryHubScreen(data));
-                                    });
-                                }
-                            },
-                            supplier -> supplier.get()
-                    ) {
-                        @Override
-                        public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-                            super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
-                            guiGraphics.renderFakeItem(new ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK), this.getX() + 2, this.getY() + 2);
+                // Collision detection with other buttons (ftbquests, etc.)
+                // Shift down if another button is already at this position
+                boolean collision = true;
+                while (collision) {
+                    collision = false;
+                    for (net.minecraft.client.gui.components.events.GuiEventListener child : screen.children()) {
+                        if (child instanceof net.minecraft.client.gui.components.AbstractWidget widget) {
+                            if (widget.getX() == btnX && widget.getY() == btnY) {
+                                btnY += 22;
+                                collision = true;
+                                break;
+                            }
                         }
-                    };
+                    }
                 }
 
-                if (masteryButton.getX() != btnX || masteryButton.getY() != btnY) {
-                    masteryButton.setX(btnX);
-                    masteryButton.setY(btnY);
-                }
+                net.minecraft.client.gui.components.Button button = new net.minecraft.client.gui.components.Button(
+                        btnX, btnY, 20, 20, Component.empty(),
+                        b -> {
+                            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+                            if (mc.player != null) {
+                                mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                                    mc.setScreen(new MasteryHubScreen(data));
+                                });
+                            }
+                        },
+                        supplier -> supplier.get()
+                ) {
+                    @Override
+                    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+                        super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+                        guiGraphics.renderFakeItem(new ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK), this.getX() + 2, this.getY() + 2);
+                    }
+                };
 
-                if (!screen.children().contains(masteryButton)) {
-                    addWidgetToScreen(screen, masteryButton);
-                }
+                addWidgetToScreen(screen, button);
             }
         }
 

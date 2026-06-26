@@ -10,6 +10,26 @@ import net.minecraft.advancements.Advancement;
 import java.util.function.Consumer;
 
 public class AdvancementSelectionScreen extends AbstractPickerScreen<Advancement> {
+    private static class AdvancementSearchEntry {
+        final Advancement advancement;
+        final String idLower;
+        final String titleLower;
+        final String namespaceLower;
+
+        AdvancementSearchEntry(Advancement adv) {
+            this.advancement = adv;
+            this.idLower = adv.getId().toString().toLowerCase();
+            String titleText = "";
+            if (adv.getDisplay() != null) {
+                titleText = adv.getDisplay().getTitle().getString().toLowerCase();
+            }
+            this.titleLower = titleText;
+            this.namespaceLower = adv.getId().getNamespace().toLowerCase();
+        }
+    }
+
+    private final java.util.List<AdvancementSearchEntry> cachedEntries = new java.util.ArrayList<>();
+
     public AdvancementSelectionScreen(Screen parent, Consumer<Advancement> onSelect) {
         super(parent, Component.literal("Seleccionar Logro"), onSelect);
     }
@@ -102,6 +122,10 @@ public class AdvancementSelectionScreen extends AbstractPickerScreen<Advancement
         } catch (Exception ignored) {}
 
         this.allEntries.addAll(uniqueAdvs);
+        this.cachedEntries.clear();
+        for (Advancement adv : uniqueAdvs) {
+            this.cachedEntries.add(new AdvancementSearchEntry(adv));
+        }
     }
 
     private void traverseRoots(Advancement adv, java.util.Set<Advancement> visited, java.util.Set<Advancement> result) {
@@ -147,17 +171,12 @@ public class AdvancementSelectionScreen extends AbstractPickerScreen<Advancement
         this.filteredEntries.clear();
         String q = query.toLowerCase();
         String nsFilter = getNamespaceFilter().toLowerCase();
-        for (Advancement adv : this.allEntries) {
-            String idStr = adv.getId().toString().toLowerCase();
-            String titleText = "";
-            if (adv.getDisplay() != null) {
-                titleText = adv.getDisplay().getTitle().getString().toLowerCase();
-            }
-            if (!nsFilter.isEmpty() && !adv.getId().getNamespace().toLowerCase().contains(nsFilter)) {
+        for (AdvancementSearchEntry entry : this.cachedEntries) {
+            if (!nsFilter.isEmpty() && !entry.namespaceLower.contains(nsFilter)) {
                 continue;
             }
-            if (idStr.contains(q) || titleText.contains(q)) {
-                this.filteredEntries.add(adv);
+            if (entry.idLower.contains(q) || entry.titleLower.contains(q)) {
+                this.filteredEntries.add(entry.advancement);
             }
         }
     }

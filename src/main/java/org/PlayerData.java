@@ -20,6 +20,15 @@ public class PlayerData {
     // cache fields (ponytail: server cache optimization)
     private String activePathModId = "";
     private long lastConfigVersion = -1;
+    private boolean devMode = false;
+
+    public boolean isDevMode() {
+        return devMode;
+    }
+
+    public void setDevMode(boolean devMode) {
+        this.devMode = devMode;
+    }
 
     public boolean isInitialized() {
         return initialized;
@@ -85,6 +94,7 @@ public class PlayerData {
         this.completedRequirements.addAll(source.completedRequirements);
         this.activePathModId = source.activePathModId;
         this.lastConfigVersion = source.lastConfigVersion;
+        this.devMode = source.devMode;
     }
 
     public void saveNBTData(CompoundTag nbt) {
@@ -105,6 +115,7 @@ public class PlayerData {
 
         nbt.putString("activePathModId", activePathModId);
         nbt.putLong("lastConfigVersion", lastConfigVersion);
+        nbt.putBoolean("devMode", devMode);
     }
 
     public void loadNBTData(CompoundTag nbt) {
@@ -125,5 +136,6 @@ public class PlayerData {
 
         activePathModId = nbt.contains("activePathModId", Tag.TAG_STRING) ? nbt.getString("activePathModId") : "";
         lastConfigVersion = nbt.contains("lastConfigVersion", Tag.TAG_LONG) ? nbt.getLong("lastConfigVersion") : -1;
+        devMode = nbt.contains("devMode", Tag.TAG_BYTE) && nbt.getBoolean("devMode");
     }
 }

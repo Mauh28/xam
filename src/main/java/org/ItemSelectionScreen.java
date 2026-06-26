@@ -15,9 +15,24 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class ItemSelectionScreen extends AbstractMasteryScreen {
+    private static class ItemSearchEntry {
+        final Item item;
+        final String idLower;
+        final String nameLower;
+        final String namespaceLower;
+
+        ItemSearchEntry(Item item) {
+            this.item = item;
+            ResourceLocation rl = ForgeRegistries.ITEMS.getKey(item);
+            this.idLower = rl != null ? rl.toString().toLowerCase() : "";
+            this.nameLower = item.getDescription().getString().toLowerCase();
+            this.namespaceLower = rl != null ? rl.getNamespace().toLowerCase() : "";
+        }
+    }
+
     private final Screen parent;
     private final Consumer<Item> onSelect;
-    private final List<Item> allEntries = new ArrayList<>();
+    private final List<ItemSearchEntry> allEntries = new ArrayList<>();
     private final List<Item> filteredEntries = new ArrayList<>();
     
     private EditBox searchBox;
@@ -61,7 +76,7 @@ public class ItemSelectionScreen extends AbstractMasteryScreen {
         if (this.allEntries.isEmpty()) {
             for (Item item : ForgeRegistries.ITEMS.getValues()) {
                 if (item != null && item != net.minecraft.world.item.Items.AIR) {
-                    this.allEntries.add(item);
+                    this.allEntries.add(new ItemSearchEntry(item));
                 }
             }
         }
@@ -72,16 +87,12 @@ public class ItemSelectionScreen extends AbstractMasteryScreen {
         this.filteredEntries.clear();
         String q = query.toLowerCase();
         String nsFilter = (this.selectedModFilter == null || this.selectedModFilter.equals("Todos")) ? "" : this.selectedModFilter.toLowerCase();
-        for (Item item : this.allEntries) {
-            ResourceLocation rl = ForgeRegistries.ITEMS.getKey(item);
-            if (rl == null) continue;
-            String idStr = rl.toString().toLowerCase();
-            String nameStr = item.getDescription().getString().toLowerCase();
-            if (!nsFilter.isEmpty() && !rl.getNamespace().toLowerCase().contains(nsFilter)) {
+        for (ItemSearchEntry entry : this.allEntries) {
+            if (!nsFilter.isEmpty() && !entry.namespaceLower.contains(nsFilter)) {
                 continue;
             }
-            if (idStr.contains(q) || nameStr.contains(q)) {
-                this.filteredEntries.add(item);
+            if (entry.idLower.contains(q) || entry.nameLower.contains(q)) {
+                this.filteredEntries.add(entry.item);
             }
         }
     }
