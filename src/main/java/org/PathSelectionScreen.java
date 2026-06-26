@@ -104,10 +104,21 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             int cardX = containerX + 60 + gap + i * (cardW + gap);
 
             boolean isUnlocked = xdAbsoluteMastery.areDependenciesMastered(playerData, path);
+            boolean isActivePath = playerData != null && path.id.equals(playerData.getCurrentPath());
+            boolean hasActivePath = playerData != null && playerData.getCurrentPath() != null;
+            boolean isSelectable = isUnlocked && (!hasActivePath || isActivePath);
+
             boolean cardHovered = mouseX >= cardX && mouseX < cardX + cardW && mouseY >= cardY && mouseY < cardY + cardH;
             
-            int cardBg = isUnlocked ? currentWidgetBg : 0xFF181515;
-            int cardBorder = isUnlocked ? (cardHovered ? COLOR_BRASS : currentBorderStd) : (cardHovered ? 0xFF884444 : 0xFF553333);
+            int cardBg = isSelectable ? currentWidgetBg : 0xFF181515;
+            int cardBorder;
+            if (isActivePath) {
+                cardBorder = COLOR_BRASS;
+            } else if (isSelectable) {
+                cardBorder = cardHovered ? COLOR_BRASS : currentBorderStd;
+            } else {
+                cardBorder = cardHovered ? 0xFF884444 : 0xFF553333;
+            }
 
             // Draw Card Panel
             drawFlatPanel(graphics, cardX, cardY, cardW, cardH, cardBg, cardBorder);
@@ -207,7 +218,21 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             int btnY = cardY + cabH + bodyReqH + 4;
             int btnW = cardW - 16;
             int btnH = pieH - 8;
-            drawFlatButton(graphics, btnX, btnY, btnW, btnH, isUnlocked ? "ELEGIR CAMINO" : "BLOQUEADO", mouseX, mouseY, isUnlocked);
+
+            String btnText;
+            boolean btnEnabled;
+            if (isActivePath) {
+                btnText = "EQUIPADO";
+                btnEnabled = false;
+            } else if (isSelectable) {
+                btnText = "ELEGIR CAMINO";
+                btnEnabled = true;
+            } else {
+                btnText = "BLOQUEADO";
+                btnEnabled = false;
+            }
+
+            drawFlatButton(graphics, btnX, btnY, btnW, btnH, btnText, mouseX, mouseY, btnEnabled);
         }
     }
 
@@ -249,13 +274,17 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             for (int i = 0; i < (endIndex - startIndex); i++) {
                 xdAbsoluteMastery.ConfigManager.PathInfo path = availablePaths.get(startIndex + i);
                 boolean isUnlocked = xdAbsoluteMastery.areDependenciesMastered(playerData, path);
+                boolean isActivePath = playerData != null && path.id.equals(playerData.getCurrentPath());
+                boolean hasActivePath = playerData != null && playerData.getCurrentPath() != null;
+                boolean isSelectable = isUnlocked && (!hasActivePath || isActivePath);
+
                 int cardX = containerX + 60 + gap + i * (cardW + gap);
                 int btnX = cardX + 8;
                 int btnY = cardY + cabH + bodyReqH + 4;
                 int btnW = cardW - 16;
                 int btnH = pieH - 8;
 
-                if (isUnlocked && mouseX >= btnX && mouseX < btnX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
+                if (isSelectable && !isActivePath && mouseX >= btnX && mouseX < btnX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
                     playClickSound();
                     xdAbsoluteMastery.CHANNEL.sendToServer(new xdAbsoluteMastery.SelectPathPacket(path.id));
                     this.onClose();
