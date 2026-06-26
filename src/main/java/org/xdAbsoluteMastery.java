@@ -1369,11 +1369,28 @@ public class xdAbsoluteMastery {
             if (!file.exists()) {
                 createDefaultConfig(file);
             }
-            try (java.io.BufferedReader reader = java.nio.file.Files.newBufferedReader(configPath, java.nio.charset.StandardCharsets.UTF_8)) {
-                JsonObject json = GSON.fromJson(reader, JsonObject.class);
-                parseJson(json);
+            byte[] bytes;
+            try {
+                bytes = java.nio.file.Files.readAllBytes(configPath);
             } catch (IOException e) {
-                LOGGER.error("Failed to load xam_paths.json config", e);
+                LOGGER.error("Failed to read bytes from xam_paths.json", e);
+                return;
+            }
+            String content;
+            try {
+                java.nio.charset.CharsetDecoder decoder = java.nio.charset.StandardCharsets.UTF_8.newDecoder();
+                decoder.onMalformedInput(java.nio.charset.CodingErrorAction.REPORT);
+                decoder.onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT);
+                java.nio.ByteBuffer buf = java.nio.ByteBuffer.wrap(bytes);
+                content = decoder.decode(buf).toString();
+            } catch (java.nio.charset.CharacterCodingException e) {
+                content = new String(bytes, java.nio.charset.StandardCharsets.ISO_8859_1);
+            }
+            try {
+                JsonObject json = GSON.fromJson(content, JsonObject.class);
+                parseJson(json);
+            } catch (Exception e) {
+                LOGGER.error("Failed to parse xam_paths.json config", e);
             }
         }
 
