@@ -16,12 +16,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
         graphics.drawString(this.font, "SISTEMA DE MAESTRÍA", containerX + 15, titleY, TEXT_SECONDARY, false);
-
-        int closeW = 60;
-        int closeH = 20;
-        int closeX = containerX + containerW - 15 - closeW;
-        int closeY = containerY + (headerH - closeH) / 2;
-        drawFlatButton(graphics, closeX, closeY, closeW, closeH, "Cerrar", mouseX, mouseY, true);
+        drawCloseButton(graphics, mouseX, mouseY);
     }
 
     @Override
@@ -121,11 +116,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
             // Header Close Button
-            int closeW = 60;
-            int closeH = 20;
-            int closeX = containerX + containerW - 15 - closeW;
-            int closeY = containerY + (headerH - closeH) / 2;
-            if (mouseX >= closeX && mouseX < closeX + closeW && mouseY >= closeY && mouseY < closeY + closeH) {
+            if (isCloseButtonClicked(mouseX, mouseY)) {
                 playClickSound();
                 this.onClose();
                 return true;

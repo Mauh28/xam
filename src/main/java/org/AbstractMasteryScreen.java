@@ -102,19 +102,31 @@ public abstract class AbstractMasteryScreen extends Screen {
     }
 
     protected boolean drawBackButton(GuiGraphics graphics, int mouseX, int mouseY) {
-        int btnW = 60;
-        int btnH = 20;
-        int btnX = containerX + containerW - 15 - btnW;
-        int btnY = containerY + (headerH - btnH) / 2;
-        return drawFlatButton(graphics, btnX, btnY, btnW, btnH, "Volver", mouseX, mouseY, true);
+        int btnSize = 20;
+        int btnX = containerX + containerW - 15 - btnSize;
+        int btnY = containerY + (headerH - btnSize) / 2;
+        return drawFlatButton(graphics, btnX, btnY, btnSize, btnSize, "◀", mouseX, mouseY, true);
     }
 
     protected boolean isBackButtonClicked(double mouseX, double mouseY) {
-        int btnW = 60;
-        int btnH = 20;
-        int btnX = containerX + containerW - 15 - btnW;
-        int btnY = containerY + (headerH - btnH) / 2;
-        return mouseX >= btnX && mouseX < btnX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
+        int btnSize = 20;
+        int btnX = containerX + containerW - 15 - btnSize;
+        int btnY = containerY + (headerH - btnSize) / 2;
+        return mouseX >= btnX && mouseX < btnX + btnSize && mouseY >= btnY && mouseY < btnY + btnSize;
+    }
+
+    protected boolean drawCloseButton(GuiGraphics graphics, int mouseX, int mouseY) {
+        int btnSize = 20;
+        int btnX = containerX + containerW - 15 - btnSize;
+        int btnY = containerY + (headerH - btnSize) / 2;
+        return drawFlatButton(graphics, btnX, btnY, btnSize, btnSize, "✕", mouseX, mouseY, true);
+    }
+
+    protected boolean isCloseButtonClicked(double mouseX, double mouseY) {
+        int btnSize = 20;
+        int btnX = containerX + containerW - 15 - btnSize;
+        int btnY = containerY + (headerH - btnSize) / 2;
+        return mouseX >= btnX && mouseX < btnX + btnSize && mouseY >= btnY && mouseY < btnY + btnSize;
     }
 
     @Override
