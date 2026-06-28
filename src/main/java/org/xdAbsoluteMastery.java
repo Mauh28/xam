@@ -157,40 +157,64 @@ public class xdAbsoluteMastery {
         return false;
     }
 
-    public static boolean isAdvancementCompleted(Player player, String advancementId) {
-        ResourceLocation resLoc = ResourceLocation.tryParse(advancementId);
-        if (resLoc == null) return false;
+    public static boolean isAdvancementCompleted(Player player, String id) {
         if (player instanceof ServerPlayer serverPlayer) {
+            ResourceLocation resLoc = ResourceLocation.tryParse(id);
+            if (resLoc == null) return false;
             net.minecraft.advancements.Advancement adv = serverPlayer.server.getAdvancements().getAdvancement(resLoc);
-            if (adv == null) return false;
-            return serverPlayer.getAdvancements().getOrStartProgress(adv).isDone();
+            return adv != null && serverPlayer.getAdvancements().getOrStartProgress(adv).isDone();
         } else {
-            if (net.minecraftforge.fml.loading.FMLEnvironment.dist == net.minecraftforge.api.distmarker.Dist.CLIENT) {
-                try {
-                    net.minecraft.client.multiplayer.ClientPacketListener connection = net.minecraft.client.Minecraft.getInstance().getConnection();
-                    if (connection != null) {
-                        net.minecraft.client.multiplayer.ClientAdvancements clientAdvs = connection.getAdvancements();
-                        for (java.lang.reflect.Field field : net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredFields()) {
-                            if (field.getType() == Map.class) {
-                                field.setAccessible(true);
-                                Map<?, ?> map = (Map<?, ?>) field.get(clientAdvs);
-                                if (map != null) {
-                                    for (Map.Entry<?, ?> entry : map.entrySet()) {
-                                        Object key = entry.getKey();
-                                        if (key instanceof net.minecraft.advancements.Advancement adv) {
-                                            if (adv.getId().equals(resLoc)) {
-                                                Object val = entry.getValue();
-                                                if (val instanceof net.minecraft.advancements.AdvancementProgress progress) {
-                                                    return progress.isDone();
-                                                }
+            if (net.minecraftforge.fml.loading.FMLEnvironment.dist.isClient()) {
+                return ClientHelper.isClientAdvancementCompleted(id);
+            }
+            return false;
+        }
+    }
+
+    private static class ClientHelper {
+        private static boolean isClientAdvancementCompleted(String id) {
+            ResourceLocation resLoc = ResourceLocation.tryParse(id);
+            if (resLoc == null) return false;
+            var connection = net.minecraft.client.Minecraft.getInstance().getConnection();
+            if (connection != null) {
+                var clientAdvs = connection.getAdvancements();
+                net.minecraft.advancements.Advancement adv = clientAdvs.getAdvancements().get(resLoc);
+                if (adv != null) {
+                    try {
+                        java.lang.reflect.Field progressField = net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredField("f_104378_");
+                        progressField.setAccessible(true);
+                        java.util.Map<?, ?> map = (java.util.Map<?, ?>) progressField.get(clientAdvs);
+                        Object val = map.get(adv);
+                        if (val instanceof net.minecraft.advancements.AdvancementProgress progress) {
+                            return progress.isDone();
+                        }
+                    } catch (Exception e) {
+                        try {
+                            java.lang.reflect.Field progressField = net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredField("progress");
+                            progressField.setAccessible(true);
+                            java.util.Map<?, ?> map = (java.util.Map<?, ?>) progressField.get(clientAdvs);
+                            Object val = map.get(adv);
+                            if (val instanceof net.minecraft.advancements.AdvancementProgress progress) {
+                                return progress.isDone();
+                            }
+                        } catch (Exception e2) {
+                            for (java.lang.reflect.Field field : net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredFields()) {
+                                if (field.getType() == java.util.Map.class) {
+                                    try {
+                                        field.setAccessible(true);
+                                        java.util.Map<?, ?> map = (java.util.Map<?, ?>) field.get(clientAdvs);
+                                        if (map != null) {
+                                            Object val = map.get(adv);
+                                            if (val instanceof net.minecraft.advancements.AdvancementProgress progress) {
+                                                return progress.isDone();
                                             }
                                         }
-                                    }
+                                    } catch (Exception ignored) {}
                                 }
                             }
                         }
                     }
-                } catch (Exception ignored) {}
+                }
             }
             return false;
         }
