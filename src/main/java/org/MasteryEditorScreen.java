@@ -31,6 +31,21 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     private EditBox pathDepsEdit;
     private EditBox pathMinSwitchEdit;
 
+    // Layout fields
+    private boolean isNarrow;
+    private int iconX, iconY;
+    private int titleX, titleY, titleW;
+    private int modX, modY, modEditW, browseX;
+    private int depsX, secondY, depsW, depsBtnX;
+    private int minX, minY, minW;
+    private int metadataFrameH;
+    private int reqTitleY;
+
+    // Sidebar Context menu state
+    private int contextMenuBranchIndex = -1;
+    private int contextMenuBranchX = 0;
+    private int contextMenuBranchY = 0;
+
     // Notification state
     private long saveNotificationTime = 0;
     private String saveNotificationMsg = "";
@@ -69,24 +84,67 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     protected void init() {
         super.init();
 
-        int sidebarW = (int) (containerW * 0.25);
+        int sidebarW = containerW < 450 ? 95 : (int) (containerW * 0.25);
         int editorX = containerX + sidebarW + 2;
         int editorW = containerW - sidebarW - 4;
         int editorH = bodyH;
 
-        int inputH = (int) (editorH * 0.10);
+        this.isNarrow = editorW < 320;
 
         int iconW = 20;
-        int iconX = editorX + 20;
-        int iconY = bodyY + 15;
+        if (!isNarrow) {
+            this.iconX = editorX + 20;
+            this.iconY = bodyY + 15;
 
-        int titleW = (int) ((editorW - 80) * 0.60);
-        int titleX = iconX + iconW + 10;
-        int titleY = bodyY + 15;
+            this.titleX = iconX + iconW + 10;
+            this.titleW = (int) ((editorW - 80) * 0.60);
+            this.titleY = bodyY + 15;
 
-        int modW = (int) ((editorW - 80) * 0.40);
-        int modX = titleX + titleW + 10;
-        int modY = bodyY + 15;
+            int modW = (int) ((editorW - 80) * 0.40);
+            this.modX = titleX + titleW + 10;
+            this.modEditW = modW - 25;
+            this.modY = bodyY + 15;
+            this.browseX = modX + modEditW + 5;
+
+            // Increased vertical spacing to prevent vertical overlaps with upper fields
+            this.secondY = bodyY + 52;
+            int secondW = editorW - 40;
+            this.minW = 50;
+            int depsAreaW = secondW - minW - 10;
+            this.depsW = depsAreaW - 25;
+            this.depsX = editorX + 20;
+            this.depsBtnX = depsX + depsW + 5;
+            this.minX = depsBtnX + 20 + 10;
+            this.minY = secondY;
+
+            this.metadataFrameH = 80;
+        } else {
+            // Narrow stacked layout with comfortable row gaps
+            this.iconX = editorX + 15;
+            this.iconY = bodyY + 12;
+
+            this.titleX = iconX + iconW + 10;
+            this.titleW = editorW - 60;
+            this.titleY = bodyY + 12;
+
+            this.modX = editorX + 15;
+            this.modEditW = editorW - 55;
+            this.modY = bodyY + 47;
+            this.browseX = modX + modEditW + 5;
+
+            this.depsX = editorX + 15;
+            this.depsW = editorW - 55;
+            this.secondY = bodyY + 82;
+            this.depsBtnX = depsX + depsW + 5;
+
+            this.minX = editorX + 15;
+            this.minW = editorW - 30;
+            this.minY = bodyY + 117;
+
+            this.metadataFrameH = 145;
+        }
+
+        this.reqTitleY = bodyY + 10 + metadataFrameH + 10;
 
         // Edit box for Title
         this.pathNameEdit = new EditBox(this.font, titleX + 4, titleY + 5, titleW - 8, 12, Component.literal("Título"));
@@ -95,7 +153,6 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         this.addRenderableWidget(this.pathNameEdit);
 
         // Edit box for Mod ID (Editable)
-        int modEditW = modW - 25;
         this.pathModIdEdit = new EditBox(this.font, modX + 4, modY + 5, modEditW - 8, 12, Component.literal("Namespace MOD"));
         this.pathModIdEdit.setBordered(false);
         this.pathModIdEdit.setTextColor(TEXT_PRIMARY);
@@ -103,19 +160,12 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         this.addRenderableWidget(this.pathModIdEdit);
 
         // Second line editor inputs
-        int secondY = bodyY + 45;
-        int secondW = editorW - 40;
-        int depsW = (int) (secondW * 0.70);
-        int minW = (int) (secondW * 0.30);
-        int depsX = editorX + 20;
-        int minX = depsX + depsW + 10;
-
         this.pathDepsEdit = new EditBox(this.font, depsX + 4, secondY + 5, depsW - 8, 12, Component.literal("Dependencias"));
         this.pathDepsEdit.setBordered(false);
         this.pathDepsEdit.setTextColor(TEXT_PRIMARY);
         this.addRenderableWidget(this.pathDepsEdit);
 
-        this.pathMinSwitchEdit = new EditBox(this.font, minX + 4, secondY + 5, minW - 8, 12, Component.literal("Min. Reqs"));
+        this.pathMinSwitchEdit = new EditBox(this.font, minX + 4, minY + 5, minW - 8, 12, Component.literal("Min. Reqs"));
         this.pathMinSwitchEdit.setBordered(false);
         this.pathMinSwitchEdit.setTextColor(TEXT_PRIMARY);
         this.addRenderableWidget(this.pathMinSwitchEdit);
@@ -233,8 +283,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
 
-        // Sidebar dimensions (25% of body width)
-        int sidebarW = (int) (containerW * 0.25);
+        // Sidebar dimensions (25% of body width or fixed width if narrow)
+        int sidebarW = containerW < 450 ? 95 : (int) (containerW * 0.25);
         int sidebarH = bodyH;
         int sidebarX = containerX + 2;
         int sidebarY = bodyY;
@@ -296,15 +346,26 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             graphics.drawString(this.font, name, textX, itemY + 5, isActive ? COLOR_BRASS : (itemHovered ? TEXT_PRIMARY : TEXT_SECONDARY), false);
         }
 
-        // Sidebar Add Branch Button
+        // Sidebar Add and Delete Buttons (split itemW horizontally)
         int addPathBtnY = sidebarY + sidebarH - 25;
-        boolean addHovered = mouseX >= listX && mouseX < listX + itemW && mouseY >= addPathBtnY && mouseY < addPathBtnY + 18;
+        int btnHalfW = itemW / 2 - 2;
+
+        // Button "+ AÑADIR"
+        boolean addHovered = mouseX >= listX && mouseX < listX + btnHalfW && mouseY >= addPathBtnY && mouseY < addPathBtnY + 18;
         int addBg = addHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
         int addBorder = addHovered ? COLOR_BRASS : 0xFF2C221D;
-        drawFlatPanel(graphics, listX, addPathBtnY, itemW, 18, addBg, addBorder);
-        graphics.drawCenteredString(this.font, "+ AÑADIR RAMA", listX + itemW / 2, addPathBtnY + 5, TEXT_PRIMARY);
+        drawFlatPanel(graphics, listX, addPathBtnY, btnHalfW, 18, addBg, addBorder);
+        graphics.drawCenteredString(this.font, "+ AÑADIR", listX + btnHalfW / 2, addPathBtnY + 5, TEXT_PRIMARY);
 
-        // --- RIGHT COLUMN (Editor - 75% of body width) ---
+        // Button "- BORRAR"
+        int delBtnX = listX + btnHalfW + 4;
+        boolean delBtnHovered = mouseX >= delBtnX && mouseX < delBtnX + btnHalfW && mouseY >= addPathBtnY && mouseY < addPathBtnY + 18;
+        int delBg = delBtnHovered ? 0xFF3A1111 : 0xFF140F0D;
+        int delBorder = delBtnHovered ? 0xFFFF5555 : 0xFF2C221D;
+        drawFlatPanel(graphics, delBtnX, addPathBtnY, btnHalfW, 18, delBg, delBorder);
+        graphics.drawCenteredString(this.font, "- BORRAR", delBtnX + btnHalfW / 2, addPathBtnY + 5, delBtnHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
+
+        // --- RIGHT COLUMN (Editor - 75% of body width or more if narrow) ---
         int editorX = containerX + sidebarW + 2;
         int editorW = containerW - sidebarW - 4;
         int editorH = bodyH;
@@ -312,39 +373,18 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
             PathInfo p = localPaths.get(selectedPathIndex);
 
-            int inputH = (int) (editorH * 0.10);
-            
-            int iconW = 20;
-            int iconX = editorX + 20;
-            int iconY = bodyY + 15;
-
-            int titleW = (int) ((editorW - 80) * 0.60);
-            int titleX = iconX + iconW + 10;
-            int titleY = bodyY + 15;
-
-            int modW = (int) ((editorW - 80) * 0.40);
-            int modX = titleX + titleW + 10;
-            int modY = bodyY + 15;
-
             // Enclosing metadata frame
-            drawFlatPanel(graphics, editorX + 10, bodyY + 5, editorW - 20, inputH + 48, PANEL_INNER_BG, 0xFF2A201C);
+            drawFlatPanel(graphics, editorX + 10, bodyY + 5, editorW - 20, metadataFrameH, PANEL_INNER_BG, 0xFF2A201C);
 
             // Inputs Labels
             graphics.drawString(this.font, "Icono", iconX, iconY - 11, COLOR_BRASS, false);
             graphics.drawString(this.font, "Título", titleX, titleY - 11, COLOR_BRASS, false);
             graphics.drawString(this.font, "Namespace MOD", modX, modY - 11, COLOR_BRASS, false);
-
-            int secondY = bodyY + 45;
-            int secondW = editorW - 40;
-            int depsW = (int) (secondW * 0.70);
-            int minW = (int) (secondW * 0.30);
-            int depsX = editorX + 20;
-            int minX = depsX + depsW + 10;
-
             graphics.drawString(this.font, "Dependencias de Rama (ej. botania:1)", depsX, secondY - 11, COLOR_BRASS, false);
-            graphics.drawString(this.font, "Min. Reqs", minX, secondY - 11, COLOR_BRASS, false);
+            graphics.drawString(this.font, "Min. Reqs", minX, minY - 11, COLOR_BRASS, false);
 
             // Icon background panel
+            int iconW = 20;
             boolean iconHovered = mouseX >= iconX && mouseX < iconX + iconW && mouseY >= iconY && mouseY < iconY + iconW;
             int iconBg = iconHovered ? 0xFF2C221D : INPUT_BACKGROUND;
             int iconBorder = iconHovered ? COLOR_BRASS : COLOR_COPPER;
@@ -370,14 +410,12 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             graphics.renderFakeItem(branchIconStack, iconX + 2, iconY + 2);
 
             // Inputs Background Panels
-            int modEditW = modW - 25;
             drawFlatPanel(graphics, titleX, titleY, titleW, 20, INPUT_BACKGROUND, COLOR_COPPER);
             drawFlatPanel(graphics, modX, modY, modEditW, 20, INPUT_BACKGROUND, COLOR_COPPER);
             drawFlatPanel(graphics, depsX, secondY, depsW, 20, INPUT_BACKGROUND, COLOR_COPPER);
-            drawFlatPanel(graphics, minX, secondY, minW, 20, INPUT_BACKGROUND, COLOR_COPPER);
+            drawFlatPanel(graphics, minX, minY, minW, 20, INPUT_BACKGROUND, COLOR_COPPER);
 
             // Copper "..." dependency picker button (junto al panel de Dependencias de Rama)
-            int depsBtnX = depsX + depsW + 5;
             boolean depsBtnHovered = mouseX >= depsBtnX && mouseX < depsBtnX + 20 && mouseY >= secondY && mouseY < secondY + 20;
             int depsBtnBg = depsBtnHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
             int depsBtnBorder = depsBtnHovered ? COLOR_BRASS : 0xFF2C221D;
@@ -385,7 +423,6 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             graphics.drawCenteredString(this.font, "...", depsBtnX + 10, secondY + 6, TEXT_PRIMARY);
 
             // Copper "..." selection button
-            int browseX = modX + modEditW + 5;
             boolean browseHovered = mouseX >= browseX && mouseX < browseX + 20 && mouseY >= modY && mouseY < modY + 20;
             int browseBg = browseHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
             int browseBorder = browseHovered ? COLOR_BRASS : 0xFF2C221D;
@@ -393,12 +430,11 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             graphics.drawCenteredString(this.font, "...", browseX + 10, modY + 6, TEXT_PRIMARY);
 
             // Requisitos Section
-            int reqTitleY = bodyY + 15 + inputH + 45;
             graphics.drawString(this.font, "REQUISITOS", editorX + 20, reqTitleY, COLOR_BRASS, false);
             int reqTitleW = this.font.width("REQUISITOS");
             graphics.fill(editorX + 20, reqTitleY + 10, editorX + 20 + reqTitleW, reqTitleY + 11, COLOR_COPPER);
 
-            // Button "+ AÑADIR ESCENA" with Cobre Ponder style
+            // Button "+ AÑADIR REQUISITO" with Cobre Ponder style
             int addReqBtnX = editorX + editorW - 120;
             int addReqBtnY = reqTitleY - 4;
             int addReqBtnW = 100;
@@ -494,11 +530,11 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 graphics.drawString(this.font, descText, cardX + 86, cardY + 24, TEXT_SECONDARY, false);
 
                 // 3. Botón Eliminar (40px wide) with Ponder copper/red style
-                int delBg = delHovered ? 0xFF3A1111 : 0xFF140F0D;
-                int delFg = delHovered ? 0xFFFF5555 : TEXT_MUTED;
-                graphics.fill(cardX + cardW - 40, cardY + 2, cardX + cardW - 2, cardY + cardH - 2, delBg);
+                int cardDelBg = delHovered ? 0xFF3A1111 : 0xFF140F0D;
+                int cardDelFg = delHovered ? 0xFFFF5555 : TEXT_MUTED;
+                graphics.fill(cardX + cardW - 40, cardY + 2, cardX + cardW - 2, cardY + cardH - 2, cardDelBg);
                 graphics.fill(cardX + cardW - 40, cardY + 2, cardX + cardW - 38, cardY + cardH - 2, 0xFF2A201C); // Separator
-                graphics.drawCenteredString(this.font, "✕", cardX + cardW - 20, cardY + 16, delFg);
+                graphics.drawCenteredString(this.font, "✕", cardX + cardW - 20, cardY + 16, cardDelFg);
             }
 
             RenderSystem.disableScissor();
@@ -530,20 +566,33 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 int textCol = optionHovered ? TEXT_PRIMARY : TEXT_SECONDARY;
                 graphics.drawCenteredString(this.font, "Editar", contextMenuX + menuW / 2, contextMenuY + (menuH - 8) / 2, textCol);
             }
+
+            // Render sidebar branch context menu if active
+            if (contextMenuBranchIndex != -1) {
+                int menuW = 80;
+                int menuH = 22;
+                boolean optionHovered = mouseX >= contextMenuBranchX && mouseX < contextMenuBranchX + menuW && mouseY >= contextMenuBranchY && mouseY < contextMenuBranchY + menuH;
+
+                int menuBg = optionHovered ? 0xFF3A1111 : WIDGET_BACKGROUND;
+                int menuBorder = optionHovered ? 0xFFFF5555 : BORDER_INNER;
+
+                drawFlatPanel(graphics, contextMenuBranchX, contextMenuBranchY, menuW, menuH, menuBg, menuBorder);
+
+                int textCol = optionHovered ? TEXT_PRIMARY : TEXT_SECONDARY;
+                graphics.drawCenteredString(this.font, "Borrar", contextMenuBranchX + menuW / 2, contextMenuBranchY + (menuH - 8) / 2, textCol);
+            }
         }
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        int sidebarW = (int) (containerW * 0.25);
+        int sidebarW = containerW < 450 ? 95 : (int) (containerW * 0.25);
         int editorX = containerX + sidebarW + 2;
         int editorW = containerW - sidebarW - 4;
         int editorH = bodyH;
 
         if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size() && mouseX >= editorX + 20) {
             PathInfo p = localPaths.get(selectedPathIndex);
-            int inputH = (int) (editorH * 0.10);
-            int reqTitleY = bodyY + 15 + inputH + 15;
             int reqListH = editorH - (reqTitleY - bodyY + 16) - 10;
             int totalReqsH = p.requirements.size() * 46;
             int maxScroll = Math.max(0, totalReqsH - reqListH);
@@ -567,7 +616,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             }
             return true;
         }
-        int sidebarW = (int) (containerW * 0.25);
+        int sidebarW = containerW < 450 ? 95 : (int) (containerW * 0.25);
         int editorX = containerX + sidebarW + 2;
         int editorW = containerW - sidebarW - 4;
         int editorH = bodyH;
@@ -597,12 +646,55 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             }
         }
 
-        // 2. Handle Right Click to open Context Menu on card
+        // Handle Sidebar Context Menu left click / dismiss
+        if (contextMenuBranchIndex != -1) {
+            if (button == 0) {
+                int menuW = 80;
+                int menuH = 22;
+                if (mouseX >= contextMenuBranchX && mouseX < contextMenuBranchX + menuW && mouseY >= contextMenuBranchY && mouseY < contextMenuBranchY + menuH) {
+                    playClickSound();
+                    int index = contextMenuBranchIndex;
+                    contextMenuBranchIndex = -1;
+                    if (index >= 0 && index < localPaths.size()) {
+                        PathInfo target = localPaths.get(index);
+                        Minecraft.getInstance().setScreen(new ConfirmDeleteScreen(this, () -> {
+                            localPaths.remove(index);
+                            if (selectedPathIndex >= index) {
+                                selectedPathIndex = localPaths.isEmpty() ? -1 : 0;
+                            }
+                            updateEditors();
+                        }, target.name));
+                    }
+                    return true;
+                }
+            }
+            contextMenuBranchIndex = -1;
+            if (button != 0) {
+                return true;
+            }
+        }
+
+        // 2. Handle Right Click to open Context Menu on card or sidebar
         if (button == 1) {
+            // Right Click on Sidebar Branch Item
+            int sidebarX = containerX + 2;
+            int listX = sidebarX + 10;
+            int listY = bodyY + 25;
+            int itemW = sidebarW - 20;
+            int itemH = 18;
+            for (int i = 0; i < localPaths.size(); i++) {
+                int itemY = listY + i * 20;
+                if (mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + itemH) {
+                    playClickSound();
+                    contextMenuBranchIndex = i;
+                    contextMenuBranchX = (int) mouseX;
+                    contextMenuBranchY = (int) mouseY;
+                    return true;
+                }
+            }
+
             if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
                 PathInfo p = localPaths.get(selectedPathIndex);
-                int inputH = (int) (editorH * 0.10);
-                int reqTitleY = bodyY + 15 + inputH + 15;
                 int startCardY = reqTitleY + 16;
                 int reqListH = editorH - (reqTitleY - bodyY + 16) - 10;
                 int cardW = editorW - 40;
@@ -628,21 +720,9 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         if (button == 0) {
             if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
                 PathInfo p = localPaths.get(selectedPathIndex);
-                int inputH = (int) (editorH * 0.10);
-                
-                int iconW = 20;
-                int iconX = editorX + 20;
-                int iconY = bodyY + 15;
-
-                int titleW = (int) ((editorW - 80) * 0.60);
-                int titleX = iconX + iconW + 10;
-
-                int modW = (int) ((editorW - 80) * 0.40);
-                int modX = titleX + titleW + 10;
-                int modY = bodyY + 15;
-                int modEditW = modW - 25;
                 
                 // Icon button click
+                int iconW = 20;
                 if (mouseX >= iconX && mouseX < iconX + iconW && mouseY >= iconY && mouseY < iconY + iconW) {
                     playClickSound();
                     Minecraft.getInstance().setScreen(new IconSelectionScreen(this, item -> {
@@ -656,8 +736,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 }
 
                 // Mod ID "..." button click
-                int btnX = modX + modEditW + 5;
-                if (mouseX >= btnX && mouseX < btnX + 20 && mouseY >= modY && mouseY < modY + 20) {
+                if (mouseX >= browseX && mouseX < browseX + 20 && mouseY >= modY && mouseY < modY + 20) {
                     playClickSound();
                     Minecraft.getInstance().setScreen(new ModSelectionScreen(this, modId -> {
                         this.pathModIdEdit.setValue(modId);
@@ -667,15 +746,9 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     return true;
                 }
 
-                // Dependencias "..." picker button click (junto al panel de Dependencias de Rama)
-                int secondY2 = bodyY + 45;
-                int secondW2 = editorW - 40;
-                int depsW2 = (int) (secondW2 * 0.70);
-                int depsX2 = editorX + 20;
-                int depsBtnX = depsX2 + depsW2 + 5;
-                if (mouseX >= depsBtnX && mouseX < depsBtnX + 20 && mouseY >= secondY2 && mouseY < secondY2 + 20) {
+                // Dependencias "..." picker button click
+                if (mouseX >= depsBtnX && mouseX < depsBtnX + 20 && mouseY >= secondY && mouseY < secondY + 20) {
                     playClickSound();
-                    // Quita el responder antes de setValue para que no re-parsed el texto; se re-vincula tras volver.
                     this.pathDepsEdit.setResponder(null);
                     Minecraft.getInstance().setScreen(new DependencySelectionScreen(
                             this, p.id, localPaths, new ArrayList<>(p.dependencies), deps -> {
@@ -699,42 +772,47 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int footStartX = containerX + containerW - 15 - (footBtnW * 2 + 10);
             int footBtnY = containerY + containerH - footerH + (footerH - footBtnH) / 2;
 
-            // Descartar Todo
             if (mouseX >= footStartX && mouseX < footStartX + footBtnW && mouseY >= footBtnY && mouseY < footBtnY + footBtnH) {
                 playClickSound();
                 this.onClose();
                 return true;
             }
-            // Guardar Estructura
             if (mouseX >= footStartX + footBtnW + 10 && mouseX < footStartX + footBtnW + 10 + footBtnW && mouseY >= footBtnY && mouseY < footBtnY + footBtnH) {
                 playClickSound();
                 saveConfig();
                 return true;
             }
 
-            // Sidebar: Add Branch
-            int sidebarH = bodyH;
+            // Sidebar: Add / Delete Branch Buttons click
             int sidebarX = containerX + 2;
-            int sidebarY = bodyY;
             int listX = sidebarX + 10;
-            int listY = sidebarY + 25;
+            int listY = bodyY + 25;
             int itemW = sidebarW - 20;
-            int itemH = 18;
+            int addPathBtnY = bodyY + bodyH - 25;
+            int btnHalfW = itemW / 2 - 2;
 
-            int addPathBtnY = sidebarY + sidebarH - 25;
-            if (mouseX >= listX && mouseX < listX + itemW && mouseY >= addPathBtnY && mouseY < addPathBtnY + 18) {
+            // Click "+ AÑADIR"
+            if (mouseX >= listX && mouseX < listX + btnHalfW && mouseY >= addPathBtnY && mouseY < addPathBtnY + 18) {
                 playClickSound();
                 addPath();
+                return true;
+            }
+
+            // Click "- BORRAR"
+            int delBtnX = listX + btnHalfW + 4;
+            if (mouseX >= delBtnX && mouseX < delBtnX + btnHalfW && mouseY >= addPathBtnY && mouseY < addPathBtnY + 18) {
+                playClickSound();
+                Minecraft.getInstance().setScreen(new DeleteMasteryScreen(this));
                 return true;
             }
 
             // Sidebar: select branch
             for (int i = 0; i < localPaths.size(); i++) {
                 int itemY = listY + i * 20;
-                if (mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + itemH) {
+                if (mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + 18) {
                     playClickSound();
                     selectedPathIndex = i;
-                    scrollY = 0; // Reset scroll on path change
+                    scrollY = 0;
                     updateEditors();
                     return true;
                 }
@@ -744,10 +822,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
                 PathInfo p = localPaths.get(selectedPathIndex);
 
-                int inputH = (int) (editorH * 0.10);
-                int reqTitleY = bodyY + 15 + inputH + 15;
-
-                // Add Scene Button
+                // Add Requirement Button
                 int addReqBtnX = editorX + editorW - 120;
                 int addReqBtnY = reqTitleY - 4;
                 int addReqBtnW = 100;
@@ -758,7 +833,6 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     return true;
                 }
 
-                // Requirements Cards Click (taking scrollY into account)
                 int startCardY = reqTitleY + 16;
                 int reqListH = editorH - (reqTitleY - bodyY + 16) - 10;
                 int cardW = editorW - 40;
@@ -772,34 +846,24 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     if (cardIndex >= 0 && cardIndex < p.requirements.size() && relativeY <= cardH) {
                         Requirement req = p.requirements.get(cardIndex);
                         int cardX = editorX + 20;
-                        int cardY = startCardY + (cardIndex * 46) - (int) scrollY;
 
-                        // 1. Click Type Box (left 80px)
                         if (mouseX >= cardX && mouseX < cardX + 80) {
                             playClickSound();
                             cycleRequirementType(req);
                             return true;
                         }
-
-                        // 2. Click Info Box (middle)
                         if (mouseX >= cardX + 80 && mouseX < cardX + cardW - 40) {
                             playClickSound();
                             openSelectorForRequirement(req);
                             return true;
                         }
-
-                        // 3. Click Delete Box (right 40px)
                         if (mouseX >= cardX + cardW - 40 && mouseX < cardX + cardW) {
                             playClickSound();
                             p.requirements.remove(cardIndex);
                             updateModIdFromRequirements(p);
-                            
-                            // Adjust scroll if item deletion reduces height below viewport
                             int totalReqsH = p.requirements.size() * 46;
                             int maxScroll = Math.max(0, totalReqsH - reqListH);
                             scrollY = Math.max(0, Math.min(maxScroll, scrollY));
-                            
-                            updateEditors();
                             return true;
                         }
                     }
@@ -830,10 +894,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             updateModIdFromRequirements(p);
             updateEditors();
             
-            // Adjust scroll to make newly added item visible
-            int sidebarW = (int) (containerW * 0.25);
+            // Adjust scroll to make newly added item visible using dynamic reqTitleY
             int editorH = bodyH;
-            int reqTitleY = bodyY + 15 + (int)(editorH * 0.10) + 15;
             int reqListH = editorH - (reqTitleY - bodyY + 16) - 10;
             int totalReqsH = p.requirements.size() * 46;
             scrollY = Math.max(0, totalReqsH - reqListH);
@@ -953,5 +1015,213 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
 
         this.saveNotificationMsg = "✔ ¡Maestría guardada correctamente!";
         this.saveNotificationTime = System.currentTimeMillis();
+    }
+
+    // --- NESTED CLASSES FOR MASTERY DELETION SYSTEM ---
+
+    public static class ConfirmDeleteScreen extends AbstractMasteryScreen {
+        private final Screen parent;
+        private final Runnable onConfirm;
+        private final String targetName;
+        private final Screen returnScreen;
+
+        public ConfirmDeleteScreen(Screen parent, Runnable onConfirm, String targetName, Screen returnScreen) {
+            super(Component.literal("¿CONFIRMAR ELIMINACIÓN?"));
+            this.parent = parent;
+            this.onConfirm = onConfirm;
+            this.targetName = targetName;
+            this.returnScreen = returnScreen;
+        }
+
+        public ConfirmDeleteScreen(Screen parent, Runnable onConfirm, String targetName) {
+            this(parent, onConfirm, targetName, parent);
+        }
+
+        @Override
+        protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
+            int titleY = containerY + (headerH - 8) / 2;
+            graphics.drawString(this.font, "CONFIRMAR ELIMINACIÓN", containerX + 15, titleY, TEXT_PRIMARY, false);
+            drawBackButton(graphics, mouseX, mouseY);
+        }
+
+        @Override
+        protected void renderFooter(GuiGraphics graphics, int mouseX, int mouseY) {
+            int btnW = 100;
+            int btnH = 20;
+            int startX = containerX + containerW - 15 - (btnW * 2 + 10);
+            int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
+
+            // Confirmar button (danger/red hover)
+            boolean confirmHovered = mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
+            int confirmBg = confirmHovered ? 0xFF3A1111 : 0xFF140F0D;
+            int confirmBorder = confirmHovered ? 0xFFFF5555 : 0xFF2C221D;
+            drawFlatPanel(graphics, startX, btnY, btnW, btnH, confirmBg, confirmBorder);
+            graphics.drawCenteredString(this.font, "Confirmar", startX + btnW / 2, btnY + 6, confirmHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
+
+            // Regresar button (standard copper)
+            drawFlatButton(graphics, startX + btnW + 10, btnY, btnW, btnH, "Regresar", mouseX, mouseY, true);
+        }
+
+        @Override
+        public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            super.render(graphics, mouseX, mouseY, partialTick);
+
+            int panelW = (int) (containerW * 0.80);
+            int panelH = (int) (bodyH * 0.50);
+            int panelX = containerX + (containerW - panelW) / 2;
+            int panelY = bodyY + (bodyH - panelH) / 2;
+
+            drawFlatPanel(graphics, panelX, panelY, panelW, panelH, PANEL_INNER_BG, WARM_BORDER);
+
+            String text1 = "¿Estás seguro de que deseas borrar la maestría?";
+            String text2 = "\"" + targetName + "\"?";
+            String text3 = "Esta acción no se puede deshacer.";
+
+            graphics.drawCenteredString(this.font, text1, panelX + panelW / 2, panelY + 25, TEXT_PRIMARY);
+            graphics.drawCenteredString(this.font, text2, panelX + panelW / 2, panelY + 45, COLOR_BRASS);
+            graphics.drawCenteredString(this.font, text3, panelX + panelW / 2, panelY + 65, 0xFFFF5555);
+        }
+
+        @Override
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            if (button == 0) {
+                if (isBackButtonClicked(mouseX, mouseY)) {
+                    playClickSound();
+                    Minecraft.getInstance().setScreen(this.parent);
+                    return true;
+                }
+
+                int btnW = 100;
+                int btnH = 20;
+                int startX = containerX + containerW - 15 - (btnW * 2 + 10);
+                int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
+
+                // Confirmar
+                if (mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
+                    playClickSound();
+                    onConfirm.run();
+                    Minecraft.getInstance().setScreen(this.returnScreen);
+                    return true;
+                }
+
+                // Regresar
+                if (mouseX >= startX + btnW + 10 && mouseX < startX + btnW + 10 + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
+                    playClickSound();
+                    Minecraft.getInstance().setScreen(this.parent);
+                    return true;
+                }
+            }
+            return super.mouseClicked(mouseX, mouseY, button);
+        }
+    }
+
+    public static class DeleteMasteryScreen extends AbstractPickerScreen<PathInfo> {
+        private final MasteryEditorScreen editor;
+        private final List<String> selectedIds = new ArrayList<>();
+
+        public DeleteMasteryScreen(MasteryEditorScreen editor) {
+            super(editor, Component.literal("SELECCIONAR MAESTRÍAS A BORRAR"), null);
+            this.editor = editor;
+        }
+
+        @Override
+        protected boolean shouldShowNamespaceFilter() { return false; }
+
+        @Override
+        protected void populateEntries() {
+            this.allEntries.addAll(editor.localPaths);
+        }
+
+        @Override
+        protected void filterEntries(String query) {
+            this.filteredEntries.clear();
+            String q = query.toLowerCase();
+            for (PathInfo p : this.allEntries) {
+                if (p.name.toLowerCase().contains(q) || p.id.toLowerCase().contains(q)) {
+                    this.filteredEntries.add(p);
+                }
+            }
+        }
+
+        @Override
+        protected void renderEntry(GuiGraphics g, PathInfo p, int x, int y, int index, boolean hovered) {
+            // Draw Checkbox
+            boolean selected = selectedIds.contains(p.id);
+            g.drawString(this.font, selected ? "☑" : "☐", x + 5, y + 6, selected ? COLOR_BRASS : TEXT_MUTED, false);
+
+            // Icon
+            net.minecraft.world.item.ItemStack iconStack = net.minecraft.world.item.ItemStack.EMPTY;
+            if (p.icon != null) {
+                net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(p.icon));
+                if (item != null) {
+                    iconStack = new net.minecraft.world.item.ItemStack(item);
+                }
+            }
+            if (iconStack.isEmpty()) {
+                iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
+            }
+            g.renderFakeItem(iconStack, x + 24, y + 1);
+
+            // Name
+            g.drawString(this.font, p.name + " (" + p.id + ")", x + 46, y + 6, selected ? COLOR_BRASS : (hovered ? TEXT_PRIMARY : TEXT_SECONDARY), false);
+        }
+
+        @Override
+        protected void onClickEntry(PathInfo p) {
+            if (selectedIds.contains(p.id)) {
+                selectedIds.remove(p.id);
+            } else {
+                selectedIds.add(p.id);
+            }
+        }
+
+        @Override
+        protected void renderFooter(GuiGraphics graphics, int mouseX, int mouseY) {
+            int btnW = 100, btnH = 20;
+            int startX = containerX + containerW - 15 - (btnW * 2 + 10);
+            int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
+
+            drawFlatButton(graphics, startX, btnY, btnW, btnH, "Cancelar", mouseX, mouseY, true);
+
+            boolean hasSelection = !selectedIds.isEmpty();
+            String deleteText = "Borrar (" + selectedIds.size() + ")";
+            // Borrar button uses danger hover style
+            boolean delHovered = hasSelection && mouseX >= startX + btnW + 10 && mouseX < startX + btnW + 10 + btnW && mouseY >= btnY && mouseY < btnY + btnH;
+            int delBg = delHovered ? 0xFF3A1111 : (hasSelection ? COLOR_COPPER : 0xFF181818);
+            int delBorder = delHovered ? 0xFFFF5555 : (hasSelection ? COLOR_BRASS : 0xFF282828);
+            drawFlatPanel(graphics, startX + btnW + 10, btnY, btnW, btnH, delBg, delBorder);
+            graphics.drawCenteredString(this.font, deleteText, startX + btnW + 10 + btnW / 2, btnY + 6, hasSelection ? TEXT_PRIMARY : TEXT_MUTED);
+        }
+
+        @Override
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            if (button == 0) {
+                int btnW = 100, btnH = 20;
+                int startX = containerX + containerW - 15 - (btnW * 2 + 10);
+                int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
+
+                // Cancelar
+                if (mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
+                    playClickSound();
+                    Minecraft.getInstance().setScreen(this.editor);
+                    return true;
+                }
+
+                // Borrar (N)
+                if (!selectedIds.isEmpty() && mouseX >= startX + btnW + 10 && mouseX < startX + btnW + 10 + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
+                    playClickSound();
+                    String targetsLabel = selectedIds.size() == 1 ? selectedIds.get(0) : selectedIds.size() + " maestrías";
+                    Minecraft.getInstance().setScreen(new ConfirmDeleteScreen(this, () -> {
+                        editor.localPaths.removeIf(p -> selectedIds.contains(p.id));
+                        if (editor.selectedPathIndex >= editor.localPaths.size()) {
+                            editor.selectedPathIndex = editor.localPaths.isEmpty() ? -1 : 0;
+                        }
+                        editor.updateEditors();
+                    }, targetsLabel, editor));
+                    return true;
+                }
+            }
+            return super.mouseClicked(mouseX, mouseY, button);
+        }
     }
 }

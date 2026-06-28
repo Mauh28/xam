@@ -17,6 +17,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
     private final List<xdAbsoluteMastery.ConfigManager.PathInfo> availablePaths = new ArrayList<>();
     private int currentPage = 0;
     private int totalPages = 1;
+    private int cardsPerPage = 3;
 
     public PathSelectionScreen(Screen parent, PlayerData playerData) {
         super(Component.literal("SELECCIÓN DE RAMA"));
@@ -39,7 +40,16 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             }
         }
 
-        totalPages = (availablePaths.size() + 2) / 3;
+        // Dynamically adjust column cards based on container width
+        if (containerW < 360) {
+            cardsPerPage = 1;
+        } else if (containerW < 500) {
+            cardsPerPage = 2;
+        } else {
+            cardsPerPage = 3;
+        }
+
+        totalPages = (availablePaths.size() + (cardsPerPage - 1)) / cardsPerPage;
         if (currentPage >= totalPages) {
             currentPage = Math.max(0, totalPages - 1);
         }
@@ -99,13 +109,13 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
         int nextCol = nextActive ? (nextHovered ? TEXT_PRIMARY : TEXT_SECONDARY) : TEXT_MUTED;
         graphics.drawCenteredString(this.font, "▶", nextX + 25, nextY + 36, nextCol);
 
-        // Render cards grid layout: 3 cards per row
-        int startIndex = currentPage * 3;
-        int endIndex = Math.min(startIndex + 3, availablePaths.size());
+        // Render cards grid layout: dynamic columns based on cardsPerPage
+        int startIndex = currentPage * cardsPerPage;
+        int endIndex = Math.min(startIndex + cardsPerPage, availablePaths.size());
 
         int viewportW = containerW - 120;
         int gap = 15;
-        int cardW = (viewportW - (gap * 4)) / 3;
+        int cardW = (viewportW - (gap * (cardsPerPage + 1))) / cardsPerPage;
         int cardH = bodyH - 30;
         int cardY = bodyY + 15;
 
@@ -304,12 +314,12 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             }
 
             // Check Card choose button clicks
-            int startIndex = currentPage * 3;
-            int endIndex = Math.min(startIndex + 3, availablePaths.size());
+            int startIndex = currentPage * cardsPerPage;
+            int endIndex = Math.min(startIndex + cardsPerPage, availablePaths.size());
 
             int viewportW = containerW - 120;
             int gap = 15;
-            int cardW = (viewportW - (gap * 4)) / 3;
+            int cardW = (viewportW - (gap * (cardsPerPage + 1))) / cardsPerPage;
             int cardH = bodyH - 30;
             int cardY = bodyY + 15;
 

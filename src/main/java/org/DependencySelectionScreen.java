@@ -140,7 +140,7 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
 
     /** Reconstruye la Y de una fila visible a partir de su índice en filteredEntries. */
     private int currentEntryY(PathInfo p) {
-        int startY = bodyY + 40; // shouldShowNamespaceFilter() == false -> 40
+        int startY = getListStartY();
         for (int i = 0; i < maxVisible; i++) {
             int entryIndex = scrollOffset + i;
             if (entryIndex >= filteredEntries.size()) break;

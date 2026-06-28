@@ -18,6 +18,15 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
     private EditBox idEdit;
     private EditBox dependenciesEdit;
 
+    // Layout fields
+    private int panelW, panelX;
+    private int nameX, nameY, nameW;
+    private int descX, descY;
+    private int typeX, typeY, typeW;
+    private int idX, idY, idW;
+    private int changeBtnX, changeBtnY, changeBtnW;
+    private int depsX, depsY, depsEditW, depsBtnX;
+
     public RequirementEditScreen(MasteryEditorScreen parent, String parentPathId, Requirement requirement) {
         super(Component.literal("EDITAR REQUISITO"));
         this.parent = parent;
@@ -29,13 +38,52 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
     protected void init() {
         super.init();
 
-        int panelW = (int) (containerW * 0.80);
-        int panelX = containerX + (containerW - panelW) / 2;
-        int startY = bodyY + 15;
+        this.panelW = (int) (containerW * 0.80);
+        this.panelX = containerX + (containerW - panelW) / 2;
+        
+        int gapY = containerH < 220 ? 25 : 35;
+        int startY = bodyY + (containerH < 220 ? 5 : 15);
 
-        int nameW = panelW - 40;
-        int nameX = panelX + 20;
-        int nameY = startY + 15;
+        this.nameW = panelW - 40;
+        this.nameX = panelX + 20;
+        this.nameY = startY + 12;
+
+        this.descX = nameX;
+        this.descY = nameY + gapY;
+
+        this.typeY = descY + gapY + 10;
+        this.typeX = nameX;
+        this.typeW = 120;
+
+        boolean isNarrow = panelW < 380;
+        if (!isNarrow) {
+            this.idX = panelX + 150;
+            this.idW = panelW - 40 - 120 - 100 - 20;
+            this.idY = typeY;
+
+            this.changeBtnX = idX + idW + 10;
+            this.changeBtnY = typeY;
+            this.changeBtnW = 100;
+
+            this.depsY = typeY + gapY + 10;
+            this.depsEditW = nameW - 25;
+            this.depsX = nameX;
+            this.depsBtnX = nameX + depsEditW + 5;
+        } else {
+            // Stacked layout for small sizes
+            this.idX = nameX;
+            this.idW = nameW;
+            this.idY = typeY + 30;
+
+            this.changeBtnX = nameX + 130;
+            this.changeBtnY = typeY;
+            this.changeBtnW = nameW - 130;
+
+            this.depsY = idY + gapY + 5;
+            this.depsEditW = nameW - 25;
+            this.depsX = nameX;
+            this.depsBtnX = nameX + depsEditW + 5;
+        }
 
         // Nombre Input Box
         this.nameEdit = new EditBox(this.font, nameX + 4, nameY + 5, nameW - 8, 12, Component.literal("Nombre"));
@@ -45,7 +93,6 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         this.addRenderableWidget(this.nameEdit);
 
         // Descripción Input Box
-        int descY = nameY + 35;
         this.descEdit = new EditBox(this.font, nameX + 4, descY + 5, nameW - 8, 12, Component.literal("Descripción"));
         this.descEdit.setBordered(false);
         this.descEdit.setTextColor(TEXT_PRIMARY);
@@ -53,19 +100,14 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         this.addRenderableWidget(this.descEdit);
 
         // ID/Objetivo Input Box (Editable!)
-        int typeY = startY + 85;
-        int idX = panelX + 150;
-        int idW = panelW - 40 - 120 - 100 - 20;
-        this.idEdit = new EditBox(this.font, idX + 4, typeY + 5, idW - 8, 12, Component.literal("ID"));
+        this.idEdit = new EditBox(this.font, idX + 4, idY + 5, idW - 8, 12, Component.literal("ID"));
         this.idEdit.setBordered(false);
         this.idEdit.setTextColor(TEXT_PRIMARY);
         this.idEdit.setValue(requirement.id);
         this.addRenderableWidget(this.idEdit);
 
-        // Dependencias Input Box (acotado 25px para dejar sitio al botón "...")
-        int depsY = startY + 135;
-        int depsEditW = nameW - 25;
-        this.dependenciesEdit = new EditBox(this.font, nameX + 4, depsY + 5, depsEditW - 8, 12, Component.literal("Dependencias"));
+        // Dependencias Input Box
+        this.dependenciesEdit = new EditBox(this.font, depsX + 4, depsY + 5, depsEditW - 8, 12, Component.literal("Dependencias"));
         this.dependenciesEdit.setBordered(false);
         this.dependenciesEdit.setTextColor(TEXT_PRIMARY);
         this.dependenciesEdit.setValue(String.join(", ", requirement.dependencies));
@@ -115,15 +157,6 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
 
-        int panelW = (int) (containerW * 0.80);
-        int panelX = containerX + (containerW - panelW) / 2;
-        int startY = bodyY + 15;
-
-        int nameW = panelW - 40;
-        int nameX = panelX + 20;
-        int nameY = startY + 15;
-        int descY = nameY + 35;
-
         // Labels
         graphics.drawString(this.font, "Nombre", nameX, nameY - 11, TEXT_MUTED, false);
         graphics.drawString(this.font, "Descripción", nameX, descY - 11, TEXT_MUTED, false);
@@ -133,30 +166,22 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         drawFlatPanel(graphics, nameX, descY, nameW, 20, INPUT_BACKGROUND, BORDER_STANDARD);
 
         // Tipo & ID section
-        int typeY = startY + 85;
-        int idX = panelX + 150;
-        int idW = panelW - 40 - 120 - 100 - 20;
-
-        graphics.drawString(this.font, "Objetivo (ID)", idX, typeY - 11, TEXT_MUTED, false);
+        graphics.drawString(this.font, "Objetivo (ID)", idX, idY - 11, TEXT_MUTED, false);
 
         // Draw Tipo Button
         String typeLabel = "Tipo: " + requirement.type.toUpperCase();
-        drawFlatButton(graphics, nameX, typeY, 120, 20, typeLabel, mouseX, mouseY, true);
+        drawFlatButton(graphics, typeX, typeY, typeW, 20, typeLabel, mouseX, mouseY, true);
 
-        // Draw ID Panel (Editable background panel with standard border)
-        drawFlatPanel(graphics, idX, typeY, idW, 20, INPUT_BACKGROUND, BORDER_STANDARD);
+        // Draw ID Panel
+        drawFlatPanel(graphics, idX, idY, idW, 20, INPUT_BACKGROUND, BORDER_STANDARD);
 
         // Draw Cambiar Objetivo Button
-        int changeBtnX = idX + idW + 10;
-        drawFlatButton(graphics, changeBtnX, typeY, 100, 20, "Cambiar", mouseX, mouseY, true);
+        drawFlatButton(graphics, changeBtnX, changeBtnY, changeBtnW, 20, "Cambiar", mouseX, mouseY, true);
 
-        // Dependencias section (panel acotado + botón "..." picker)
-        int depsY = startY + 135;
-        int depsEditW = nameW - 25;
-        graphics.drawString(this.font, "Dependencias del Requisito (ej. botania:1, mekanism:2)", nameX, depsY - 11, TEXT_MUTED, false);
-        drawFlatPanel(graphics, nameX, depsY, depsEditW, 20, INPUT_BACKGROUND, BORDER_STANDARD);
+        // Dependencias section
+        graphics.drawString(this.font, "Dependencias del Requisito (ej. botania:1, mekanism:2)", depsX, depsY - 11, TEXT_MUTED, false);
+        drawFlatPanel(graphics, depsX, depsY, depsEditW, 20, INPUT_BACKGROUND, BORDER_STANDARD);
 
-        int depsBtnX = nameX + depsEditW + 5;
         boolean depsBtnHovered = mouseX >= depsBtnX && mouseX < depsBtnX + 20 && mouseY >= depsY && mouseY < depsY + 20;
         int depsBtnBg = depsBtnHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
         int depsBtnBorder = depsBtnHovered ? COLOR_BRASS : 0xFF2C221D;
@@ -172,17 +197,8 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
             return true;
         }
         if (button == 0) {
-            int panelW = (int) (containerW * 0.80);
-            int panelX = containerX + (containerW - panelW) / 2;
-            int startY = bodyY + 15;
-            int nameX = panelX + 20;
-            int typeY = startY + 85;
-            int idX = panelX + 150;
-            int idW = panelW - 40 - 120 - 100 - 20;
-            int changeBtnX = idX + idW + 10;
-
             // 1. Click Tipo Button -> Cycle type
-            if (mouseX >= nameX && mouseX < nameX + 120 && mouseY >= typeY && mouseY < typeY + 20) {
+            if (mouseX >= typeX && mouseX < typeX + typeW && mouseY >= typeY && mouseY < typeY + 20) {
                 playClickSound();
                 saveFields();
                 cycleRequirementType(requirement);
@@ -190,7 +206,7 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
             }
 
             // 2. Click Cambiar Button -> Open selector screen
-            if (mouseX >= changeBtnX && mouseX < changeBtnX + 100 && mouseY >= typeY && mouseY < typeY + 20) {
+            if (mouseX >= changeBtnX && mouseX < changeBtnX + changeBtnW && mouseY >= changeBtnY && mouseY < changeBtnY + 20) {
                 playClickSound();
                 saveFields();
                 openSelectorForRequirement(requirement);
@@ -198,9 +214,6 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
             }
 
             // 3. Click Dependencias "..." -> Open dependency picker
-            int depsY = startY + 135;
-            int depsEditW = (panelW - 40) - 25;
-            int depsBtnX = nameX + depsEditW + 5;
             if (mouseX >= depsBtnX && mouseX < depsBtnX + 20 && mouseY >= depsY && mouseY < depsY + 20) {
                 playClickSound();
                 saveFields();

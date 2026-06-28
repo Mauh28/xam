@@ -44,12 +44,15 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
     protected void init() {
         super.init();
         
-        // Calculate maxVisible dynamically based on bodyHeight
-        int listHeight = bodyH - 70;
-        this.maxVisible = Math.max(3, listHeight / entryHeight);
+        // Dynamically adjust entry height based on container height to prevent overlaps
+        this.entryHeight = containerH < 200 ? 16 : 20;
+
+        boolean showFilter = shouldShowNamespaceFilter() && containerH >= 220;
+        int listHeight = bodyH - (showFilter ? 70 : 45);
+        this.maxVisible = Math.max(2, listHeight / entryHeight);
 
         int panelX = containerX;
-        int searchY = bodyY + (shouldShowNamespaceFilter() ? 37 : 15);
+        int searchY = bodyY + (showFilter ? 37 : 10);
 
         // searchBox is designed borderless within drawFlatPanel
         this.searchBox = new EditBox(this.font, panelX + 24, searchY + 4, containerW - 48, 12, Component.literal("Buscar..."));
@@ -66,6 +69,11 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
             this.populateEntries();
         }
         this.filterEntries(this.searchBox.getValue());
+    }
+
+    protected int getListStartY() {
+        boolean showFilter = shouldShowNamespaceFilter() && containerH >= 220;
+        return bodyY + (showFilter ? 62 : 35);
     }
 
     protected abstract void populateEntries();
@@ -98,8 +106,9 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
 
         int panelX = containerX;
 
+        boolean showFilter = shouldShowNamespaceFilter() && containerH >= 220;
         // Render Mod Filter Button if visible
-        if (shouldShowNamespaceFilter()) {
+        if (showFilter) {
             int btnX = panelX + 20;
             int btnY = bodyY + 12;
             int btnW = containerW - 40;
@@ -118,11 +127,11 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
         }
 
         // Draw search box background panel
-        int searchY = bodyY + (shouldShowNamespaceFilter() ? 37 : 15);
+        int searchY = bodyY + (showFilter ? 37 : 10);
         drawFlatPanel(guiGraphics, panelX + 20, searchY, containerW - 40, 20, INPUT_BACKGROUND, COLOR_COPPER);
 
         // Render virtual list entries
-        int startY = bodyY + (shouldShowNamespaceFilter() ? 62 : 40);
+        int startY = getListStartY();
         int listWidth = containerW - 40;
         
         for (int i = 0; i < maxVisible; i++) {
@@ -170,8 +179,9 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
         }
         int panelX = containerX;
 
+        boolean showFilter = shouldShowNamespaceFilter() && containerH >= 220;
         // Mod Filter Button click
-        if (shouldShowNamespaceFilter() && button == 0) {
+        if (showFilter && button == 0) {
             int btnX = panelX + 20;
             int btnY = bodyY + 12;
             int btnW = containerW - 40;
@@ -200,7 +210,7 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
         }
 
         // Scrollbar click/drag detection
-        int startY = bodyY + (shouldShowNamespaceFilter() ? 62 : 40);
+        int startY = getListStartY();
         if (filteredEntries.size() > maxVisible) {
             int scrollbarX = panelX + containerW - 15;
             int scrollbarY = startY;
@@ -245,7 +255,7 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (this.isDraggingScrollbar && button == 0 && filteredEntries.size() > maxVisible) {
-            int startY = bodyY + (shouldShowNamespaceFilter() ? 62 : 40);
+            int startY = getListStartY();
             int scrollbarY = startY;
             int scrollbarHeight = maxVisible * entryHeight;
             int thumbHeight = Math.max(15, (int) (((float) maxVisible / filteredEntries.size()) * scrollbarHeight));

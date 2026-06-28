@@ -54,11 +54,22 @@ public abstract class AbstractMasteryScreen extends Screen {
     protected void init() {
         super.init();
         
-        // Calculate relative sizing to exploit space on GUI Scale 3
-        this.containerW = (int) (this.width * 0.9);
-        this.containerH = (int) (this.height * 0.85);
-        this.containerX = (this.width - this.containerW) / 2;
-        this.containerY = (this.height - this.containerH) / 2;
+        // Calculate relative sizing to exploit space on GUI Scale 3, but fall back to full screen if resolution is too small
+        if (this.width < 450) {
+            this.containerW = this.width;
+            this.containerX = 0;
+        } else {
+            this.containerW = (int) (this.width * 0.9);
+            this.containerX = (this.width - this.containerW) / 2;
+        }
+
+        if (this.height < 280) {
+            this.containerH = this.height;
+            this.containerY = 0;
+        } else {
+            this.containerH = (int) (this.height * 0.85);
+            this.containerY = (this.height - this.containerH) / 2;
+        }
 
         this.headerH = (int) (this.containerH * 0.10);
         this.footerH = (int) (this.containerH * 0.12);
