@@ -145,13 +145,21 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                         break;
                     }
                 }
-                int maxEmpNameW = leftW - 24;
+                int maxEmpNameW = leftW - 38;
                 if (this.font.width(name) > maxEmpNameW) {
                     name = this.font.plainSubstrByWidth(name, maxEmpNameW - 10) + "...";
                 }
-                graphics.drawString(this.font, "▶ " + name, leftX + 12, empListStartY + empCount * 11, TEXT_SECONDARY, false);
+                // Render Icon
+                net.minecraft.world.item.ItemStack iconStack = getPathIcon(id);
+                graphics.pose().pushPose();
+                graphics.pose().translate(leftX + 12, empListStartY + empCount * 13, 0);
+                graphics.pose().scale(0.75F, 0.75F, 1.0F);
+                graphics.renderFakeItem(iconStack, 0, 0);
+                graphics.pose().popPose();
+
+                graphics.drawString(this.font, name, leftX + 28, empListStartY + empCount * 13 + 2, TEXT_SECONDARY, false);
                 empCount++;
-                if (empListStartY + (empCount + 1) * 11 >= leftY + 150) {
+                if (empListStartY + (empCount + 1) * 13 >= leftY + 150) {
                     break;
                 }
             }
@@ -177,13 +185,21 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                         break;
                     }
                 }
-                int maxDomNameW = leftW - 24;
+                int maxDomNameW = leftW - 38;
                 if (this.font.width(name) > maxDomNameW) {
                     name = this.font.plainSubstrByWidth(name, maxDomNameW - 10) + "...";
                 }
-                graphics.drawString(this.font, "✔ " + name, leftX + 12, domListStartY + domCount * 11, TEXT_PRIMARY, false);
+                // Render Icon
+                net.minecraft.world.item.ItemStack iconStack = getPathIcon(id);
+                graphics.pose().pushPose();
+                graphics.pose().translate(leftX + 12, domListStartY + domCount * 13, 0);
+                graphics.pose().scale(0.75F, 0.75F, 1.0F);
+                graphics.renderFakeItem(iconStack, 0, 0);
+                graphics.pose().popPose();
+
+                graphics.drawString(this.font, name, leftX + 28, domListStartY + domCount * 13 + 2, TEXT_PRIMARY, false);
                 domCount++;
-                if (domListStartY + (domCount + 1) * 11 >= leftY + leftH) {
+                if (domListStartY + (domCount + 1) * 13 >= leftY + leftH) {
                     break;
                 }
             }
@@ -245,7 +261,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 if (this.font.width(reqNameText) > reqNameMaxW) {
                     reqNameText = this.font.plainSubstrByWidth(reqNameText, reqNameMaxW - 10) + "...";
                 }
-                graphics.drawString(this.font, reqNameText, listX + 25, cardY + 6, isCompleted ? 0xFFBBF7D0 : TEXT_PRIMARY, false);
+                graphics.drawString(this.font, reqNameText, listX + 25, cardY + 6, isCompleted ? 0xFF6A8A73 : TEXT_PRIMARY, false);
 
                 // Task Description
                 String reqDescText = req.description;
@@ -253,7 +269,15 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 if (this.font.width(reqDescText) > reqNameMaxW) {
                     reqDescText = this.font.plainSubstrByWidth(reqDescText, reqNameMaxW - 10) + "...";
                 }
-                graphics.drawString(this.font, reqDescText, listX + 25, cardY + 20, isCompleted ? 0xFF86EFAC : TEXT_SECONDARY, false);
+                graphics.drawString(this.font, reqDescText, listX + 25, cardY + 20, isCompleted ? 0xFF516958 : TEXT_SECONDARY, false);
+
+                // Strike-through line if completed
+                if (isCompleted) {
+                    int nameW_text = this.font.width(reqNameText);
+                    int descW_text = this.font.width(reqDescText);
+                    graphics.fill(listX + 25, cardY + 9, listX + 25 + nameW_text, cardY + 10, 0xFF5A7264);
+                    graphics.fill(listX + 25, cardY + 23, listX + 25 + descW_text, cardY + 24, 0xFF435849);
+                }
 
                 // Task Type badge on the right
                 String badge = req.type.toUpperCase();
@@ -278,6 +302,31 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 drawFlatPanel(graphics, scrollbarX, thumbY, 4, thumbHeight, COLOR_COPPER, COLOR_BRASS);
             }
         }
+    }
+
+    private net.minecraft.world.item.ItemStack getPathIcon(String pathId) {
+        for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
+            if (path.id.equals(pathId)) {
+                net.minecraft.world.item.ItemStack stack = net.minecraft.world.item.ItemStack.EMPTY;
+                if (path.icon != null) {
+                    net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(path.icon));
+                    if (item != null) {
+                        stack = new net.minecraft.world.item.ItemStack(item);
+                    }
+                }
+                if (stack.isEmpty()) {
+                    if (pathId.equals("botania")) {
+                        stack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.POPPY);
+                    } else if (pathId.equals("mekanism")) {
+                        stack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE);
+                    } else {
+                        stack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
+                    }
+                }
+                return stack;
+            }
+        }
+        return new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
     }
 
     @Override

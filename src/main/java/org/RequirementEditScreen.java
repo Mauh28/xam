@@ -289,11 +289,18 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
     }
 
     private void cycleRequirementType(Requirement req) {
+        String currentId = req.id;
+        String currentName = req.name;
+
         if (req.type.equals("craft")) {
             req.type = "collect";
-            req.id = "minecraft:dirt";
-            req.name = "Recoger Tierra";
-            req.description = "Recoge un bloque de tierra";
+            if (isItem(currentId)) {
+                req.description = "Recoge " + currentName;
+            } else {
+                req.id = "minecraft:dirt";
+                req.name = "Recoger Tierra";
+                req.description = "Recoge un bloque de tierra";
+            }
         } else if (req.type.equals("collect")) {
             req.type = "kill";
             req.id = "minecraft:zombie";
@@ -306,13 +313,22 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
             req.description = "Completa el logro Minecraft";
         } else {
             req.type = "craft";
-            req.id = "minecraft:dirt";
-            req.name = "Craftear Tierra";
-            req.description = "Craftea un bloque de tierra";
+            if (isItem(currentId)) {
+                req.description = "Craftea " + currentName;
+            } else {
+                req.id = "minecraft:dirt";
+                req.name = "Craftear Tierra";
+                req.description = "Craftea un bloque de tierra";
+            }
         }
         if (idEdit != null) idEdit.setValue(req.id);
         if (nameEdit != null) nameEdit.setValue(req.name);
         if (descEdit != null) descEdit.setValue(req.description);
+    }
+
+    private boolean isItem(String id) {
+        if (id == null || id.isEmpty()) return false;
+        return net.minecraftforge.registries.ForgeRegistries.ITEMS.containsKey(net.minecraft.resources.ResourceLocation.tryParse(id));
     }
 
     private void openSelectorForRequirement(Requirement req) {

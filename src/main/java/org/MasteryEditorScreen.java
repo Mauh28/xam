@@ -25,6 +25,17 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     private int contextMenuX = 0;
     private int contextMenuY = 0;
 
+    private static class MenuOption {
+        final String label;
+        final Runnable action;
+
+        MenuOption(String label, Runnable action) {
+            this.label = label;
+            this.action = action;
+        }
+    }
+    private final List<MenuOption> activeCardMenuOptions = new ArrayList<>();
+
     // Custom text input boxes
     private EditBox pathNameEdit;
     private EditBox pathModIdEdit;
@@ -551,18 +562,25 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             }
 
             // Render context menu if active
-            if (contextMenuCardIndex != -1) {
+            if (contextMenuCardIndex != -1 && !activeCardMenuOptions.isEmpty()) {
                 int menuW = 80;
-                int menuH = 22;
-                boolean optionHovered = mouseX >= contextMenuX && mouseX < contextMenuX + menuW && mouseY >= contextMenuY && mouseY < contextMenuY + menuH;
+                int optionH = 16;
+                int menuH = activeCardMenuOptions.size() * optionH + 4; // 2px padding top/bottom
 
-                int menuBg = optionHovered ? BUTTON_HOVER_BG : WIDGET_BACKGROUND;
-                int menuBorder = optionHovered ? BUTTON_HOVER_BORDER : BORDER_INNER;
+                drawFlatPanel(graphics, contextMenuX, contextMenuY, menuW, menuH, WIDGET_BACKGROUND, BORDER_INNER);
 
-                drawFlatPanel(graphics, contextMenuX, contextMenuY, menuW, menuH, menuBg, menuBorder);
+                for (int o = 0; o < activeCardMenuOptions.size(); o++) {
+                    MenuOption opt = activeCardMenuOptions.get(o);
+                    int optY = contextMenuY + 2 + o * optionH;
+                    boolean optHovered = mouseX >= contextMenuX && mouseX < contextMenuX + menuW && mouseY >= optY && mouseY < optY + optionH;
 
-                int textCol = optionHovered ? TEXT_PRIMARY : TEXT_SECONDARY;
-                graphics.drawCenteredString(this.font, "Editar", contextMenuX + menuW / 2, contextMenuY + (menuH - 8) / 2, textCol);
+                    if (optHovered) {
+                        graphics.fill(contextMenuX + 2, optY, contextMenuX + menuW - 2, optY + optionH, BUTTON_HOVER_BG);
+                    }
+
+                    int textCol = optHovered ? TEXT_PRIMARY : TEXT_SECONDARY;
+                    graphics.drawCenteredString(this.font, opt.label, contextMenuX + menuW / 2, optY + (optionH - 8) / 2, textCol);
+                }
             }
 
             // Render sidebar branch context menu if active
@@ -623,22 +641,22 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         if (contextMenuCardIndex != -1) {
             if (button == 0) {
                 int menuW = 80;
-                int menuH = 22;
+                int optionH = 16;
+                int menuH = activeCardMenuOptions.size() * optionH + 4;
                 if (mouseX >= contextMenuX && mouseX < contextMenuX + menuW && mouseY >= contextMenuY && mouseY < contextMenuY + menuH) {
-                    playClickSound();
-                    int index = contextMenuCardIndex;
-                    contextMenuCardIndex = -1;
-                    if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
-                        PathInfo p = localPaths.get(selectedPathIndex);
-                        if (index >= 0 && index < p.requirements.size()) {
-                            Requirement req = p.requirements.get(index);
-                            this.minecraft.setScreen(new RequirementEditScreen(this, p.id, req));
-                        }
+                    int clickedOptIndex = (int) ((mouseY - contextMenuY - 2) / optionH);
+                    if (clickedOptIndex >= 0 && clickedOptIndex < activeCardMenuOptions.size()) {
+                        playClickSound();
+                        MenuOption opt = activeCardMenuOptions.get(clickedOptIndex);
+                        contextMenuCardIndex = -1;
+                        activeCardMenuOptions.clear();
+                        opt.action.run();
+                        return true;
                     }
-                    return true;
                 }
             }
             contextMenuCardIndex = -1;
+            activeCardMenuOptions.clear();
             if (button != 0) {
                 return true; // Consume other click types when dismissing
             }
@@ -708,6 +726,33 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                         contextMenuCardIndex = cardIndex;
                         contextMenuX = (int) mouseX;
                         contextMenuY = (int) mouseY;
+
+                        // Build context menu options dynamically
+                        activeCardMenuOptions.clear();
+                        activeCardMenuOptions.add(new MenuOption("Editar", () -> {
+                            Requirement req = p.requirements.get(cardIndex);
+                            Minecraft.getInstance().setScreen(new RequirementEditScreen(this, p.id, req));
+                        }));
+
+                        if (cardIndex > 0) {
+                            activeCardMenuOptions.add(new MenuOption("Subir", () -> {
+                                Requirement req1 = p.requirements.get(cardIndex);
+                                Requirement req2 = p.requirements.get(cardIndex - 1);
+                                p.requirements.set(cardIndex - 1, req1);
+                                p.requirements.set(cardIndex, req2);
+                                updateEditors();
+                            }));
+                        }
+
+                        if (cardIndex < p.requirements.size() - 1) {
+                            activeCardMenuOptions.add(new MenuOption("Bajar", () -> {
+                                Requirement req1 = p.requirements.get(cardIndex);
+                                Requirement req2 = p.requirements.get(cardIndex + 1);
+                                p.requirements.set(cardIndex + 1, req1);
+                                p.requirements.set(cardIndex, req2);
+                                updateEditors();
+                            }));
+                        }
                         return true;
                     }
                 }
@@ -910,11 +955,18 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     }
 
     private void cycleRequirementType(Requirement req) {
+        String currentId = req.id;
+        String currentName = req.name;
+
         if (req.type.equals("craft")) {
             req.type = "collect";
-            req.id = "minecraft:dirt";
-            req.name = "Recoger Tierra";
-            req.description = "Recoge un bloque de tierra";
+            if (isItem(currentId)) {
+                req.description = "Recoge " + currentName;
+            } else {
+                req.id = "minecraft:dirt";
+                req.name = "Recoger Tierra";
+                req.description = "Recoge un bloque de tierra";
+            }
         } else if (req.type.equals("collect")) {
             req.type = "kill";
             req.id = "minecraft:zombie";
@@ -927,13 +979,22 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             req.description = "Completa el logro Minecraft";
         } else {
             req.type = "craft";
-            req.id = "minecraft:dirt";
-            req.name = "Craftear Tierra";
-            req.description = "Craftea un bloque de tierra";
+            if (isItem(currentId)) {
+                req.description = "Craftea " + currentName;
+            } else {
+                req.id = "minecraft:dirt";
+                req.name = "Craftear Tierra";
+                req.description = "Craftea un bloque de tierra";
+            }
         }
         if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
             updateModIdFromRequirements(localPaths.get(selectedPathIndex));
         }
+    }
+
+    private boolean isItem(String id) {
+        if (id == null || id.isEmpty()) return false;
+        return net.minecraftforge.registries.ForgeRegistries.ITEMS.containsKey(net.minecraft.resources.ResourceLocation.tryParse(id));
     }
 
     private void cycleMinToSwitch(PathInfo p) {
