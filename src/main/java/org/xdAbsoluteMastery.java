@@ -1352,7 +1352,7 @@ public class xdAbsoluteMastery {
                     player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                         if (pkt.pathId != null) {
                             ConfigManager.PathInfo targetPath = ConfigManager.PATHS_MAP.get(pkt.pathId);
-                            if (targetPath == null || data.getMasteredPaths().contains(pkt.pathId) || !areDependenciesMastered(player, data, targetPath)) {
+                            if (targetPath == null || targetPath.requirements.isEmpty() || data.getMasteredPaths().contains(pkt.pathId) || !areDependenciesMastered(player, data, targetPath)) {
                                 sync(player);
                                 return;
                             }

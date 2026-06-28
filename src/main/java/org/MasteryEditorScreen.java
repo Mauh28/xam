@@ -189,6 +189,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             pathModIdEdit.setValue(p.mod_id);
             pathModIdEdit.setResponder(val -> p.mod_id = val);
 
+            pathDepsEdit.setResponder(null);
+            pathDepsEdit.setValue(String.join(", ", p.dependencies));
             pathDepsEdit.setResponder(val -> {
                 p.dependencies.clear();
                 if (!val.trim().isEmpty()) {

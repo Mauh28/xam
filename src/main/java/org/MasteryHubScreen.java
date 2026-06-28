@@ -126,12 +126,47 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             graphics.drawString(this.font, "Selecciona una en 'Elegir Rama'", leftX + 12, leftY + 45, TEXT_SECONDARY, false);
         }
 
+        // Ramas Empezadas list
+        int empY = leftY + 98;
+        graphics.drawString(this.font, "RAMAS EMPEZADAS", leftX + 12, empY, COLOR_BRASS, false);
+        graphics.fill(leftX + 12, empY + 11, leftX + leftW - 12, empY + 12, 0xFF2C221D);
+
+        int empListStartY = empY + 16;
+        int empCount = 0;
+        if (playerData != null && playerData.getStartedPaths() != null) {
+            for (String id : playerData.getStartedPaths()) {
+                if (id.equals(activePathId) || playerData.getMasteredPaths().contains(id)) {
+                    continue;
+                }
+                String name = id;
+                for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
+                    if (path.id.equals(id)) {
+                        name = path.name;
+                        break;
+                    }
+                }
+                int maxEmpNameW = leftW - 24;
+                if (this.font.width(name) > maxEmpNameW) {
+                    name = this.font.plainSubstrByWidth(name, maxEmpNameW - 10) + "...";
+                }
+                graphics.drawString(this.font, "▶ " + name, leftX + 12, empListStartY + empCount * 11, TEXT_SECONDARY, false);
+                empCount++;
+                if (empListStartY + (empCount + 1) * 11 >= leftY + 150) {
+                    break;
+                }
+            }
+        }
+        if (empCount == 0) {
+            graphics.drawString(this.font, "Ninguna", leftX + 12, empListStartY, TEXT_MUTED, false);
+        }
+
         // Ramas Dominadas list
-        int domY = leftY + 102;
+        int domY = leftY + 152;
         graphics.drawString(this.font, "RAMAS DOMINADAS", leftX + 12, domY, COLOR_BRASS, false);
         graphics.fill(leftX + 12, domY + 11, leftX + leftW - 12, domY + 12, 0xFF2C221D);
 
-        int domListStartY = domY + 18;
+        int domListStartY = domY + 16;
+        int domCount = 0;
         if (playerData != null && !playerData.getMasteredPaths().isEmpty()) {
             for (int i = 0; i < playerData.getMasteredPaths().size(); i++) {
                 String id = playerData.getMasteredPaths().get(i);
@@ -146,12 +181,14 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 if (this.font.width(name) > maxDomNameW) {
                     name = this.font.plainSubstrByWidth(name, maxDomNameW - 10) + "...";
                 }
-                graphics.drawString(this.font, "✔ " + name, leftX + 12, domListStartY + i * 12, TEXT_PRIMARY, false);
-                if (domListStartY + (i + 2) * 12 >= leftY + leftH) {
+                graphics.drawString(this.font, "✔ " + name, leftX + 12, domListStartY + domCount * 11, TEXT_PRIMARY, false);
+                domCount++;
+                if (domListStartY + (domCount + 1) * 11 >= leftY + leftH) {
                     break;
                 }
             }
-        } else {
+        }
+        if (domCount == 0) {
             graphics.drawString(this.font, "Ninguna", leftX + 12, domListStartY, TEXT_MUTED, false);
         }
 

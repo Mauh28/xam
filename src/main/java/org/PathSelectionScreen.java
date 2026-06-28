@@ -123,7 +123,8 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             xdAbsoluteMastery.ConfigManager.PathInfo path = availablePaths.get(startIndex + i);
             int cardX = containerX + 60 + gap + i * (cardW + gap);
 
-            boolean isUnlocked = xdAbsoluteMastery.areDependenciesMastered(net.minecraft.client.Minecraft.getInstance().player, playerData, path);
+            boolean hasTasks = !path.requirements.isEmpty();
+            boolean isUnlocked = hasTasks && xdAbsoluteMastery.areDependenciesMastered(net.minecraft.client.Minecraft.getInstance().player, playerData, path);
             boolean isActivePath = playerData != null && path.id.equals(playerData.getCurrentPath());
             boolean hasActivePath = playerData != null && playerData.getCurrentPath() != null;
             boolean canSwitch = xdAbsoluteMastery.canSwitchFromCurrentPath(net.minecraft.client.Minecraft.getInstance().player, playerData);
@@ -226,34 +227,44 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
                     RenderSystem.disableScissor();
                 }
             } else {
-                graphics.drawString(this.font, "Requiere:", cardX + 10, cardY + cabH + 6, 0xFFFF5555, false);
-                int labelWidth = this.font.width("Requiere:");
-                graphics.fill(cardX + 10, cardY + cabH + 15, cardX + 10 + labelWidth, cardY + cabH + 16, 0xFF772222);
+                if (!hasTasks) {
+                    graphics.drawString(this.font, "Sin tareas asignadas", cardX + 10, cardY + cabH + 6, 0xFFFF5555, false);
+                    int labelWidth = this.font.width("Sin tareas asignadas");
+                    graphics.fill(cardX + 10, cardY + cabH + 15, cardX + 10 + labelWidth, cardY + cabH + 16, 0xFF772222);
 
-                int reqY = cardY + cabH + 20;
-                List<String> missingNames = new ArrayList<>();
-                for (String dep : path.dependencies) {
-                    if (!xdAbsoluteMastery.isDependencyMet(Minecraft.getInstance().player, playerData, dep)) {
-                        String[] parts = dep.split(":");
-                        String depId = parts[0];
-                        String amt = parts.length > 1 ? parts[1] : "mastered";
+                    int reqY = cardY + cabH + 25;
+                    graphics.drawString(this.font, "Esta maestría no tiene", cardX + 10, reqY, TEXT_MUTED, false);
+                    graphics.drawString(this.font, "tareas registradas aún.", cardX + 10, reqY + 11, TEXT_MUTED, false);
+                } else {
+                    graphics.drawString(this.font, "Requiere:", cardX + 10, cardY + cabH + 6, 0xFFFF5555, false);
+                    int labelWidth = this.font.width("Requiere:");
+                    graphics.fill(cardX + 10, cardY + cabH + 15, cardX + 10 + labelWidth, cardY + cabH + 16, 0xFF772222);
 
-                        xdAbsoluteMastery.ConfigManager.PathInfo depPath = xdAbsoluteMastery.ConfigManager.PATHS_MAP.get(depId);
-                        String name = depPath != null ? depPath.name : depId;
-                        if (amt.equalsIgnoreCase("mastered") || amt.equalsIgnoreCase("all")) {
-                            missingNames.add("Dominar " + name);
-                        } else {
-                            missingNames.add(name + " (" + amt + " reqs)");
+                    int reqY = cardY + cabH + 20;
+                    List<String> missingNames = new ArrayList<>();
+                    for (String dep : path.dependencies) {
+                        if (!xdAbsoluteMastery.isDependencyMet(Minecraft.getInstance().player, playerData, dep)) {
+                            String[] parts = dep.split(":");
+                            String depId = parts[0];
+                            String amt = parts.length > 1 ? parts[1] : "mastered";
+
+                            xdAbsoluteMastery.ConfigManager.PathInfo depPath = xdAbsoluteMastery.ConfigManager.PATHS_MAP.get(depId);
+                            String name = depPath != null ? depPath.name : depId;
+                            if (amt.equalsIgnoreCase("mastered") || amt.equalsIgnoreCase("all")) {
+                                missingNames.add("Dominar " + name);
+                            } else {
+                                missingNames.add(name + " (" + amt + " reqs)");
+                            }
                         }
                     }
-                }
-                for (String missingName : missingNames) {
-                    String label = "• " + missingName;
-                    if (this.font.width(label) > cardW - 20) {
-                        label = this.font.plainSubstrByWidth(label, cardW - 30) + "...";
+                    for (String missingName : missingNames) {
+                        String label = "• " + missingName;
+                        if (this.font.width(label) > cardW - 20) {
+                            label = this.font.plainSubstrByWidth(label, cardW - 30) + "...";
+                        }
+                        graphics.drawString(this.font, label, cardX + 10, reqY, TEXT_MUTED, false);
+                        reqY += 10;
                     }
-                    graphics.drawString(this.font, label, cardX + 10, reqY, TEXT_MUTED, false);
-                    reqY += 10;
                 }
             }
 
@@ -329,7 +340,8 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
 
             for (int i = 0; i < (endIndex - startIndex); i++) {
                 xdAbsoluteMastery.ConfigManager.PathInfo path = availablePaths.get(startIndex + i);
-                boolean isUnlocked = xdAbsoluteMastery.areDependenciesMastered(Minecraft.getInstance().player, playerData, path);
+                boolean hasTasks = !path.requirements.isEmpty();
+                boolean isUnlocked = hasTasks && xdAbsoluteMastery.areDependenciesMastered(Minecraft.getInstance().player, playerData, path);
                 boolean isActivePath = playerData != null && path.id.equals(playerData.getCurrentPath());
                 boolean hasActivePath = playerData != null && playerData.getCurrentPath() != null;
                 boolean canSwitch = xdAbsoluteMastery.canSwitchFromCurrentPath(Minecraft.getInstance().player, playerData);
