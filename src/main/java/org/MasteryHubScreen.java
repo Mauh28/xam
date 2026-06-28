@@ -128,7 +128,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
 
         // Ramas Empezadas list
         int empY = leftY + 98;
-        graphics.drawString(this.font, "RAMAS EMPEZADAS", leftX + 12, empY, COLOR_BRASS, false);
+        graphics.drawString(this.font, "EN PROGRESO", leftX + 12, empY, COLOR_BRASS, false);
         graphics.fill(leftX + 12, empY + 11, leftX + leftW - 12, empY + 12, 0xFF2C221D);
 
         int empListStartY = empY + 16;
