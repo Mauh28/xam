@@ -6,17 +6,22 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 import org.xdAbsoluteMastery.ConfigManager.Requirement;
 
+import java.util.ArrayList;
+
 public class RequirementEditScreen extends AbstractMasteryScreen {
     private final MasteryEditorScreen parent;
+    private final String parentPathId;
     private final Requirement requirement;
 
     private EditBox nameEdit;
     private EditBox descEdit;
     private EditBox idEdit;
+    private EditBox dependenciesEdit;
 
-    public RequirementEditScreen(MasteryEditorScreen parent, Requirement requirement) {
+    public RequirementEditScreen(MasteryEditorScreen parent, String parentPathId, Requirement requirement) {
         super(Component.literal("EDITAR REQUISITO"));
         this.parent = parent;
+        this.parentPathId = parentPathId;
         this.requirement = requirement;
     }
 
@@ -56,6 +61,15 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         this.idEdit.setTextColor(TEXT_PRIMARY);
         this.idEdit.setValue(requirement.id);
         this.addRenderableWidget(this.idEdit);
+
+        // Dependencias Input Box (acotado 25px para dejar sitio al botón "...")
+        int depsY = startY + 135;
+        int depsEditW = nameW - 25;
+        this.dependenciesEdit = new EditBox(this.font, nameX + 4, depsY + 5, depsEditW - 8, 12, Component.literal("Dependencias"));
+        this.dependenciesEdit.setBordered(false);
+        this.dependenciesEdit.setTextColor(TEXT_PRIMARY);
+        this.dependenciesEdit.setValue(String.join(", ", requirement.dependencies));
+        this.addRenderableWidget(this.dependenciesEdit);
     }
 
     private void saveFields() {
@@ -67,6 +81,15 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         }
         if (this.idEdit != null) {
             this.requirement.id = this.idEdit.getValue();
+        }
+        if (this.dependenciesEdit != null) {
+            this.requirement.dependencies.clear();
+            String val = this.dependenciesEdit.getValue();
+            if (!val.trim().isEmpty()) {
+                for (String dep : val.split(",")) {
+                    this.requirement.dependencies.add(dep.trim());
+                }
+            }
         }
     }
 
@@ -126,6 +149,19 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         // Draw Cambiar Objetivo Button
         int changeBtnX = idX + idW + 10;
         drawFlatButton(graphics, changeBtnX, typeY, 100, 20, "Cambiar", mouseX, mouseY, true);
+
+        // Dependencias section (panel acotado + botón "..." picker)
+        int depsY = startY + 135;
+        int depsEditW = nameW - 25;
+        graphics.drawString(this.font, "Dependencias del Requisito (ej. botania:1, mekanism:2)", nameX, depsY - 11, TEXT_MUTED, false);
+        drawFlatPanel(graphics, nameX, depsY, depsEditW, 20, INPUT_BACKGROUND, BORDER_STANDARD);
+
+        int depsBtnX = nameX + depsEditW + 5;
+        boolean depsBtnHovered = mouseX >= depsBtnX && mouseX < depsBtnX + 20 && mouseY >= depsY && mouseY < depsY + 20;
+        int depsBtnBg = depsBtnHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
+        int depsBtnBorder = depsBtnHovered ? COLOR_BRASS : 0xFF2C221D;
+        drawFlatPanel(graphics, depsBtnX, depsY, 20, 20, depsBtnBg, depsBtnBorder);
+        graphics.drawCenteredString(this.font, "...", depsBtnX + 10, depsY + 6, TEXT_PRIMARY);
     }
 
     @Override
@@ -158,6 +194,24 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
                 playClickSound();
                 saveFields();
                 openSelectorForRequirement(requirement);
+                return true;
+            }
+
+            // 3. Click Dependencias "..." -> Open dependency picker
+            int depsY = startY + 135;
+            int depsEditW = (panelW - 40) - 25;
+            int depsBtnX = nameX + depsEditW + 5;
+            if (mouseX >= depsBtnX && mouseX < depsBtnX + 20 && mouseY >= depsY && mouseY < depsY + 20) {
+                playClickSound();
+                saveFields();
+                Minecraft.getInstance().setScreen(new DependencySelectionScreen(
+                        this, parentPathId, org.xdAbsoluteMastery.ConfigManager.PATHS,
+                        new ArrayList<>(requirement.dependencies), deps -> {
+                    requirement.dependencies.clear();
+                    requirement.dependencies.addAll(deps);
+                    if (dependenciesEdit != null) dependenciesEdit.setValue(String.join(", ", deps));
+                    Minecraft.getInstance().setScreen(this);
+                }));
                 return true;
             }
 

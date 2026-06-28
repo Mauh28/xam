@@ -28,6 +28,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     // Custom text input boxes
     private EditBox pathNameEdit;
     private EditBox pathModIdEdit;
+    private EditBox pathDepsEdit;
+    private EditBox pathMinSwitchEdit;
 
     // Notification state
     private long saveNotificationTime = 0;
@@ -43,6 +45,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             p.name = path.name;
             p.mod_id = path.mod_id;
             p.icon = path.icon;
+            p.min_to_switch = path.min_to_switch;
             p.dependencies = new ArrayList<>(path.dependencies);
             p.requirements = new ArrayList<>();
             for (Requirement req : path.requirements) {
@@ -51,6 +54,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 r.id = req.id;
                 r.name = req.name;
                 r.description = req.description;
+                r.dependencies = new ArrayList<>(req.dependencies);
                 p.requirements.add(r);
             }
             this.localPaths.add(p);
@@ -98,6 +102,24 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         this.pathModIdEdit.setEditable(true);
         this.addRenderableWidget(this.pathModIdEdit);
 
+        // Second line editor inputs
+        int secondY = bodyY + 45;
+        int secondW = editorW - 40;
+        int depsW = (int) (secondW * 0.70);
+        int minW = (int) (secondW * 0.30);
+        int depsX = editorX + 20;
+        int minX = depsX + depsW + 10;
+
+        this.pathDepsEdit = new EditBox(this.font, depsX + 4, secondY + 5, depsW - 8, 12, Component.literal("Dependencias"));
+        this.pathDepsEdit.setBordered(false);
+        this.pathDepsEdit.setTextColor(TEXT_PRIMARY);
+        this.addRenderableWidget(this.pathDepsEdit);
+
+        this.pathMinSwitchEdit = new EditBox(this.font, minX + 4, secondY + 5, minW - 8, 12, Component.literal("Min. Reqs"));
+        this.pathMinSwitchEdit.setBordered(false);
+        this.pathMinSwitchEdit.setTextColor(TEXT_PRIMARY);
+        this.addRenderableWidget(this.pathMinSwitchEdit);
+
         updateEditors();
         if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
             updateModIdFromRequirements(localPaths.get(selectedPathIndex));
@@ -108,6 +130,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         boolean pathSelected = selectedPathIndex >= 0 && selectedPathIndex < localPaths.size();
         pathNameEdit.visible = pathSelected;
         pathModIdEdit.visible = pathSelected;
+        pathDepsEdit.visible = pathSelected;
+        pathMinSwitchEdit.visible = pathSelected;
 
         if (pathSelected) {
             PathInfo p = localPaths.get(selectedPathIndex);
@@ -121,6 +145,27 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             pathModIdEdit.setResponder(null);
             pathModIdEdit.setValue(p.mod_id);
             pathModIdEdit.setResponder(val -> p.mod_id = val);
+
+            pathDepsEdit.setResponder(null);
+            pathDepsEdit.setValue(String.join(", ", p.dependencies));
+            pathDepsEdit.setResponder(val -> {
+                p.dependencies.clear();
+                if (!val.trim().isEmpty()) {
+                    for (String dep : val.split(",")) {
+                        p.dependencies.add(dep.trim());
+                    }
+                }
+            });
+
+            pathMinSwitchEdit.setResponder(null);
+            pathMinSwitchEdit.setValue(String.valueOf(p.min_to_switch));
+            pathMinSwitchEdit.setResponder(val -> {
+                try {
+                    p.min_to_switch = Integer.parseInt(val.trim());
+                } catch (NumberFormatException e) {
+                    p.min_to_switch = -1;
+                }
+            });
         }
     }
 
@@ -282,12 +327,22 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int modY = bodyY + 15;
 
             // Enclosing metadata frame
-            drawFlatPanel(graphics, editorX + 10, bodyY + 5, editorW - 20, inputH + 18, PANEL_INNER_BG, 0xFF2A201C);
+            drawFlatPanel(graphics, editorX + 10, bodyY + 5, editorW - 20, inputH + 48, PANEL_INNER_BG, 0xFF2A201C);
 
             // Inputs Labels
             graphics.drawString(this.font, "Icono", iconX, iconY - 11, COLOR_BRASS, false);
             graphics.drawString(this.font, "Título", titleX, titleY - 11, COLOR_BRASS, false);
             graphics.drawString(this.font, "Namespace MOD", modX, modY - 11, COLOR_BRASS, false);
+
+            int secondY = bodyY + 45;
+            int secondW = editorW - 40;
+            int depsW = (int) (secondW * 0.70);
+            int minW = (int) (secondW * 0.30);
+            int depsX = editorX + 20;
+            int minX = depsX + depsW + 10;
+
+            graphics.drawString(this.font, "Dependencias de Rama (ej. botania:1)", depsX, secondY - 11, COLOR_BRASS, false);
+            graphics.drawString(this.font, "Min. Reqs", minX, secondY - 11, COLOR_BRASS, false);
 
             // Icon background panel
             boolean iconHovered = mouseX >= iconX && mouseX < iconX + iconW && mouseY >= iconY && mouseY < iconY + iconW;
@@ -318,6 +373,16 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int modEditW = modW - 25;
             drawFlatPanel(graphics, titleX, titleY, titleW, 20, INPUT_BACKGROUND, COLOR_COPPER);
             drawFlatPanel(graphics, modX, modY, modEditW, 20, INPUT_BACKGROUND, COLOR_COPPER);
+            drawFlatPanel(graphics, depsX, secondY, depsW, 20, INPUT_BACKGROUND, COLOR_COPPER);
+            drawFlatPanel(graphics, minX, secondY, minW, 20, INPUT_BACKGROUND, COLOR_COPPER);
+
+            // Copper "..." dependency picker button (junto al panel de Dependencias de Rama)
+            int depsBtnX = depsX + depsW + 5;
+            boolean depsBtnHovered = mouseX >= depsBtnX && mouseX < depsBtnX + 20 && mouseY >= secondY && mouseY < secondY + 20;
+            int depsBtnBg = depsBtnHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
+            int depsBtnBorder = depsBtnHovered ? COLOR_BRASS : 0xFF2C221D;
+            drawFlatPanel(graphics, depsBtnX, secondY, 20, 20, depsBtnBg, depsBtnBorder);
+            graphics.drawCenteredString(this.font, "...", depsBtnX + 10, secondY + 6, TEXT_PRIMARY);
 
             // Copper "..." selection button
             int browseX = modX + modEditW + 5;
@@ -328,7 +393,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             graphics.drawCenteredString(this.font, "...", browseX + 10, modY + 6, TEXT_PRIMARY);
 
             // Requisitos Section
-            int reqTitleY = bodyY + 15 + inputH + 15;
+            int reqTitleY = bodyY + 15 + inputH + 45;
             graphics.drawString(this.font, "REQUISITOS", editorX + 20, reqTitleY, COLOR_BRASS, false);
             int reqTitleW = this.font.width("REQUISITOS");
             graphics.fill(editorX + 20, reqTitleY + 10, editorX + 20 + reqTitleW, reqTitleY + 11, COLOR_COPPER);
@@ -342,7 +407,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int addReqBg = addReqHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
             int addReqBorder = addReqHovered ? COLOR_BRASS : 0xFF2C221D;
             drawFlatPanel(graphics, addReqBtnX, addReqBtnY, addReqBtnW, addReqBtnH, addReqBg, addReqBorder);
-            graphics.drawCenteredString(this.font, "+ AÑADIR ESCENA", addReqBtnX + addReqBtnW / 2, addReqBtnY + 4, TEXT_PRIMARY);
+            graphics.drawCenteredString(this.font, "+ AÑADIR REQUISITO", addReqBtnX + addReqBtnW / 2, addReqBtnY + 4, TEXT_PRIMARY);
 
             // Requirements Scissor Region & Scrollbar logic
             int startCardY = reqTitleY + 16;
@@ -520,7 +585,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                         PathInfo p = localPaths.get(selectedPathIndex);
                         if (index >= 0 && index < p.requirements.size()) {
                             Requirement req = p.requirements.get(index);
-                            this.minecraft.setScreen(new RequirementEditScreen(this, req));
+                            this.minecraft.setScreen(new RequirementEditScreen(this, p.id, req));
                         }
                     }
                     return true;
@@ -597,6 +662,32 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     Minecraft.getInstance().setScreen(new ModSelectionScreen(this, modId -> {
                         this.pathModIdEdit.setValue(modId);
                         p.mod_id = modId;
+                        Minecraft.getInstance().setScreen(this);
+                    }));
+                    return true;
+                }
+
+                // Dependencias "..." picker button click (junto al panel de Dependencias de Rama)
+                int secondY2 = bodyY + 45;
+                int secondW2 = editorW - 40;
+                int depsW2 = (int) (secondW2 * 0.70);
+                int depsX2 = editorX + 20;
+                int depsBtnX = depsX2 + depsW2 + 5;
+                if (mouseX >= depsBtnX && mouseX < depsBtnX + 20 && mouseY >= secondY2 && mouseY < secondY2 + 20) {
+                    playClickSound();
+                    // Quita el responder antes de setValue para que no re-parsed el texto; se re-vincula tras volver.
+                    this.pathDepsEdit.setResponder(null);
+                    Minecraft.getInstance().setScreen(new DependencySelectionScreen(
+                            this, p.id, localPaths, new ArrayList<>(p.dependencies), deps -> {
+                        p.dependencies.clear();
+                        p.dependencies.addAll(deps);
+                        pathDepsEdit.setValue(String.join(", ", deps));
+                        pathDepsEdit.setResponder(val -> {
+                            p.dependencies.clear();
+                            if (!val.trim().isEmpty()) {
+                                for (String dep : val.split(",")) p.dependencies.add(dep.trim());
+                            }
+                        });
                         Minecraft.getInstance().setScreen(this);
                     }));
                     return true;

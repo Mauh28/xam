@@ -157,15 +157,50 @@ public class xdAbsoluteMastery {
         return false;
     }
 
-    public static boolean isRequirementCompleted(ServerPlayer player, PlayerData data, ConfigManager.Requirement req) {
-        if (req.type.equals("advancement")) {
-            ResourceLocation resLoc = ResourceLocation.tryParse(req.id);
-            if (resLoc == null) return false;
-            net.minecraft.advancements.Advancement adv = player.server.getAdvancements().getAdvancement(resLoc);
+    public static boolean isAdvancementCompleted(Player player, String advancementId) {
+        ResourceLocation resLoc = ResourceLocation.tryParse(advancementId);
+        if (resLoc == null) return false;
+        if (player instanceof ServerPlayer serverPlayer) {
+            net.minecraft.advancements.Advancement adv = serverPlayer.server.getAdvancements().getAdvancement(resLoc);
             if (adv == null) return false;
-            return player.getAdvancements().getOrStartProgress(adv).isDone();
+            return serverPlayer.getAdvancements().getOrStartProgress(adv).isDone();
         } else {
-            String reqKey = req.type + ":" + req.id;
+            if (net.minecraftforge.fml.loading.FMLEnvironment.dist == net.minecraftforge.api.distmarker.Dist.CLIENT) {
+                try {
+                    net.minecraft.client.multiplayer.ClientPacketListener connection = net.minecraft.client.Minecraft.getInstance().getConnection();
+                    if (connection != null) {
+                        net.minecraft.client.multiplayer.ClientAdvancements clientAdvs = connection.getAdvancements();
+                        for (java.lang.reflect.Field field : net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredFields()) {
+                            if (field.getType() == Map.class) {
+                                field.setAccessible(true);
+                                Map<?, ?> map = (Map<?, ?>) field.get(clientAdvs);
+                                if (map != null) {
+                                    for (Map.Entry<?, ?> entry : map.entrySet()) {
+                                        Object key = entry.getKey();
+                                        if (key instanceof net.minecraft.advancements.Advancement adv) {
+                                            if (adv.getId().equals(resLoc)) {
+                                                Object val = entry.getValue();
+                                                if (val instanceof net.minecraft.advancements.AdvancementProgress progress) {
+                                                    return progress.isDone();
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+            return false;
+        }
+    }
+
+    public static boolean isRequirementCompleted(Player player, PlayerData data, String pathId, ConfigManager.Requirement req) {
+        if (req.type.equals("advancement")) {
+            return isAdvancementCompleted(player, req.id);
+        } else {
+            String reqKey = pathId + ":" + req.type + ":" + req.id;
             return data.getCompletedRequirements().contains(reqKey);
         }
     }
@@ -173,7 +208,7 @@ public class xdAbsoluteMastery {
     public static void checkPathCompletion(ServerPlayer player, PlayerData data, ConfigManager.PathInfo pathInfo) {
         boolean completedAll = true;
         for (ConfigManager.Requirement req : pathInfo.requirements) {
-            if (!isRequirementCompleted(player, data, req)) {
+            if (!isRequirementCompleted(player, data, pathInfo.id, req)) {
                 completedAll = false;
                 break;
             }
@@ -182,7 +217,7 @@ public class xdAbsoluteMastery {
         if (completedAll) {
             data.addMasteredPath(pathInfo.id);
             data.setCurrentPath(null);
-            data.clearCompletedRequirements();
+            data.getCompletedRequirements().removeIf(k -> k.startsWith(pathInfo.id + ":"));
             sync(player);
             updateArmorModifiers(player);
             player.sendSystemMessage(Component.literal("¡Has dominado " + pathInfo.name + "! Ahora puedes elegir un nuevo camino."));
@@ -311,7 +346,7 @@ public class xdAbsoluteMastery {
             }
             source.sendSuccess(() -> Component.literal("=== Progreso de " + player.getGameProfile().getName() + " en " + pathInfo.name + " ==="), false);
             for (ConfigManager.Requirement req : pathInfo.requirements) {
-                boolean done = isRequirementCompleted(player, data, req);
+                boolean done = isRequirementCompleted(player, data, pathInfo.id, req);
                 String symbol = done ? "§a[✔]§r" : "§c[✘]§r";
                 String reqDesc = formatRequirementDescription(req);
                 source.sendSuccess(() -> Component.literal(symbol + " " + reqDesc + " (" + req.type + ":" + req.id + ")"), false);
@@ -364,8 +399,9 @@ public class xdAbsoluteMastery {
                     }
                 }
             } else {
-                if (!data.getCompletedRequirements().contains(reqKey)) {
-                    data.addCompletedRequirement(reqKey);
+                String fullKey = pathInfo.id + ":" + reqKey;
+                if (!data.getCompletedRequirements().contains(fullKey)) {
+                    data.addCompletedRequirement(fullKey);
                     sync(player);
                     checkPathCompletion(player, data, pathInfo);
                 }
@@ -374,10 +410,81 @@ public class xdAbsoluteMastery {
         });
     }
 
-    public static boolean areDependenciesMastered(PlayerData data, ConfigManager.PathInfo path) {
+    public static int getCompletedRequirementsCount(Player player, PlayerData data, ConfigManager.PathInfo path) {
+        if (path == null) return 0;
+        int count = 0;
+        for (ConfigManager.Requirement req : path.requirements) {
+            if (isRequirementCompleted(player, data, path.id, req)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public static boolean isDependencyMet(Player player, PlayerData data, String depStr) {
+        if (depStr == null || depStr.isEmpty()) return true;
+        String[] parts = depStr.split(":");
+        String depPathId = parts[0];
+        String amountStr = parts.length > 1 ? parts[1] : "mastered";
+
+        if (amountStr.equalsIgnoreCase("mastered") || amountStr.equalsIgnoreCase("all")) {
+            return data.getMasteredPaths().contains(depPathId);
+        }
+
+        int requiredCount = 0;
+        ConfigManager.PathInfo depPath = ConfigManager.PATHS_MAP.get(depPathId);
+        if (depPath == null) return false;
+
+        try {
+            if (amountStr.endsWith("%")) {
+                int pct = Integer.parseInt(amountStr.replace("%", ""));
+                if (!depPath.requirements.isEmpty()) {
+                    requiredCount = (int) Math.ceil((pct / 100.0) * depPath.requirements.size());
+                }
+            } else {
+                requiredCount = Integer.parseInt(amountStr);
+            }
+        } catch (NumberFormatException e) {
+            return data.getMasteredPaths().contains(depPathId);
+        }
+
+        if (data.getMasteredPaths().contains(depPathId)) {
+            return true;
+        }
+
+        int completed = getCompletedRequirementsCount(player, data, depPath);
+        return completed >= requiredCount;
+    }
+
+    public static boolean areDependenciesMastered(Player player, PlayerData data, ConfigManager.PathInfo path) {
         if (path.dependencies == null || path.dependencies.isEmpty()) return true;
         for (String dep : path.dependencies) {
-            if (!data.getMasteredPaths().contains(dep)) {
+            if (!isDependencyMet(player, data, dep)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean canSwitchFromCurrentPath(Player player, PlayerData data) {
+        String current = data.getCurrentPath();
+        if (current == null) return true;
+        ConfigManager.PathInfo path = ConfigManager.PATHS_MAP.get(current);
+        if (path == null) return true;
+
+        int threshold = path.min_to_switch;
+        if (threshold < 0) {
+            return data.getMasteredPaths().contains(current);
+        }
+
+        int completed = getCompletedRequirementsCount(player, data, path);
+        return completed >= threshold;
+    }
+
+    public static boolean areRequirementDependenciesMet(Player player, PlayerData data, ConfigManager.Requirement req) {
+        if (req.dependencies == null || req.dependencies.isEmpty()) return true;
+        for (String dep : req.dependencies) {
+            if (!isDependencyMet(player, data, dep)) {
                 return false;
             }
         }
@@ -385,11 +492,11 @@ public class xdAbsoluteMastery {
     }
 
     // ponytail: returns true if the player must select a path before doing anything
-    public static boolean mustSelectPath(PlayerData data) {
+    public static boolean mustSelectPath(Player player, PlayerData data) {
         if (data != null && data.isDevMode()) return false;
         if (data.getCurrentPath() != null) return false;
         for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
-            if (!data.getMasteredPaths().contains(path.id) && areDependenciesMastered(data, path)) {
+            if (!data.getMasteredPaths().contains(path.id) && areDependenciesMastered(player, data, path)) {
                 return true;
             }
         }
@@ -530,6 +637,23 @@ public class xdAbsoluteMastery {
 
         // Check mastered paths (small loop, highly efficient)
         for (String pathId : data.getMasteredPaths()) {
+            ConfigManager.PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
+            if (path != null) {
+                if (namespace.equals(path.mod_id)) {
+                    return true;
+                }
+                if (path.armorTag != null) {
+                    if (stack.is(path.armorTag)
+                            || stack.is(path.weaponsTag)
+                            || stack.is(path.toolsTag)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // Check started/paused paths (small loop, highly efficient)
+        for (String pathId : data.getStartedPaths()) {
             ConfigManager.PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
             if (path != null) {
                 if (namespace.equals(path.mod_id)) {
@@ -908,7 +1032,7 @@ public class xdAbsoluteMastery {
         public static void onLivingHurt(LivingHurtEvent event) {
             if (event.getSource().getEntity() instanceof Player player) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                    if (mustSelectPath(data)) {
+                    if (mustSelectPath(player, data)) {
                         event.setAmount(1.0f);
                         sendWarning(player, MUST_SELECT_MSG);
                         return;
@@ -929,7 +1053,7 @@ public class xdAbsoluteMastery {
         public static void onBreakSpeed(PlayerEvent.BreakSpeed event) {
             Player player = event.getEntity();
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                if (mustSelectPath(data)) {
+                if (mustSelectPath(player, data)) {
                     event.setNewSpeed(0.0f);
                     sendWarning(player, MUST_SELECT_MSG);
                     return;
@@ -949,7 +1073,7 @@ public class xdAbsoluteMastery {
         public static void onBlockBreak(BlockEvent.BreakEvent event) {
             Player player = event.getPlayer();
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                if (mustSelectPath(data)) {
+                if (mustSelectPath(player, data)) {
                     event.setCanceled(true);
                     sendWarning(player, MUST_SELECT_MSG);
                     return;
@@ -969,7 +1093,7 @@ public class xdAbsoluteMastery {
         public static void onRightClickItem(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickItem event) {
             Player player = event.getEntity();
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                if (mustSelectPath(data)) {
+                if (mustSelectPath(player, data)) {
                     event.setCanceled(true);
                     sendWarning(player, MUST_SELECT_MSG);
                     return;
@@ -989,7 +1113,7 @@ public class xdAbsoluteMastery {
         public static void onRightClickBlock(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock event) {
             Player player = event.getEntity();
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                if (mustSelectPath(data)) {
+                if (mustSelectPath(player, data)) {
                     event.setCanceled(true);
                     sendWarning(player, MUST_SELECT_MSG);
                     return;
@@ -1009,7 +1133,7 @@ public class xdAbsoluteMastery {
         public static void onEntityInteract(net.minecraftforge.event.entity.player.PlayerInteractEvent.EntityInteract event) {
             Player player = event.getEntity();
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                if (mustSelectPath(data)) {
+                if (mustSelectPath(player, data)) {
                     event.setCanceled(true);
                     sendWarning(player, MUST_SELECT_MSG);
                     return;
@@ -1202,13 +1326,16 @@ public class xdAbsoluteMastery {
                     player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                         if (pkt.pathId != null) {
                             ConfigManager.PathInfo targetPath = ConfigManager.PATHS_MAP.get(pkt.pathId);
-                            if (targetPath == null || data.getMasteredPaths().contains(pkt.pathId) || !areDependenciesMastered(data, targetPath)) {
+                            if (targetPath == null || data.getMasteredPaths().contains(pkt.pathId) || !areDependenciesMastered(player, data, targetPath)) {
                                 sync(player);
                                 return;
                             }
                         }
+                        if (!canSwitchFromCurrentPath(player, data)) {
+                            sync(player);
+                            return;
+                        }
                         data.setCurrentPath(pkt.pathId);
-                        data.clearCompletedRequirements();
                         sync(player);
                         updateArmorModifiers(player);
                         if (pkt.pathId != null) {
@@ -1339,6 +1466,7 @@ public class xdAbsoluteMastery {
             public String id;
             public String name;
             public String description;
+            public List<String> dependencies = new ArrayList<>();
 
             public Requirement() {}
             public Requirement(String type, String id, String name, String description) {
@@ -1347,6 +1475,15 @@ public class xdAbsoluteMastery {
                 this.name = name;
                 this.description = description;
             }
+            public Requirement(String type, String id, String name, String description, List<String> dependencies) {
+                this.type = type;
+                this.id = id;
+                this.name = name;
+                this.description = description;
+                if (dependencies != null) {
+                    this.dependencies = new ArrayList<>(dependencies);
+                }
+            }
         }
 
         public static class PathInfo {
@@ -1354,6 +1491,7 @@ public class xdAbsoluteMastery {
             public String name;
             public String mod_id;
             public String icon = "minecraft:writable_book";
+            public int min_to_switch = -1;
             public List<String> dependencies = new ArrayList<>();
             public List<Requirement> requirements = new ArrayList<>();
 
@@ -1425,6 +1563,7 @@ public class xdAbsoluteMastery {
                     info.id = pObj.get("id").getAsString();
                     info.name = pObj.get("name").getAsString();
                     info.mod_id = pObj.has("mod_id") ? pObj.get("mod_id").getAsString() : info.id;
+                    info.min_to_switch = pObj.has("min_to_switch") ? pObj.get("min_to_switch").getAsInt() : -1;
                     if (pObj.has("icon")) {
                         info.icon = pObj.get("icon").getAsString();
                     } else {
@@ -1457,6 +1596,13 @@ public class xdAbsoluteMastery {
                             req.id = rObj.get("id").getAsString();
                             req.name = rObj.has("name") ? rObj.get("name").getAsString() : "";
                             req.description = rObj.has("description") ? rObj.get("description").getAsString() : "";
+                            req.dependencies = new ArrayList<>();
+                            if (rObj.has("dependencies")) {
+                                JsonArray reqDeps = rObj.getAsJsonArray("dependencies");
+                                for (int k = 0; k < reqDeps.size(); k++) {
+                                    req.dependencies.add(reqDeps.get(k).getAsString());
+                                }
+                            }
                             info.requirements.add(req);
                         }
                     } else if (pObj.has("mastery_advancements")) {
@@ -1498,6 +1644,7 @@ public class xdAbsoluteMastery {
                 pObj.addProperty("name", path.name);
                 pObj.addProperty("mod_id", path.mod_id);
                 pObj.addProperty("icon", path.icon != null ? path.icon : "minecraft:writable_book");
+                pObj.addProperty("min_to_switch", path.min_to_switch);
                 JsonArray depsArray = new JsonArray();
                 for (String dep : path.dependencies) {
                     depsArray.add(dep);
@@ -1510,6 +1657,13 @@ public class xdAbsoluteMastery {
                     rObj.addProperty("id", req.id);
                     rObj.addProperty("name", req.name);
                     rObj.addProperty("description", req.description);
+                    JsonArray reqDeps = new JsonArray();
+                    if (req.dependencies != null) {
+                        for (String dep : req.dependencies) {
+                            reqDeps.add(dep);
+                        }
+                    }
+                    rObj.add("dependencies", reqDeps);
                     reqsArray.add(rObj);
                 }
                 pObj.add("requirements", reqsArray);
@@ -1731,7 +1885,7 @@ public class xdAbsoluteMastery {
 
                     // Key suppression check for invalid items or no mastery selected
                     mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                        boolean suppress = mustSelectPath(data);
+                        boolean suppress = mustSelectPath(mc.player, data);
                         if (!suppress) {
                             ItemStack mainHand = mc.player.getMainHandItem();
                             ItemStack offHand = mc.player.getOffhandItem();

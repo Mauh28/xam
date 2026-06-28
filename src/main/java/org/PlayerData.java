@@ -13,6 +13,7 @@ import java.util.List;
 public class PlayerData {
     private String currentPath = null;
     private final List<String> masteredPaths = new ArrayList<>();
+    private final List<String> startedPaths = new ArrayList<>();
     private final List<String> completedRequirements = new ArrayList<>();
     // ponytail: initialized tracks if selection was opened this session; intentionally not persisted or copied in copyFrom
     private boolean initialized = false;
@@ -44,6 +45,19 @@ public class PlayerData {
 
     public void setCurrentPath(String currentPath) {
         this.currentPath = currentPath;
+        if (currentPath != null) {
+            addStartedPath(currentPath);
+        }
+    }
+
+    public List<String> getStartedPaths() {
+        return startedPaths;
+    }
+
+    public void addStartedPath(String path) {
+        if (!startedPaths.contains(path)) {
+            startedPaths.add(path);
+        }
     }
 
     public List<String> getMasteredPaths() {
@@ -90,6 +104,8 @@ public class PlayerData {
         this.currentPath = source.currentPath;
         this.masteredPaths.clear();
         this.masteredPaths.addAll(source.masteredPaths);
+        this.startedPaths.clear();
+        this.startedPaths.addAll(source.startedPaths);
         this.completedRequirements.clear();
         this.completedRequirements.addAll(source.completedRequirements);
         this.activePathModId = source.activePathModId;
@@ -107,6 +123,12 @@ public class PlayerData {
         }
         nbt.put("masteredPaths", masteredTag);
 
+        ListTag startedTag = new ListTag();
+        for (String path : startedPaths) {
+            startedTag.add(StringTag.valueOf(path));
+        }
+        nbt.put("startedPaths", startedTag);
+
         ListTag completedTag = new ListTag();
         for (String req : completedRequirements) {
             completedTag.add(StringTag.valueOf(req));
@@ -120,10 +142,21 @@ public class PlayerData {
 
     public void loadNBTData(CompoundTag nbt) {
         currentPath = nbt.contains("currentPath", Tag.TAG_STRING) ? nbt.getString("currentPath") : null;
+        if (currentPath != null) {
+            addStartedPath(currentPath);
+        }
         masteredPaths.clear();
         ListTag masteredTag = nbt.getList("masteredPaths", Tag.TAG_STRING);
         for (int i = 0; i < masteredTag.size(); i++) {
             masteredPaths.add(masteredTag.getString(i));
+        }
+
+        startedPaths.clear();
+        if (nbt.contains("startedPaths", Tag.TAG_LIST)) {
+            ListTag startedTag = nbt.getList("startedPaths", Tag.TAG_STRING);
+            for (int i = 0; i < startedTag.size(); i++) {
+                startedPaths.add(startedTag.getString(i));
+            }
         }
 
         completedRequirements.clear();
