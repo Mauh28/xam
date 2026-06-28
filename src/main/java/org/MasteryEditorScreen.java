@@ -434,7 +434,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int reqTitleW = this.font.width("REQUISITOS");
             graphics.fill(editorX + 20, reqTitleY + 10, editorX + 20 + reqTitleW, reqTitleY + 11, COLOR_COPPER);
 
-            // Button "+ AÑADIR REQUISITO" with Cobre Ponder style
+            // Button "+ AÑADIR TAREA" with Cobre Ponder style
             int addReqBtnX = editorX + editorW - 120;
             int addReqBtnY = reqTitleY - 4;
             int addReqBtnW = 100;
@@ -443,7 +443,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int addReqBg = addReqHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
             int addReqBorder = addReqHovered ? COLOR_BRASS : 0xFF2C221D;
             drawFlatPanel(graphics, addReqBtnX, addReqBtnY, addReqBtnW, addReqBtnH, addReqBg, addReqBorder);
-            graphics.drawCenteredString(this.font, "+ AÑADIR REQUISITO", addReqBtnX + addReqBtnW / 2, addReqBtnY + 4, TEXT_PRIMARY);
+            graphics.drawCenteredString(this.font, "+ AÑADIR TAREA", addReqBtnX + addReqBtnW / 2, addReqBtnY + 4, TEXT_PRIMARY);
 
             // Requirements Scissor Region & Scrollbar logic
             int startCardY = reqTitleY + 16;
@@ -900,7 +900,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int totalReqsH = p.requirements.size() * 46;
             scrollY = Math.max(0, totalReqsH - reqListH);
             
-            openSelectorForRequirement(req);
+            // Open edit screen directly for the newly created requirement/task
+            Minecraft.getInstance().setScreen(new RequirementEditScreen(this, p.id, req));
         }
     }
 
