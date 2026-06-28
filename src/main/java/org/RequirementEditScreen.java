@@ -12,11 +12,15 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
     private final MasteryEditorScreen parent;
     private final String parentPathId;
     private final Requirement requirement;
+    private final Runnable onCommit;
 
     private EditBox nameEdit;
     private EditBox descEdit;
     private EditBox idEdit;
     private EditBox dependenciesEdit;
+
+    private String errorMsg = null;
+    private boolean committed = false;
 
     // Layout fields
     private int panelW, panelX;
@@ -28,10 +32,15 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
     private int depsX, depsY, depsEditW, depsBtnX;
 
     public RequirementEditScreen(MasteryEditorScreen parent, String parentPathId, Requirement requirement) {
+        this(parent, parentPathId, requirement, null);
+    }
+
+    public RequirementEditScreen(MasteryEditorScreen parent, String parentPathId, Requirement requirement, Runnable onCommit) {
         super(Component.literal("EDITAR REQUISITO"));
         this.parent = parent;
         this.parentPathId = parentPathId;
         this.requirement = requirement;
+        this.onCommit = onCommit;
     }
 
     @Override
@@ -135,6 +144,10 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         }
     }
 
+    public boolean isCommitted() {
+        return committed;
+    }
+
     @Override
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
@@ -144,6 +157,12 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
 
     @Override
     protected void renderFooter(GuiGraphics graphics, int mouseX, int mouseY) {
+        // Show validation error in footer if present
+        if (errorMsg != null) {
+            int msgY = containerY + containerH - footerH + (footerH - 8) / 2;
+            graphics.drawString(this.font, errorMsg, containerX + 15, msgY, 0xFFFF5555, false);
+        }
+
         int btnW = 100;
         int btnH = 20;
         int startX = containerX + containerW - 15 - (btnW * 2 + 10);
@@ -161,9 +180,13 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         graphics.drawString(this.font, "Nombre", nameX, nameY - 11, TEXT_MUTED, false);
         graphics.drawString(this.font, "Descripción", nameX, descY - 11, TEXT_MUTED, false);
 
-        // Input Background Panels
-        drawFlatPanel(graphics, nameX, nameY, nameW, 20, INPUT_BACKGROUND, BORDER_STANDARD);
-        drawFlatPanel(graphics, nameX, descY, nameW, 20, INPUT_BACKGROUND, BORDER_STANDARD);
+        // Input Background Panels — highlight red if validation failed and field is empty
+        boolean nameEmpty = nameEdit != null && nameEdit.getValue().trim().isEmpty();
+        boolean descEmpty = descEdit != null && descEdit.getValue().trim().isEmpty();
+        int nameBorder = (errorMsg != null && nameEmpty) ? 0xFFFF5555 : BORDER_STANDARD;
+        int descBorder = (errorMsg != null && descEmpty) ? 0xFFFF5555 : BORDER_STANDARD;
+        drawFlatPanel(graphics, nameX, nameY, nameW, 20, INPUT_BACKGROUND, nameBorder);
+        drawFlatPanel(graphics, nameX, descY, nameW, 20, INPUT_BACKGROUND, descBorder);
 
         // Tipo & ID section
         graphics.drawString(this.font, "Objetivo (ID)", idX, idY - 11, TEXT_MUTED, false);
@@ -172,8 +195,10 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         String typeLabel = "Tipo: " + requirement.type.toUpperCase();
         drawFlatButton(graphics, typeX, typeY, typeW, 20, typeLabel, mouseX, mouseY, true);
 
-        // Draw ID Panel
-        drawFlatPanel(graphics, idX, idY, idW, 20, INPUT_BACKGROUND, BORDER_STANDARD);
+        // Draw ID Panel — highlight red if empty
+        boolean idEmpty = idEdit != null && idEdit.getValue().trim().isEmpty();
+        int idBorder = (errorMsg != null && idEmpty) ? 0xFFFF5555 : BORDER_STANDARD;
+        drawFlatPanel(graphics, idX, idY, idW, 20, INPUT_BACKGROUND, idBorder);
 
         // Draw Cambiar Objetivo Button
         drawFlatButton(graphics, changeBtnX, changeBtnY, changeBtnW, 20, "Cambiar", mouseX, mouseY, true);
@@ -241,10 +266,21 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
                 return true;
             }
 
-            // Guardar
+            // Guardar — validate before accepting
             if (mouseX >= startX + btnW + 10 && mouseX < startX + btnW + 10 + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
                 playClickSound();
                 saveFields();
+                // ponytail: inline validation — cheapest thing that blocks bad data
+                boolean nameOk = !requirement.name.trim().isEmpty();
+                boolean descOk = !requirement.description.trim().isEmpty();
+                boolean idOk = !requirement.id.trim().isEmpty();
+                if (!nameOk || !descOk || !idOk) {
+                    errorMsg = "✕ Completa todos los campos antes de guardar";
+                    return true;
+                }
+                errorMsg = null;
+                committed = true;
+                if (onCommit != null) onCommit.run();
                 this.minecraft.setScreen(this.parent);
                 return true;
             }

@@ -243,7 +243,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         // Render Save Notification if active
         if (System.currentTimeMillis() - saveNotificationTime < 3000) {
             int msgY = containerY + containerH - footerH + (footerH - 8) / 2;
-            graphics.drawString(this.font, saveNotificationMsg, containerX + 15, msgY, 0xFF55FF55, false);
+            int notifColor = saveNotificationMsg.startsWith("✕") ? 0xFFFF5555 : 0xFF55FF55;
+            graphics.drawString(this.font, saveNotificationMsg, containerX + 15, msgY, notifColor, false);
         }
 
         // Custom Discard button (dark red/grey)
@@ -894,18 +895,17 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
             PathInfo p = localPaths.get(selectedPathIndex);
             Requirement req = new Requirement("craft", "", "", "");
-            p.requirements.add(req);
-            updateModIdFromRequirements(p);
-            updateEditors();
-            
-            // Adjust scroll to make newly added item visible using dynamic reqTitleY
-            int editorH = bodyH;
-            int reqListH = editorH - (reqTitleY - bodyY + 16) - 10;
-            int totalReqsH = p.requirements.size() * 46;
-            scrollY = Math.max(0, totalReqsH - reqListH);
-            
-            // Open edit screen directly for the newly created requirement/task
-            Minecraft.getInstance().setScreen(new RequirementEditScreen(this, p.id, req));
+            // ponytail: don't add to list yet — RequirementEditScreen will add on commit
+            Minecraft.getInstance().setScreen(new RequirementEditScreen(this, p.id, req, () -> {
+                p.requirements.add(req);
+                updateModIdFromRequirements(p);
+                updateEditors();
+                // Scroll to show newly added item
+                int editorH = bodyH;
+                int reqListH = editorH - (reqTitleY - bodyY + 16) - 10;
+                int totalReqsH = p.requirements.size() * 46;
+                scrollY = Math.max(0, totalReqsH - reqListH);
+            }));
         }
     }
 
@@ -1004,32 +1004,43 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     }
 
     private void saveConfig() {
-        boolean valid = true;
-        for (PathInfo p : localPaths) {
-            if (p.id.trim().isEmpty() || p.name.trim().isEmpty() || p.mod_id.trim().isEmpty()) {
-                valid = false;
-                break;
+        // ponytail: validate all fields with descriptive errors in footer
+        for (int i = 0; i < localPaths.size(); i++) {
+            PathInfo p = localPaths.get(i);
+            if (p.name.trim().isEmpty()) {
+                showError("La rama #" + (i + 1) + " no tiene nombre");
+                return;
             }
-            for (Requirement req : p.requirements) {
-                if (req.id.trim().isEmpty() || req.name.trim().isEmpty()) {
-                    valid = false;
-                    break;
+            if (p.mod_id.trim().isEmpty() || p.mod_id.equals("modid")) {
+                showError("'" + p.name + "' necesita un Namespace MOD válido");
+                return;
+            }
+            for (int j = 0; j < p.requirements.size(); j++) {
+                Requirement req = p.requirements.get(j);
+                if (req.id.trim().isEmpty()) {
+                    showError("Tarea #" + (j + 1) + " de '" + p.name + "' sin objetivo (ID)");
+                    return;
+                }
+                if (req.name.trim().isEmpty()) {
+                    showError("Tarea #" + (j + 1) + " de '" + p.name + "' sin nombre");
+                    return;
+                }
+                if (req.description.trim().isEmpty()) {
+                    showError("Tarea #" + (j + 1) + " de '" + p.name + "' sin descripción");
+                    return;
                 }
             }
-        }
-        if (!valid) {
-            if (Minecraft.getInstance().player != null) {
-                Minecraft.getInstance().player.sendSystemMessage(
-                    Component.literal("Error: Los IDs y Nombres no pueden estar vacíos.").withStyle(net.minecraft.ChatFormatting.RED)
-                );
-            }
-            return;
         }
 
         String json = xdAbsoluteMastery.ConfigManager.serializePaths(localPaths);
         xdAbsoluteMastery.CHANNEL.sendToServer(new xdAbsoluteMastery.UpdateConfigPacket(json));
 
         this.saveNotificationMsg = "✔ ¡Maestría guardada correctamente!";
+        this.saveNotificationTime = System.currentTimeMillis();
+    }
+
+    private void showError(String msg) {
+        this.saveNotificationMsg = "✕ " + msg;
         this.saveNotificationTime = System.currentTimeMillis();
     }
 
