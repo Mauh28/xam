@@ -243,7 +243,7 @@ public class xdAbsoluteMastery {
                 if (req.type.equals(type) && req.id.equals(targetId)) {
                     // ponytail: skip if this requirement's own dependencies aren't satisfied yet
                     if (!areRequirementDependenciesMet(player, data, req)) continue;
-                    String reqKey = type + ":" + targetId;
+                    String reqKey = currentPath + ":" + type + ":" + targetId;
                     if (!data.getCompletedRequirements().contains(reqKey)) {
                         data.addCompletedRequirement(reqKey);
                         changed = true;
