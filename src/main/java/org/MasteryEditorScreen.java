@@ -20,21 +20,28 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     // Scroll state for requirements list
     private double scrollY = 0;
 
-    // Context menu state
-    private int contextMenuCardIndex = -1;
+    // Unified Context menu state
+    private int contextMenuIndex = -1;
+    private boolean contextMenuIsBranch = false;
     private int contextMenuX = 0;
     private int contextMenuY = 0;
 
     private static class MenuOption {
         final String label;
         final Runnable action;
+        final boolean isDanger;
 
         MenuOption(String label, Runnable action) {
+            this(label, action, false);
+        }
+
+        MenuOption(String label, Runnable action, boolean isDanger) {
             this.label = label;
             this.action = action;
+            this.isDanger = isDanger;
         }
     }
-    private final List<MenuOption> activeCardMenuOptions = new ArrayList<>();
+    private final List<MenuOption> activeMenuOptions = new ArrayList<>();
 
     // Custom text input boxes
     private EditBox pathNameEdit;
@@ -50,11 +57,6 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     private int minX, minY, minW;
     private int metadataFrameH;
     private int reqTitleY;
-
-    // Sidebar Context menu state
-    private int contextMenuBranchIndex = -1;
-    private int contextMenuBranchX = 0;
-    private int contextMenuBranchY = 0;
 
     // Notification state
     private long saveNotificationTime = 0;
@@ -561,41 +563,27 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 graphics.fill(scrollbarX, thumbY, scrollbarX + 4, thumbY + thumbH, COLOR_COPPER);
             }
 
-            // Render context menu if active
-            if (contextMenuCardIndex != -1 && !activeCardMenuOptions.isEmpty()) {
+            // Render unified context menu if active
+            if (contextMenuIndex != -1 && !activeMenuOptions.isEmpty()) {
                 int menuW = 80;
                 int optionH = 16;
-                int menuH = activeCardMenuOptions.size() * optionH + 4; // 2px padding top/bottom
+                int menuH = activeMenuOptions.size() * optionH + 4; // 2px padding top/bottom
 
                 drawFlatPanel(graphics, contextMenuX, contextMenuY, menuW, menuH, WIDGET_BACKGROUND, BORDER_INNER);
 
-                for (int o = 0; o < activeCardMenuOptions.size(); o++) {
-                    MenuOption opt = activeCardMenuOptions.get(o);
+                for (int o = 0; o < activeMenuOptions.size(); o++) {
+                    MenuOption opt = activeMenuOptions.get(o);
                     int optY = contextMenuY + 2 + o * optionH;
                     boolean optHovered = mouseX >= contextMenuX && mouseX < contextMenuX + menuW && mouseY >= optY && mouseY < optY + optionH;
 
                     if (optHovered) {
-                        graphics.fill(contextMenuX + 2, optY, contextMenuX + menuW - 2, optY + optionH, BUTTON_HOVER_BG);
+                        int hoverBg = opt.isDanger ? 0xFF3A1111 : BUTTON_HOVER_BG;
+                        graphics.fill(contextMenuX + 2, optY, contextMenuX + menuW - 2, optY + optionH, hoverBg);
                     }
 
-                    int textCol = optHovered ? TEXT_PRIMARY : TEXT_SECONDARY;
+                    int textCol = optHovered ? (opt.isDanger ? 0xFFFF5555 : TEXT_PRIMARY) : TEXT_SECONDARY;
                     graphics.drawCenteredString(this.font, opt.label, contextMenuX + menuW / 2, optY + (optionH - 8) / 2, textCol);
                 }
-            }
-
-            // Render sidebar branch context menu if active
-            if (contextMenuBranchIndex != -1) {
-                int menuW = 80;
-                int menuH = 22;
-                boolean optionHovered = mouseX >= contextMenuBranchX && mouseX < contextMenuBranchX + menuW && mouseY >= contextMenuBranchY && mouseY < contextMenuBranchY + menuH;
-
-                int menuBg = optionHovered ? 0xFF3A1111 : WIDGET_BACKGROUND;
-                int menuBorder = optionHovered ? 0xFFFF5555 : BORDER_INNER;
-
-                drawFlatPanel(graphics, contextMenuBranchX, contextMenuBranchY, menuW, menuH, menuBg, menuBorder);
-
-                int textCol = optionHovered ? TEXT_PRIMARY : TEXT_SECONDARY;
-                graphics.drawCenteredString(this.font, "Borrar", contextMenuBranchX + menuW / 2, contextMenuBranchY + (menuH - 8) / 2, textCol);
             }
         }
     }
@@ -637,56 +625,28 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int editorW = containerW - sidebarW - 4;
         int editorH = bodyH;
 
-        // 1. Handle Context Menu left click / dismiss
-        if (contextMenuCardIndex != -1) {
+        // 1. Handle Unified Context Menu left click / dismiss
+        if (contextMenuIndex != -1) {
             if (button == 0) {
                 int menuW = 80;
                 int optionH = 16;
-                int menuH = activeCardMenuOptions.size() * optionH + 4;
+                int menuH = activeMenuOptions.size() * optionH + 4;
                 if (mouseX >= contextMenuX && mouseX < contextMenuX + menuW && mouseY >= contextMenuY && mouseY < contextMenuY + menuH) {
                     int clickedOptIndex = (int) ((mouseY - contextMenuY - 2) / optionH);
-                    if (clickedOptIndex >= 0 && clickedOptIndex < activeCardMenuOptions.size()) {
+                    if (clickedOptIndex >= 0 && clickedOptIndex < activeMenuOptions.size()) {
                         playClickSound();
-                        MenuOption opt = activeCardMenuOptions.get(clickedOptIndex);
-                        contextMenuCardIndex = -1;
-                        activeCardMenuOptions.clear();
+                        MenuOption opt = activeMenuOptions.get(clickedOptIndex);
+                        contextMenuIndex = -1;
+                        activeMenuOptions.clear();
                         opt.action.run();
                         return true;
                     }
                 }
             }
-            contextMenuCardIndex = -1;
-            activeCardMenuOptions.clear();
+            contextMenuIndex = -1;
+            activeMenuOptions.clear();
             if (button != 0) {
                 return true; // Consume other click types when dismissing
-            }
-        }
-
-        // Handle Sidebar Context Menu left click / dismiss
-        if (contextMenuBranchIndex != -1) {
-            if (button == 0) {
-                int menuW = 80;
-                int menuH = 22;
-                if (mouseX >= contextMenuBranchX && mouseX < contextMenuBranchX + menuW && mouseY >= contextMenuBranchY && mouseY < contextMenuBranchY + menuH) {
-                    playClickSound();
-                    int index = contextMenuBranchIndex;
-                    contextMenuBranchIndex = -1;
-                    if (index >= 0 && index < localPaths.size()) {
-                        PathInfo target = localPaths.get(index);
-                        Minecraft.getInstance().setScreen(new ConfirmDeleteScreen(this, () -> {
-                            localPaths.remove(index);
-                            if (selectedPathIndex >= index) {
-                                selectedPathIndex = localPaths.isEmpty() ? -1 : 0;
-                            }
-                            updateEditors();
-                        }, target.name));
-                    }
-                    return true;
-                }
-            }
-            contextMenuBranchIndex = -1;
-            if (button != 0) {
-                return true;
             }
         }
 
@@ -702,9 +662,43 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 int itemY = listY + i * 20;
                 if (mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + itemH) {
                     playClickSound();
-                    contextMenuBranchIndex = i;
-                    contextMenuBranchX = (int) mouseX;
-                    contextMenuBranchY = (int) mouseY;
+                    contextMenuIndex = i;
+                    contextMenuIsBranch = true;
+                    contextMenuX = (int) mouseX;
+                    contextMenuY = (int) mouseY;
+
+                    activeMenuOptions.clear();
+                    int finalI = i;
+                    if (i > 0) {
+                        activeMenuOptions.add(new MenuOption("▲", () -> {
+                            PathInfo path1 = localPaths.get(finalI);
+                            PathInfo path2 = localPaths.get(finalI - 1);
+                            localPaths.set(finalI - 1, path1);
+                            localPaths.set(finalI, path2);
+                            selectedPathIndex = finalI - 1;
+                            updateEditors();
+                        }));
+                    }
+                    if (i < localPaths.size() - 1) {
+                        activeMenuOptions.add(new MenuOption("▼", () -> {
+                            PathInfo path1 = localPaths.get(finalI);
+                            PathInfo path2 = localPaths.get(finalI + 1);
+                            localPaths.set(finalI + 1, path1);
+                            localPaths.set(finalI, path2);
+                            selectedPathIndex = finalI + 1;
+                            updateEditors();
+                        }));
+                    }
+                    activeMenuOptions.add(new MenuOption("Borrar", () -> {
+                        PathInfo target = localPaths.get(finalI);
+                        Minecraft.getInstance().setScreen(new ConfirmDeleteScreen(this, () -> {
+                            localPaths.remove(finalI);
+                            if (selectedPathIndex >= finalI) {
+                                selectedPathIndex = localPaths.isEmpty() ? -1 : 0;
+                            }
+                            updateEditors();
+                        }, target.name));
+                    }, true));
                     return true;
                 }
             }
@@ -723,19 +717,19 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
 
                     if (cardIndex >= 0 && cardIndex < p.requirements.size() && relativeY <= cardH) {
                         playClickSound();
-                        contextMenuCardIndex = cardIndex;
+                        contextMenuIndex = cardIndex;
+                        contextMenuIsBranch = false;
                         contextMenuX = (int) mouseX;
                         contextMenuY = (int) mouseY;
 
-                        // Build context menu options dynamically
-                        activeCardMenuOptions.clear();
-                        activeCardMenuOptions.add(new MenuOption("Editar", () -> {
+                        activeMenuOptions.clear();
+                        activeMenuOptions.add(new MenuOption("Editar", () -> {
                             Requirement req = p.requirements.get(cardIndex);
                             Minecraft.getInstance().setScreen(new RequirementEditScreen(this, p.id, req));
                         }));
 
                         if (cardIndex > 0) {
-                            activeCardMenuOptions.add(new MenuOption("Subir", () -> {
+                            activeMenuOptions.add(new MenuOption("▲", () -> {
                                 Requirement req1 = p.requirements.get(cardIndex);
                                 Requirement req2 = p.requirements.get(cardIndex - 1);
                                 p.requirements.set(cardIndex - 1, req1);
@@ -745,7 +739,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                         }
 
                         if (cardIndex < p.requirements.size() - 1) {
-                            activeCardMenuOptions.add(new MenuOption("Bajar", () -> {
+                            activeMenuOptions.add(new MenuOption("▼", () -> {
                                 Requirement req1 = p.requirements.get(cardIndex);
                                 Requirement req2 = p.requirements.get(cardIndex + 1);
                                 p.requirements.set(cardIndex + 1, req1);
