@@ -1517,7 +1517,7 @@ public class xdAbsoluteMastery {
             public String name;
             public String mod_id;
             public String icon = "minecraft:writable_book";
-            public int min_to_switch = -1;
+            public int min_to_switch = 0;
             public List<String> dependencies = new ArrayList<>();
             public List<Requirement> requirements = new ArrayList<>();
 
@@ -1589,7 +1589,7 @@ public class xdAbsoluteMastery {
                     info.id = pObj.get("id").getAsString();
                     info.name = pObj.get("name").getAsString();
                     info.mod_id = pObj.has("mod_id") ? pObj.get("mod_id").getAsString() : info.id;
-                    info.min_to_switch = pObj.has("min_to_switch") ? pObj.get("min_to_switch").getAsInt() : -1;
+                    info.min_to_switch = pObj.has("min_to_switch") ? pObj.get("min_to_switch").getAsInt() : 0;
                     if (pObj.has("icon")) {
                         info.icon = pObj.get("icon").getAsString();
                     } else {

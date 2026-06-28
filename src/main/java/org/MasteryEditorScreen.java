@@ -29,7 +29,6 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     private EditBox pathNameEdit;
     private EditBox pathModIdEdit;
     private EditBox pathDepsEdit;
-    private EditBox pathMinSwitchEdit;
 
     // Layout fields
     private boolean isNarrow;
@@ -109,7 +108,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             // Increased vertical spacing to prevent vertical overlaps with upper fields
             this.secondY = bodyY + 52;
             int secondW = editorW - 40;
-            this.minW = 50;
+            this.minW = 120;
             int depsAreaW = secondW - minW - 10;
             this.depsW = depsAreaW - 25;
             this.depsX = editorX + 20;
@@ -165,11 +164,6 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         this.pathDepsEdit.setTextColor(TEXT_PRIMARY);
         this.addRenderableWidget(this.pathDepsEdit);
 
-        this.pathMinSwitchEdit = new EditBox(this.font, minX + 4, minY + 5, minW - 8, 12, Component.literal("Min. Reqs"));
-        this.pathMinSwitchEdit.setBordered(false);
-        this.pathMinSwitchEdit.setTextColor(TEXT_PRIMARY);
-        this.addRenderableWidget(this.pathMinSwitchEdit);
-
         updateEditors();
         if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
             updateModIdFromRequirements(localPaths.get(selectedPathIndex));
@@ -181,7 +175,6 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         pathNameEdit.visible = pathSelected;
         pathModIdEdit.visible = pathSelected;
         pathDepsEdit.visible = pathSelected;
-        pathMinSwitchEdit.visible = pathSelected;
 
         if (pathSelected) {
             PathInfo p = localPaths.get(selectedPathIndex);
@@ -196,24 +189,12 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             pathModIdEdit.setValue(p.mod_id);
             pathModIdEdit.setResponder(val -> p.mod_id = val);
 
-            pathDepsEdit.setResponder(null);
-            pathDepsEdit.setValue(String.join(", ", p.dependencies));
             pathDepsEdit.setResponder(val -> {
                 p.dependencies.clear();
                 if (!val.trim().isEmpty()) {
                     for (String dep : val.split(",")) {
                         p.dependencies.add(dep.trim());
                     }
-                }
-            });
-
-            pathMinSwitchEdit.setResponder(null);
-            pathMinSwitchEdit.setValue(String.valueOf(p.min_to_switch));
-            pathMinSwitchEdit.setResponder(val -> {
-                try {
-                    p.min_to_switch = Integer.parseInt(val.trim());
-                } catch (NumberFormatException e) {
-                    p.min_to_switch = -1;
                 }
             });
         }
@@ -381,7 +362,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             graphics.drawString(this.font, "Título", titleX, titleY - 11, COLOR_BRASS, false);
             graphics.drawString(this.font, "Namespace MOD", modX, modY - 11, COLOR_BRASS, false);
             graphics.drawString(this.font, "Dependencias de Rama (ej. botania:1)", depsX, secondY - 11, COLOR_BRASS, false);
-            graphics.drawString(this.font, "Min. Reqs", minX, minY - 11, COLOR_BRASS, false);
+            graphics.drawString(this.font, "Regla de Cambio", minX, minY - 11, COLOR_BRASS, false);
 
             // Icon background panel
             int iconW = 20;
@@ -413,7 +394,21 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             drawFlatPanel(graphics, titleX, titleY, titleW, 20, INPUT_BACKGROUND, COLOR_COPPER);
             drawFlatPanel(graphics, modX, modY, modEditW, 20, INPUT_BACKGROUND, COLOR_COPPER);
             drawFlatPanel(graphics, depsX, secondY, depsW, 20, INPUT_BACKGROUND, COLOR_COPPER);
-            drawFlatPanel(graphics, minX, minY, minW, 20, INPUT_BACKGROUND, COLOR_COPPER);
+            // Draw Switch Rule Button instead of edit box
+            boolean ruleHovered = mouseX >= minX && mouseX < minX + minW && mouseY >= minY && mouseY < minY + 20;
+            int ruleBg = ruleHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
+            int ruleBorder = ruleHovered ? COLOR_BRASS : 0xFF2C221D;
+            drawFlatPanel(graphics, minX, minY, minW, 20, ruleBg, ruleBorder);
+
+            String ruleText = "";
+            if (p.min_to_switch < 0) {
+                ruleText = "Dominar completa";
+            } else if (p.min_to_switch == 0) {
+                ruleText = "Cambio libre";
+            } else {
+                ruleText = p.min_to_switch + " tarea" + (p.min_to_switch > 1 ? "s" : "");
+            }
+            graphics.drawCenteredString(this.font, ruleText, minX + minW / 2, minY + 6, TEXT_PRIMARY);
 
             // Copper "..." dependency picker button (junto al panel de Dependencias de Rama)
             boolean depsBtnHovered = mouseX >= depsBtnX && mouseX < depsBtnX + 20 && mouseY >= secondY && mouseY < secondY + 20;
@@ -765,6 +760,13 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     }));
                     return true;
                 }
+
+                // Rule Button click
+                if (mouseX >= minX && mouseX < minX + minW && mouseY >= minY && mouseY < minY + 20) {
+                    playClickSound();
+                    cycleMinToSwitch(p);
+                    return true;
+                }
             }
             // Footer buttons (Descartar Todo, Guardar Estructura)
             int footBtnW = 120;
@@ -929,6 +931,17 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         }
         if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
             updateModIdFromRequirements(localPaths.get(selectedPathIndex));
+        }
+    }
+
+    private void cycleMinToSwitch(PathInfo p) {
+        int max = p.requirements.size();
+        if (p.min_to_switch < 0) {
+            p.min_to_switch = 0;
+        } else if (p.min_to_switch >= max) {
+            p.min_to_switch = -1;
+        } else {
+            p.min_to_switch++;
         }
     }
 
