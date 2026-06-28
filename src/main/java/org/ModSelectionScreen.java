@@ -24,8 +24,8 @@ public class ModSelectionScreen extends AbstractPickerScreen<String> {
     @Override
     protected void init() {
         super.init();
-        this.entryHeight = 74; // 70px card + 4px space
-        int listHeight = bodyH - 45;
+        this.entryHeight = 44; // 40px card + 4px space
+        int listHeight = bodyH - 38; // Maximize vertical usage
         this.maxVisible = Math.max(2, listHeight / entryHeight);
     }
 
@@ -116,7 +116,7 @@ public class ModSelectionScreen extends AbstractPickerScreen<String> {
         int listWidth = containerW - 40;
         int colWidth = (listWidth - 6) / 2;
         int gap = 6;
-        int cardH = entryHeight - 4; // 70px
+        int cardH = entryHeight - 4; // 40px
 
         // Render double column list
         for (int i = 0; i < maxVisible; i++) {
@@ -144,19 +144,19 @@ public class ModSelectionScreen extends AbstractPickerScreen<String> {
                     logo = FALLBACK_INFO;
                 }
 
-                // Draw logo scaled to 64x64 centered vertically inside the card
-                int logoSize = 64;
+                // Draw logo scaled to 32x32 centered vertically inside the card
+                int logoSize = 32;
                 int logoY = entryY + (cardH - logoSize) / 2;
-                guiGraphics.blit(logo.resourceLocation, entryX + 3, logoY, logoSize, logoSize, 0.0F, 0.0F, logo.width, logo.height, logo.width, logo.height);
+                guiGraphics.blit(logo.resourceLocation, entryX + 4, logoY, logoSize, logoSize, 0.0F, 0.0F, logo.width, logo.height, logo.width, logo.height);
 
                 // Draw mod ID/Name next to logo
                 String displayName = entry;
-                int textMaxW = colWidth - 76;
+                int textMaxW = colWidth - 46;
                 if (this.font.width(displayName) > textMaxW) {
                     displayName = this.font.plainSubstrByWidth(displayName, textMaxW - 10) + "...";
                 }
                 int textY = entryY + (cardH - 8) / 2;
-                guiGraphics.drawString(this.font, displayName, entryX + 72, textY, hovered ? COLOR_BRASS : TEXT_PRIMARY, false);
+                guiGraphics.drawString(this.font, displayName, entryX + 42, textY, hovered ? COLOR_BRASS : TEXT_PRIMARY, false);
             }
         }
 
