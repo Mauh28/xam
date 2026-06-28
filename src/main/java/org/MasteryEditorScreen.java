@@ -889,7 +889,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     private void addRequirement() {
         if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
             PathInfo p = localPaths.get(selectedPathIndex);
-            Requirement req = new Requirement("craft", "minecraft:dirt", "Craftear Tierra", "Obtén un bloque de tierra");
+            Requirement req = new Requirement("craft", "", "", "");
             p.requirements.add(req);
             updateModIdFromRequirements(p);
             updateEditors();
