@@ -903,11 +903,15 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                         }
                         if (mouseX >= cardX + cardW - 40 && mouseX < cardX + cardW) {
                             playClickSound();
-                            p.requirements.remove(cardIndex);
-                            updateModIdFromRequirements(p);
-                            int totalReqsH = p.requirements.size() * 46;
-                            int maxScroll = Math.max(0, totalReqsH - reqListH);
-                            scrollY = Math.max(0, Math.min(maxScroll, scrollY));
+                            String taskName = req.name.isEmpty() ? req.id : req.name;
+                            Minecraft.getInstance().setScreen(new ConfirmDeleteScreen(this, () -> {
+                                p.requirements.remove(cardIndex);
+                                updateModIdFromRequirements(p);
+                                updateEditors();
+                                int totalReqsH1 = p.requirements.size() * 46;
+                                int maxScroll1 = Math.max(0, totalReqsH1 - reqListH);
+                                scrollY = Math.max(0, Math.min(maxScroll1, scrollY));
+                            }, taskName));
                             return true;
                         }
                     }
@@ -1155,7 +1159,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
 
             drawFlatPanel(graphics, panelX, panelY, panelW, panelH, PANEL_INNER_BG, WARM_BORDER);
 
-            String text1 = "¿Estás seguro de que deseas borrar la maestría?";
+            String text1 = "¿Estás seguro de que deseas borrar?";
             String text2 = "\"" + targetName + "\"?";
             String text3 = "Esta acción no se puede deshacer.";
 
