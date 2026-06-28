@@ -241,6 +241,8 @@ public class xdAbsoluteMastery {
             boolean changed = false;
             for (ConfigManager.Requirement req : pathInfo.requirements) {
                 if (req.type.equals(type) && req.id.equals(targetId)) {
+                    // ponytail: skip if this requirement's own dependencies aren't satisfied yet
+                    if (!areRequirementDependenciesMet(player, data, req)) continue;
                     String reqKey = type + ":" + targetId;
                     if (!data.getCompletedRequirements().contains(reqKey)) {
                         data.addCompletedRequirement(reqKey);
