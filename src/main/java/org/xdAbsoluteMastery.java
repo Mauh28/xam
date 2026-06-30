@@ -1398,7 +1398,7 @@ public class xdAbsoluteMastery {
         }
 
         public static SyncConfigPacket decode(FriendlyByteBuf buf) {
-            return new SyncConfigPacket(buf.readUtf(32767));
+            return new SyncConfigPacket(buf.readUtf(262144));
         }
 
         public static void handle(SyncConfigPacket pkt, Supplier<NetworkEvent.Context> ctx) {
@@ -1421,7 +1421,7 @@ public class xdAbsoluteMastery {
         }
 
         public static UpdateConfigPacket decode(FriendlyByteBuf buf) {
-            return new UpdateConfigPacket(buf.readUtf(32767));
+            return new UpdateConfigPacket(buf.readUtf(262144));
         }
 
         public static void handle(UpdateConfigPacket pkt, Supplier<NetworkEvent.Context> ctx) {
