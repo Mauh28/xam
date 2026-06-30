@@ -138,7 +138,10 @@ public class xdAbsoluteMastery {
                     }
                 }
             }
-            if (!found) {
+            if (!found && currentPath != null) {
+                data.setCurrentPath(null);
+                data.setActivePathModId("");
+            } else if (!found) {
                 data.setActivePathModId("");
             }
             data.setLastConfigVersion(ConfigManager.getConfigVersion());
@@ -457,6 +460,9 @@ public class xdAbsoluteMastery {
         if (depStr == null || depStr.isEmpty()) return true;
         String[] parts = depStr.split(":");
         String depPathId = parts[0];
+        if (!ConfigManager.PATHS_MAP.containsKey(depPathId)) {
+            return true; // ponytail: ignore deleted dependencies to prevent deadlocks
+        }
         String amountStr = parts.length > 1 ? parts[1] : "mastered";
 
         if (amountStr.equalsIgnoreCase("mastered") || amountStr.equalsIgnoreCase("all")) {
@@ -465,7 +471,7 @@ public class xdAbsoluteMastery {
 
         int requiredCount = 0;
         ConfigManager.PathInfo depPath = ConfigManager.PATHS_MAP.get(depPathId);
-        if (depPath == null) return false;
+        if (depPath == null) return true;
 
         try {
             if (amountStr.endsWith("%")) {
