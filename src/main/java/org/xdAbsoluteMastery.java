@@ -87,6 +87,8 @@ public class xdAbsoluteMastery {
     private static final Map<String, Long> COOLDOWNS = new HashMap<>();
     private static final Map<UUID, String> LAST_MAINHAND = new HashMap<>();
     private static final Map<UUID, String> LAST_OFFHAND = new HashMap<>();
+    // ponytail: server-side durability cache — avoids polluting item NBT with XamPrevDamage
+    private static final Map<String, Integer> PREV_DAMAGE = new HashMap<>();
 
     // Pre-computed universal TagKeys to avoid allocation in hot paths
     public static final TagKey<Item> UNIVERSAL_ARMOR_TAG = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(MODID, "universal/armor"));
@@ -332,8 +334,12 @@ public class xdAbsoluteMastery {
                 source.sendFailure(Component.literal("La rama '" + pathId + "' no existe."));
                 return;
             }
+            // ponytail: only clear requirements from the old path, not everything
+            String oldPath = data.getCurrentPath();
+            if (oldPath != null) {
+                data.getCompletedRequirements().removeIf(k -> k.startsWith(oldPath + ":"));
+            }
             data.setCurrentPath(pathId);
-            data.clearCompletedRequirements();
             sync(player);
             updateArmorModifiers(player);
             source.sendSuccess(() -> Component.literal("Rama '" + pathId + "' seleccionada para " + player.getGameProfile().getName()), true);
@@ -768,6 +774,7 @@ public class xdAbsoluteMastery {
             LAST_MAINHAND.remove(uuid);
             LAST_OFFHAND.remove(uuid);
             COOLDOWNS.entrySet().removeIf(e -> e.getKey().startsWith(uuid.toString()));
+            PREV_DAMAGE.entrySet().removeIf(e -> e.getKey().startsWith(uuid.toString()));
         }
 
         @SubscribeEvent
@@ -1247,19 +1254,15 @@ public class xdAbsoluteMastery {
                     for (InteractionHand hand : InteractionHand.values()) {
                         ItemStack stack = player.getItemInHand(hand);
                         if (!stack.isEmpty() && stack.isDamageableItem()) {
+                            String key = uuid + ":" + hand.name();
                             if (!isItemValid(stack, data)) {
-                                CompoundTag tag = stack.getOrCreateTag();
-                                if (tag.contains("XamPrevDamage")) {
-                                    int prevDamage = tag.getInt("XamPrevDamage");
-                                    if (stack.getDamageValue() > prevDamage) {
-                                        stack.setDamageValue(prevDamage);
-                                    }
+                                Integer prev = PREV_DAMAGE.get(key);
+                                if (prev != null && stack.getDamageValue() > prev) {
+                                    stack.setDamageValue(prev);
                                 }
-                                stack.getOrCreateTag().putInt("XamPrevDamage", stack.getDamageValue());
+                                PREV_DAMAGE.put(key, stack.getDamageValue());
                             } else {
-                                if (stack.hasTag() && stack.getTag().contains("XamPrevDamage")) {
-                                    stack.getTag().remove("XamPrevDamage");
-                                }
+                                PREV_DAMAGE.remove(key);
                             }
                         }
                     }
@@ -1342,7 +1345,7 @@ public class xdAbsoluteMastery {
         }
 
         public static SelectPathPacket decode(FriendlyByteBuf buf) {
-            return new SelectPathPacket(buf.readUtf());
+            return new SelectPathPacket(buf.readUtf(256));
         }
 
         public static void handle(SelectPathPacket pkt, Supplier<NetworkEvent.Context> ctx) {
@@ -1389,7 +1392,7 @@ public class xdAbsoluteMastery {
         }
 
         public static SyncConfigPacket decode(FriendlyByteBuf buf) {
-            return new SyncConfigPacket(buf.readUtf());
+            return new SyncConfigPacket(buf.readUtf(32767));
         }
 
         public static void handle(SyncConfigPacket pkt, Supplier<NetworkEvent.Context> ctx) {
@@ -1412,13 +1415,13 @@ public class xdAbsoluteMastery {
         }
 
         public static UpdateConfigPacket decode(FriendlyByteBuf buf) {
-            return new UpdateConfigPacket(buf.readUtf());
+            return new UpdateConfigPacket(buf.readUtf(32767));
         }
 
         public static void handle(UpdateConfigPacket pkt, Supplier<NetworkEvent.Context> ctx) {
             ctx.get().enqueueWork(() -> {
                 ServerPlayer player = ctx.get().getSender();
-                if (player != null && (player.hasPermissions(2) || player.level().isClientSide())) {
+                if (player != null && player.hasPermissions(2)) {
                     // ponytail: server-side validation — don't trust client data
                     try {
                         JsonObject json = new Gson().fromJson(pkt.json, JsonObject.class);
@@ -1735,22 +1738,27 @@ public class xdAbsoluteMastery {
             return serializePaths(PATHS);
         }
 
+        // ponytail: serialize concurrent config saves
+        private static final Object CONFIG_WRITE_LOCK = new Object();
+
         public static void saveConfigFromServer(net.minecraft.server.MinecraftServer server, String jsonString) {
             java.util.concurrent.CompletableFuture.runAsync(() -> {
-                Path configPath = FMLPaths.CONFIGDIR.get().resolve("xam_paths.json");
-                try {
-                    java.nio.file.Files.createDirectories(configPath.getParent());
-                    try (java.io.BufferedWriter writer = java.nio.file.Files.newBufferedWriter(configPath, java.nio.charset.StandardCharsets.UTF_8)) {
-                        writer.write(jsonString);
+                synchronized (CONFIG_WRITE_LOCK) {
+                    Path configPath = FMLPaths.CONFIGDIR.get().resolve("xam_paths.json");
+                    try {
+                        java.nio.file.Files.createDirectories(configPath.getParent());
+                        try (java.io.BufferedWriter writer = java.nio.file.Files.newBufferedWriter(configPath, java.nio.charset.StandardCharsets.UTF_8)) {
+                            writer.write(jsonString);
+                        }
+                        if (server != null) {
+                            server.execute(() -> {
+                                loadConfigFromJson(jsonString);
+                                CHANNEL.send(PacketDistributor.ALL.noArg(), new NotifyConfigUpdatePacket(getConfigVersion()));
+                            });
+                        }
+                    } catch (IOException e) {
+                        LOGGER.error("Failed to save paths config on server asynchronously", e);
                     }
-                    if (server != null) {
-                        server.execute(() -> {
-                            loadConfigFromJson(jsonString);
-                            CHANNEL.send(PacketDistributor.ALL.noArg(), new NotifyConfigUpdatePacket(getConfigVersion()));
-                        });
-                    }
-                } catch (IOException e) {
-                    LOGGER.error("Failed to save paths config on server asynchronously", e);
                 }
             });
         }
