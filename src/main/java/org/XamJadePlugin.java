@@ -34,25 +34,26 @@ public class XamJadePlugin implements IWailaPlugin {
             Player player = accessor.getPlayer();
             if (player != null) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                    Block block = accessor.getBlock();
-                    ResourceLocation blockId = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(block);
-                    if (blockId != null) {
-                        String namespace = blockId.getNamespace();
-                        
-                        // Check if block namespace is a registered path and if it's restricted for the player
-                        for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
-                            if (path.mod_id != null && path.mod_id.equals(namespace)) {
-                                if (xdAbsoluteMastery.mustSelectPath(player, data)) {
-                                    tooltip.add(Component.literal("✖ Bloqueado - Elige maestría").withStyle(ChatFormatting.RED));
-                                    return;
+                    ItemStack stack = accessor.getPickedResult();
+                    if (!stack.isEmpty() && !xdAbsoluteMastery.isItemValid(stack, data)) {
+                        String reqPathName = null;
+                        ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
+                        if (rl != null) {
+                            String namespace = rl.getNamespace();
+                            for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
+                                if (path.mod_id != null && path.mod_id.equals(namespace)) {
+                                    reqPathName = path.name;
+                                    break;
                                 }
-                                
-                                ItemStack dummyStack = new ItemStack(net.minecraft.world.item.Item.byBlock(block));
-                                if (!dummyStack.isEmpty() && !xdAbsoluteMastery.isItemValid(dummyStack, data)) {
-                                    tooltip.add(Component.literal("✖ Requiere maestría: " + path.name).withStyle(ChatFormatting.RED));
-                                }
-                                break;
                             }
+                        }
+
+                        if (xdAbsoluteMastery.mustSelectPath(player, data)) {
+                            tooltip.add(Component.literal("✖ Bloqueado - Elige maestría").withStyle(ChatFormatting.RED));
+                        } else if (reqPathName != null) {
+                            tooltip.add(Component.literal("✖ Bloqueado - Requiere maestría: " + reqPathName).withStyle(ChatFormatting.RED));
+                        } else {
+                            tooltip.add(Component.literal("✖ Bloqueado - Incompatible con tu maestría").withStyle(ChatFormatting.RED));
                         }
                     }
                 });
@@ -73,6 +74,31 @@ public class XamJadePlugin implements IWailaPlugin {
             Player player = accessor.getPlayer();
             if (player != null) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    ItemStack stack = accessor.getPickedResult();
+                    if (!stack.isEmpty() && !xdAbsoluteMastery.isItemValid(stack, data)) {
+                        String reqPathName = null;
+                        ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
+                        if (rl != null) {
+                            String namespace = rl.getNamespace();
+                            for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
+                                if (path.mod_id != null && path.mod_id.equals(namespace)) {
+                                    reqPathName = path.name;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (xdAbsoluteMastery.mustSelectPath(player, data)) {
+                            tooltip.add(Component.literal("✖ Bloqueado - Elige maestría").withStyle(ChatFormatting.RED));
+                        } else if (reqPathName != null) {
+                            tooltip.add(Component.literal("✖ Bloqueado - Requiere maestría: " + reqPathName).withStyle(ChatFormatting.RED));
+                        } else {
+                            tooltip.add(Component.literal("✖ Bloqueado - Incompatible con tu maestría").withStyle(ChatFormatting.RED));
+                        }
+                        return; // Done
+                    }
+
+                    // Fallback to Entity namespace checking if stack is empty
                     Entity entity = accessor.getEntity();
                     ResourceLocation entityId = net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
                     if (entityId != null) {
