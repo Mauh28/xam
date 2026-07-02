@@ -16,12 +16,16 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @WailaPlugin
 public class XamJadePlugin implements IWailaPlugin {
+    private static final Logger LOGGER = LogManager.getLogger(XamJadePlugin.class);
 
     @Override
     public void registerClient(IWailaClientRegistration registration) {
+        LOGGER.info("[XAM-JADE] registerClient called! Registering block and entity providers.");
         registration.registerBlockComponent(new BlockProvider(), Block.class);
         registration.registerEntityComponent(new EntityProvider(), Entity.class);
     }
@@ -35,6 +39,8 @@ public class XamJadePlugin implements IWailaPlugin {
             if (player != null) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     ItemStack stack = accessor.getPickedResult();
+                    LOGGER.info("[XAM-JADE] BlockProvider: target item = {}, isItemValid = {}", 
+                            stack.getItem().toString(), xdAbsoluteMastery.isItemValid(stack, data));
                     if (!stack.isEmpty() && !xdAbsoluteMastery.isItemValid(stack, data)) {
                         String reqPathName = null;
                         ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
@@ -75,6 +81,8 @@ public class XamJadePlugin implements IWailaPlugin {
             if (player != null) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     ItemStack stack = accessor.getPickedResult();
+                    LOGGER.info("[XAM-JADE] EntityProvider: target item = {}, isItemValid = {}", 
+                            stack.getItem().toString(), xdAbsoluteMastery.isItemValid(stack, data));
                     if (!stack.isEmpty() && !xdAbsoluteMastery.isItemValid(stack, data)) {
                         String reqPathName = null;
                         ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
