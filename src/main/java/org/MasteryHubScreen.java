@@ -286,6 +286,23 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 int badgeY = cardY + (cardH - 12) / 2;
                 drawFlatPanel(graphics, badgeX, badgeY, badgeW, 12, 0xFF140F0D, 0xFF2C221D);
                 graphics.drawCenteredString(this.font, badge, badgeX + badgeW / 2, badgeY + 2, COLOR_BRASS);
+
+                // Draw availability badge
+                if (req.type.equals("craft") || req.type.equals("collect")) {
+                    net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(req.id));
+                    if (item != null && item != net.minecraft.world.item.Items.AIR) {
+                        net.minecraft.world.item.ItemStack dummyStack = new net.minecraft.world.item.ItemStack(item);
+                        boolean isAvailable = xdAbsoluteMastery.isItemValid(dummyStack, playerData);
+                        String availText = isAvailable ? "DISPONIBLE" : "BLOQUEADO";
+                        int availCol = isAvailable ? 0xFF55FF55 : 0xFFFF5555;
+                        int availBorder = isAvailable ? 0xFF2A593E : 0xFF592A2A;
+                        int availBg = isAvailable ? 0xFF152615 : 0xFF2A1515;
+                        int availW = this.font.width(availText) + 8;
+                        int availX = badgeX - availW - 6;
+                        drawFlatPanel(graphics, availX, badgeY, availW, 12, availBg, availBorder);
+                        graphics.drawCenteredString(this.font, availText, availX + availW / 2, badgeY + 2, availCol);
+                    }
+                }
             }
 
             com.mojang.blaze3d.systems.RenderSystem.disableScissor();
@@ -389,5 +406,58 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_R) {
+            String activePathId = playerData != null ? playerData.getCurrentPath() : null;
+            xdAbsoluteMastery.ConfigManager.PathInfo activePath = null;
+            if (activePathId != null) {
+                for (xdAbsoluteMastery.ConfigManager.PathInfo p : xdAbsoluteMastery.ConfigManager.PATHS) {
+                    if (p.id.equals(activePathId)) {
+                        activePath = p;
+                        break;
+                    }
+                }
+            }
+
+            if (activePath != null && this.minecraft != null) {
+                double mouseX = this.minecraft.mouseHandler.xpos() * (double) this.minecraft.getWindow().getGuiScaledWidth() / (double) this.minecraft.getWindow().getWidth();
+                double mouseY = this.minecraft.mouseHandler.ypos() * (double) this.minecraft.getWindow().getGuiScaledHeight() / (double) this.minecraft.getWindow().getHeight();
+
+                int leftW = (int) (containerW * 0.35);
+                int leftX = containerX + 10;
+                int rightX = leftX + leftW + 10;
+                int rightW = containerW - leftW - 30;
+                int rightY = bodyY + 10;
+                int rightH = bodyH - 20;
+
+                int listX = rightX + 15;
+                int listY = rightY + 26;
+                int listW = rightW - 30;
+                int listH = rightH - 35;
+
+                if (mouseX >= listX && mouseX < listX + listW && mouseY >= listY && mouseY < listY + listH) {
+                    int cardH = 38;
+                    int gap = 6;
+                    double clickedY = mouseY + scrollY - listY;
+                    int cardIndex = (int) (clickedY / (cardH + gap));
+                    double relativeY = clickedY % (cardH + gap);
+
+                    if (cardIndex >= 0 && cardIndex < activePath.requirements.size() && relativeY <= cardH) {
+                        xdAbsoluteMastery.ConfigManager.Requirement req = activePath.requirements.get(cardIndex);
+                        if (req.type.equals("craft") || req.type.equals("collect")) {
+                            if (net.minecraftforge.fml.ModList.get().isLoaded("jei")) {
+                                playClickSound();
+                                JeiIntegrationHelper.showRecipe(req.id);
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 }

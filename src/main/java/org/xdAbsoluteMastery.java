@@ -87,8 +87,7 @@ public class xdAbsoluteMastery {
     private static final Map<String, Long> COOLDOWNS = new HashMap<>();
     private static final Map<UUID, String> LAST_MAINHAND = new HashMap<>();
     private static final Map<UUID, String> LAST_OFFHAND = new HashMap<>();
-    // ponytail: server-side durability cache — avoids polluting item NBT with XamPrevDamage
-    private static final Map<String, Integer> PREV_DAMAGE = new HashMap<>();
+
 
     // Pre-computed universal TagKeys to avoid allocation in hot paths
     public static final TagKey<Item> UNIVERSAL_ARMOR_TAG = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(MODID, "universal/armor"));
@@ -169,59 +168,7 @@ public class xdAbsoluteMastery {
             net.minecraft.advancements.Advancement adv = serverPlayer.server.getAdvancements().getAdvancement(resLoc);
             return adv != null && serverPlayer.getAdvancements().getOrStartProgress(adv).isDone();
         } else {
-            if (net.minecraftforge.fml.loading.FMLEnvironment.dist.isClient()) {
-                return ClientHelper.isClientAdvancementCompleted(id);
-            }
-            return false;
-        }
-    }
-
-    private static class ClientHelper {
-        private static boolean isClientAdvancementCompleted(String id) {
-            ResourceLocation resLoc = ResourceLocation.tryParse(id);
-            if (resLoc == null) return false;
-            var connection = net.minecraft.client.Minecraft.getInstance().getConnection();
-            if (connection != null) {
-                var clientAdvs = connection.getAdvancements();
-                net.minecraft.advancements.Advancement adv = clientAdvs.getAdvancements().get(resLoc);
-                if (adv != null) {
-                    try {
-                        java.lang.reflect.Field progressField = net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredField("f_104378_");
-                        progressField.setAccessible(true);
-                        java.util.Map<?, ?> map = (java.util.Map<?, ?>) progressField.get(clientAdvs);
-                        Object val = map.get(adv);
-                        if (val instanceof net.minecraft.advancements.AdvancementProgress progress) {
-                            return progress.isDone();
-                        }
-                    } catch (Exception e) {
-                        try {
-                            java.lang.reflect.Field progressField = net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredField("progress");
-                            progressField.setAccessible(true);
-                            java.util.Map<?, ?> map = (java.util.Map<?, ?>) progressField.get(clientAdvs);
-                            Object val = map.get(adv);
-                            if (val instanceof net.minecraft.advancements.AdvancementProgress progress) {
-                                return progress.isDone();
-                            }
-                        } catch (Exception e2) {
-                            for (java.lang.reflect.Field field : net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredFields()) {
-                                if (field.getType() == java.util.Map.class) {
-                                    try {
-                                        field.setAccessible(true);
-                                        java.util.Map<?, ?> map = (java.util.Map<?, ?>) field.get(clientAdvs);
-                                        if (map != null) {
-                                            Object val = map.get(adv);
-                                            if (val instanceof net.minecraft.advancements.AdvancementProgress progress) {
-                                                return progress.isDone();
-                                            }
-                                        }
-                                    } catch (Exception ignored) {}
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return false;
+            return DistExecutor.safeCallWhenOn(Dist.CLIENT, () -> () -> ClientPacketHandler.isClientAdvancementCompleted(id));
         }
     }
 
@@ -281,6 +228,7 @@ public class xdAbsoluteMastery {
             }
 
             if (changed) {
+                player.playNotifySound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, net.minecraft.sounds.SoundSource.PLAYERS, 0.5F, 1.2F);
                 sync(player);
                 checkPathCompletion(player, data, pathInfo);
             }
@@ -780,7 +728,6 @@ public class xdAbsoluteMastery {
             LAST_MAINHAND.remove(uuid);
             LAST_OFFHAND.remove(uuid);
             COOLDOWNS.entrySet().removeIf(e -> e.getKey().startsWith(uuid.toString()));
-            PREV_DAMAGE.entrySet().removeIf(e -> e.getKey().startsWith(uuid.toString()));
         }
 
         @SubscribeEvent
@@ -1257,21 +1204,7 @@ public class xdAbsoluteMastery {
                         }
                     }
 
-                    for (InteractionHand hand : InteractionHand.values()) {
-                        ItemStack stack = player.getItemInHand(hand);
-                        if (!stack.isEmpty() && stack.isDamageableItem()) {
-                            String key = uuid + ":" + hand.name();
-                            if (!isItemValid(stack, data)) {
-                                Integer prev = PREV_DAMAGE.get(key);
-                                if (prev != null && stack.getDamageValue() > prev) {
-                                    stack.setDamageValue(prev);
-                                }
-                                PREV_DAMAGE.put(key, stack.getDamageValue());
-                            } else {
-                                PREV_DAMAGE.remove(key);
-                            }
-                        }
-                    }
+
                 });
             }
         }
@@ -1421,7 +1354,7 @@ public class xdAbsoluteMastery {
         }
 
         public static UpdateConfigPacket decode(FriendlyByteBuf buf) {
-            return new UpdateConfigPacket(buf.readUtf(262144));
+            return new UpdateConfigPacket(buf.readUtf(32768));
         }
 
         public static void handle(UpdateConfigPacket pkt, Supplier<NetworkEvent.Context> ctx) {
@@ -1842,6 +1775,43 @@ public class xdAbsoluteMastery {
 
     public static class ClientPacketHandler {
         public static boolean shouldOpenPathSelection = false;
+        private static java.lang.reflect.Field progressField;
+
+        static {
+            try {
+                progressField = net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredField("f_104378_");
+                progressField.setAccessible(true);
+            } catch (Exception e) {
+                try {
+                    progressField = net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredField("progress");
+                    progressField.setAccessible(true);
+                } catch (Exception e2) {
+                    LOGGER.error("Failed to cache ClientAdvancements progress field", e2);
+                }
+            }
+        }
+
+        public static boolean isClientAdvancementCompleted(String id) {
+            ResourceLocation resLoc = ResourceLocation.tryParse(id);
+            if (resLoc == null || progressField == null) return false;
+            var connection = net.minecraft.client.Minecraft.getInstance().getConnection();
+            if (connection != null) {
+                var clientAdvs = connection.getAdvancements();
+                net.minecraft.advancements.Advancement adv = clientAdvs.getAdvancements().get(resLoc);
+                if (adv != null) {
+                    try {
+                        java.util.Map<?, ?> map = (java.util.Map<?, ?>) progressField.get(clientAdvs);
+                        if (map != null) {
+                            Object val = map.get(adv);
+                            if (val instanceof net.minecraft.advancements.AdvancementProgress progress) {
+                                return progress.isDone();
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+            return false;
+        }
 
         public static void handleSync(CompoundTag nbt) {
             net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
