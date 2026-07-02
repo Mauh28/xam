@@ -2017,6 +2017,37 @@ public class xdAbsoluteMastery {
             }
         }
 
+        @SubscribeEvent
+        public static void onItemTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent event) {
+            Player player = event.getEntity();
+            if (player != null) {
+                player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                    ItemStack stack = event.getItemStack();
+                    if (!stack.isEmpty() && !isItemValid(stack, data)) {
+                        String reqPathName = null;
+                        ResourceLocation rl = ForgeRegistries.ITEMS.getKey(stack.getItem());
+                        if (rl != null) {
+                            String namespace = rl.getNamespace();
+                            for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
+                                if (path.mod_id != null && path.mod_id.equals(namespace)) {
+                                    reqPathName = path.name;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (mustSelectPath(player, data)) {
+                            event.getToolTip().add(Component.literal("✖ Bloqueado - Elige maestría").withStyle(net.minecraft.ChatFormatting.RED));
+                        } else if (reqPathName != null) {
+                            event.getToolTip().add(Component.literal("✖ Bloqueado - Requiere maestría: " + reqPathName).withStyle(net.minecraft.ChatFormatting.RED));
+                        } else {
+                            event.getToolTip().add(Component.literal("✖ Bloqueado - Incompatible con tu maestría").withStyle(net.minecraft.ChatFormatting.RED));
+                        }
+                    }
+                });
+            }
+        }
+
         private static boolean isInteractionKey(net.minecraft.client.KeyMapping key, net.minecraft.client.Options options) {
             return key != options.keyUp
                     && key != options.keyDown
