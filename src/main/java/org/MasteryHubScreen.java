@@ -443,6 +443,9 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 ttY = height - ttH - 6;
             }
 
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, 400);
+
             drawFlatPanel(graphics, ttX, ttY, ttW, ttH, 0xFF120E0D, COLOR_COPPER);
 
             // 1. Draw large item icon
@@ -458,7 +461,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             }
 
             graphics.pose().pushPose();
-            graphics.pose().translate(ttX + 8, ttY + 8, 200);
+            graphics.pose().translate(ttX + 8, ttY + 8, 10);
             graphics.pose().scale(1.5F, 1.5F, 1.0F);
             graphics.renderFakeItem(dummyStack, 0, 0);
             graphics.pose().popPose();
@@ -505,6 +508,8 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 helpText = this.font.plainSubstrByWidth(helpText, ttW - 22) + "...";
             }
             graphics.drawString(this.font, helpText, ttX + 8, ttY + 44, TEXT_SECONDARY, false);
+
+            graphics.pose().popPose();
         }
 
         if (hoveredEmpPathId != null) {
@@ -522,8 +527,13 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                     ttY = height - ttH - 6;
                 }
 
+                graphics.pose().pushPose();
+                graphics.pose().translate(0, 0, 400);
+
                 drawFlatPanel(graphics, ttX, ttY, ttW, ttH, 0xFF120E0D, COLOR_COPPER);
                 graphics.drawString(this.font, path.name, ttX + 8, ttY + 6, TEXT_PRIMARY, false);
+
+                graphics.pose().popPose();
             }
         }
     }

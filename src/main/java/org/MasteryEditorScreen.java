@@ -526,7 +526,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     renderStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
                 }
 
-                int typeBoxW = !renderStack.isEmpty() ? (28 + this.font.width(typeLabel) + 6) : (this.font.width(typeLabel) + 12);
+                int typeBoxW = 100;
 
                 drawFlatPanel(graphics, cardX + 4, cardY + 4, typeBoxW, cardH - 8, typeBg, typeBorder);
                 if (!renderStack.isEmpty()) {
