@@ -131,7 +131,7 @@
   "xam.screen.entity_selection.title": "Seleccionar Entidad",
   "xam.screen.advancement_selection.title": "Seleccionar Logro",
   
-  "xam.screen.perks_config.title": "PERKS: %s",
+  "xam.screen.perks_config.title": "BENEFICIOS: %s",
   "xam.screen.perks_config.header": "Configura el beneficio al completar la rama al 100%:",
   "xam.screen.perks_config.effect_id": "ID del Efecto de Poción / Perk (ej. minecraft:speed)",
   "xam.screen.perks_config.intensity": "Nivel de Efecto / Intensidad:",
@@ -157,7 +157,7 @@
   "xam.screen.mastery_editor.branch_dependencies": "Dependencias de Rama (ej. botania:1)",
   "xam.screen.mastery_editor.switch_rule": "Regla de Cambio",
   "xam.screen.mastery_editor.requirements": "REQUISITOS",
-  "xam.screen.mastery_editor.perks": "Perks",
+  "xam.screen.mastery_editor.perks": "Beneficios",
   "xam.screen.mastery_editor.add_task": "+ AÑADIR TAREA",
   "xam.screen.mastery_editor.discard_all": "Descartar Todo",
   "xam.screen.mastery_editor.save_structure": "Guardar Estructura",

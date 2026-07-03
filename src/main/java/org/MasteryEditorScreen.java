@@ -499,33 +499,29 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 int typeBg = 0xFF2C221A;
                 int typeBorder = COLOR_COPPER;
                 int typeFg = 0xFFFFAA00;
-                String typeLabel = "CRAFT";
+                String typeLabel = Component.translatable("xam.req_type.badge." + req.type.toLowerCase()).getString();
 
                 if (req.type.equals("craft")) {
                     typeBg = 0xFF2C221A;
                     typeBorder = COLOR_COPPER;
                     typeFg = 0xFFFFAA00;
-                    typeLabel = "CRAFT";
                     net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(req.id));
                     if (item != null) renderStack = new net.minecraft.world.item.ItemStack(item);
                 } else if (req.type.equals("collect")) {
                     typeBg = 0xFF152615;
                     typeBorder = 0xFF3F8F3F;
                     typeFg = 0xFF55FF55;
-                    typeLabel = "COLLECT";
                     net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(req.id));
                     if (item != null) renderStack = new net.minecraft.world.item.ItemStack(item);
                 } else if (req.type.equals("kill")) {
                     typeBg = 0xFF2A1515;
                     typeBorder = 0xFF9E2A2A;
                     typeFg = 0xFFFF5555;
-                    typeLabel = "KILL";
                     renderStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_SWORD);
                 } else if (req.type.equals("advancement")) {
                     typeBg = 0xFF152A2A;
                     typeBorder = 0xFF2A9E9E;
                     typeFg = 0xFF55FFFF;
-                    typeLabel = "LOGRO";
                     renderStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
                 }
 
