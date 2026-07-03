@@ -526,29 +526,32 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     renderStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
                 }
 
-                drawFlatPanel(graphics, cardX + 4, cardY + 4, 76, cardH - 8, typeBg, typeBorder);
+                int typeBoxW = !renderStack.isEmpty() ? (28 + this.font.width(typeLabel) + 6) : (this.font.width(typeLabel) + 12);
+
+                drawFlatPanel(graphics, cardX + 4, cardY + 4, typeBoxW, cardH - 8, typeBg, typeBorder);
                 if (!renderStack.isEmpty()) {
                     graphics.renderFakeItem(renderStack, cardX + 8, cardY + 12);
                     graphics.drawString(this.font, typeLabel, cardX + 28, cardY + 16, typeFg, false);
                 } else {
-                    graphics.drawCenteredString(this.font, typeLabel, cardX + 42, cardY + 16, typeFg);
+                    graphics.drawCenteredString(this.font, typeLabel, cardX + 4 + typeBoxW / 2, cardY + 16, typeFg);
                 }
 
-                // 2. Info (Flex width: cardW - 120)
+                // 2. Info (Flex width)
                 String nameText = req.name;
                 if (nameText.isEmpty()) nameText = req.id;
-                int infoMaxW = cardW - 130;
+                int infoX = cardX + 4 + typeBoxW + 8;
+                int infoMaxW = cardW - 52 - typeBoxW;
                 if (this.font.width(nameText) > infoMaxW) {
                     nameText = this.font.plainSubstrByWidth(nameText, infoMaxW - 10) + "...";
                 }
-                graphics.drawString(this.font, nameText, cardX + 86, cardY + 8, COLOR_BRASS, false);
+                graphics.drawString(this.font, nameText, infoX, cardY + 8, COLOR_BRASS, false);
 
                 String descText = req.description;
                 if (descText.isEmpty()) descText = req.id;
                 if (this.font.width(descText) > infoMaxW) {
                     descText = this.font.plainSubstrByWidth(descText, infoMaxW - 10) + "...";
                 }
-                graphics.drawString(this.font, descText, cardX + 86, cardY + 24, TEXT_SECONDARY, false);
+                graphics.drawString(this.font, descText, infoX, cardY + 24, TEXT_SECONDARY, false);
 
                 // 3. Botón Eliminar (40px wide) with Ponder copper/red style
                 int cardDelBg = delHovered ? 0xFF3A1111 : 0xFF140F0D;
