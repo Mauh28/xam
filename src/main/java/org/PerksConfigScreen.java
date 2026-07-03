@@ -33,6 +33,7 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
     private int panelW, panelH, panelX, panelY;
     private int fieldX, fieldY, fieldW;
     private int ampX, ampY, ampW;
+    private int btnPickerX, btnPickerY, btnPickerW, btnPickerH;
 
     public PerksConfigScreen(Screen parent, PathInfo path) {
         super(Component.literal("CONFIGURAR PERKS DE LA RAMA"));
@@ -53,17 +54,22 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
     protected void init() {
         super.init();
 
-        this.panelW = 280;
-        this.panelH = 160;
-        this.panelX = containerX + (containerW - panelW) / 2;
-        this.panelY = bodyY + (bodyH - panelH) / 2;
+        this.panelW = containerW - 40;
+        this.panelH = bodyH - 20;
+        this.panelX = containerX + 20;
+        this.panelY = bodyY + 10;
 
         this.fieldX = panelX + 20;
         this.fieldY = panelY + 45;
-        this.fieldW = panelW - 40;
+        this.fieldW = (int) (panelW * 0.65);
+
+        this.btnPickerX = fieldX + fieldW + 10;
+        this.btnPickerY = fieldY;
+        this.btnPickerW = 24;
+        this.btnPickerH = 20;
 
         this.ampX = fieldX;
-        this.ampY = fieldY + 32;
+        this.ampY = fieldY + 38;
         this.ampW = fieldW;
 
         this.effectIdEdit = new EditBox(this.font, fieldX + 4, fieldY + 5, fieldW - 8, 12, Component.literal("ID del Efecto"));
@@ -118,6 +124,13 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
         graphics.drawString(this.font, Component.translatable("xam.screen.perks_config.effect_id").getString(), fieldX, fieldY - 10, TEXT_SECONDARY, false);
         drawFlatPanel(graphics, fieldX, fieldY, fieldW, 20, INPUT_BACKGROUND, COLOR_COPPER);
 
+        // Draw "..." picker button
+        boolean pickerHover = mouseX >= btnPickerX && mouseX < btnPickerX + btnPickerW && mouseY >= btnPickerY && mouseY < btnPickerY + btnPickerH;
+        int pickerBg = pickerHover ? COLOR_COPPER_HOVER : COLOR_COPPER;
+        int pickerBorder = pickerHover ? COLOR_BRASS : 0xFF2C221D;
+        drawFlatPanel(graphics, btnPickerX, btnPickerY, btnPickerW, btnPickerH, pickerBg, pickerBorder);
+        graphics.drawCenteredString(this.font, "...", btnPickerX + btnPickerW / 2, btnPickerY + 6, TEXT_PRIMARY);
+
         // Label and selector for level (Amplifier)
         graphics.drawString(this.font, Component.translatable("xam.screen.perks_config.intensity").getString(), ampX, ampY - 10, TEXT_SECONDARY, false);
         
@@ -129,10 +142,10 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
 
         // Level text display (e.g. Level I, Level II, Level III)
         String levelStr = Component.translatable("xam.screen.perks_config.level_format", perkAmplifier + 1).getString();
-        graphics.drawCenteredString(this.font, levelStr, decX + 20 + 35, ampY + 4, COLOR_BRASS);
+        graphics.drawString(this.font, levelStr, decX + 20 + 8, ampY + 4, COLOR_BRASS, false);
 
         // Increment button (+)
-        int incX = decX + 20 + 70;
+        int incX = decX + 20 + 8 + this.font.width(levelStr) + 8;
         boolean incHover = mouseX >= incX && mouseX < incX + 20 && mouseY >= ampY && mouseY < ampY + 16;
         drawFlatPanel(graphics, incX, ampY, 20, 16, incHover ? COLOR_COPPER_HOVER : COLOR_COPPER, incHover ? COLOR_BRASS : 0xFF2C221D);
         graphics.drawCenteredString(this.font, "+", incX + 10, ampY + 4, TEXT_PRIMARY);
@@ -202,8 +215,11 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
                 ttY = height - ttH - 6;
             }
 
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, 400);
             drawFlatPanel(graphics, ttX, ttY, ttW, ttH, 0xFF120E0D, COLOR_COPPER);
             graphics.drawString(this.font, hoveredPresetName, ttX + 6, ttY + 6, TEXT_PRIMARY, false);
+            graphics.pose().popPose();
         }
 
         // Draw overlay input boxes
@@ -219,6 +235,18 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
         }
 
         if (button == 0) {
+            // "..." button click
+            if (mouseX >= btnPickerX && mouseX < btnPickerX + btnPickerW && mouseY >= btnPickerY && mouseY < btnPickerY + btnPickerH) {
+                playClickSound();
+                Minecraft.getInstance().setScreen(new EffectSelectionScreen(this, (effect) -> {
+                    net.minecraft.resources.ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.MOB_EFFECTS.getKey(effect);
+                    if (rl != null) {
+                        this.effectIdEdit.setValue(rl.toString());
+                    }
+                }));
+                return true;
+            }
+
             // Preset pills clicks - Grid Layout
             int presetY = ampY + 22;
             int px = fieldX + 52;
@@ -250,7 +278,8 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
             }
 
             // Increment Level
-            int incX = decX + 20 + 70;
+            String levelStr = Component.translatable("xam.screen.perks_config.level_format", perkAmplifier + 1).getString();
+            int incX = decX + 20 + 8 + this.font.width(levelStr) + 8;
             if (mouseX >= incX && mouseX < incX + 20 && mouseY >= ampY && mouseY < ampY + 16) {
                 if (perkAmplifier < 9) { // Max Level 10
                     playClickSound();

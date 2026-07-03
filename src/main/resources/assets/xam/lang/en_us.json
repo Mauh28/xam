@@ -181,5 +181,6 @@
 
   "xam.editor.rule.master": "Complete master",
   "xam.editor.rule.free": "Free switch",
-  "xam.editor.rule.tasks_format": "%d task(s)"
+  "xam.editor.rule.tasks_format": "%d task(s)",
+  "xam.screen.effect_selection.title": "Select Potion Effect"
 }

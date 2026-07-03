@@ -181,5 +181,6 @@
 
   "xam.editor.rule.master": "Dominar completa",
   "xam.editor.rule.free": "Cambio libre",
-  "xam.editor.rule.tasks_format": "%d tarea(s)"
+  "xam.editor.rule.tasks_format": "%d tarea(s)",
+  "xam.screen.effect_selection.title": "Seleccionar Efecto de Poción"
 }
