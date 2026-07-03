@@ -108,20 +108,21 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int iconW = 20;
         if (!isNarrow) {
             this.iconX = editorX + 20;
-            this.iconY = bodyY + 15;
+            this.iconY = bodyY + 22;
 
-            this.titleX = iconX + iconW + 10;
-            this.titleW = (int) ((editorW - 80) * 0.60);
-            this.titleY = bodyY + 15;
+            this.titleX = iconX + iconW + 20;
+            int availableW = editorW - 100;
+            this.titleW = (int) (availableW * 0.60);
+            this.titleY = bodyY + 22;
 
-            int modW = (int) ((editorW - 80) * 0.40);
+            int modW = (int) (availableW * 0.40);
             this.modX = titleX + titleW + 10;
             this.modEditW = modW - 25;
-            this.modY = bodyY + 15;
+            this.modY = bodyY + 22;
             this.browseX = modX + modEditW + 5;
 
             // Increased vertical spacing to prevent vertical overlaps with upper fields
-            this.secondY = bodyY + 52;
+            this.secondY = bodyY + 58;
             int secondW = editorW - 40;
             this.minW = 120;
             int depsAreaW = secondW - minW - 10;
@@ -131,31 +132,31 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             this.minX = depsBtnX + 20 + 10;
             this.minY = secondY;
 
-            this.metadataFrameH = 80;
+            this.metadataFrameH = 88;
         } else {
             // Narrow stacked layout with comfortable row gaps
             this.iconX = editorX + 15;
-            this.iconY = bodyY + 12;
+            this.iconY = bodyY + 22;
 
-            this.titleX = iconX + iconW + 10;
-            this.titleW = editorW - 60;
-            this.titleY = bodyY + 12;
+            this.titleX = iconX + iconW + 20;
+            this.titleW = editorW - 70;
+            this.titleY = bodyY + 22;
 
             this.modX = editorX + 15;
             this.modEditW = editorW - 55;
-            this.modY = bodyY + 47;
+            this.modY = bodyY + 58;
             this.browseX = modX + modEditW + 5;
 
             this.depsX = editorX + 15;
             this.depsW = editorW - 55;
-            this.secondY = bodyY + 82;
+            this.secondY = bodyY + 94;
             this.depsBtnX = depsX + depsW + 5;
 
             this.minX = editorX + 15;
             this.minW = editorW - 30;
-            this.minY = bodyY + 117;
+            this.minY = bodyY + 130;
 
-            this.metadataFrameH = 145;
+            this.metadataFrameH = 160;
         }
 
         this.reqTitleY = bodyY + 10 + metadataFrameH + 10;

@@ -153,7 +153,7 @@
   "xam.screen.mastery_editor.delete_branch": "- BORRAR",
   "xam.screen.mastery_editor.icon": "Icono",
   "xam.screen.mastery_editor.branch_title": "Título",
-  "xam.screen.mastery_editor.namespace_mod": "Namespace MOD",
+  "xam.screen.mastery_editor.namespace_mod": "Namespace del MOD",
   "xam.screen.mastery_editor.branch_dependencies": "Dependencias de Rama (ej. botania:1)",
   "xam.screen.mastery_editor.switch_rule": "Regla de Cambio",
   "xam.screen.mastery_editor.requirements": "REQUISITOS",
