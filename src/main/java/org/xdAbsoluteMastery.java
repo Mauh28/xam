@@ -1303,34 +1303,6 @@ public class xdAbsoluteMastery {
                 ServerPlayer player = ctx.get().getSender();
                 if (player != null) {
                     player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                        if (pkt.pathId != null && pkt.pathId.equals("PRESTIGE")) {
-                            if (ConfigManager.prestigeModeEnabled) {
-                                boolean allMastered = true;
-                                for (ConfigManager.PathInfo p : ConfigManager.PATHS) {
-                                    if (!p.requirements.isEmpty() && !data.getMasteredPaths().contains(p.id)) {
-                                        allMastered = false;
-                                        break;
-                                    }
-                                }
-                                if (allMastered) {
-                                    data.getMasteredPaths().clear();
-                                    data.getStartedPaths().clear();
-                                    data.clearCompletedRequirements();
-                                    data.setCurrentPath(null);
-                                    data.setActivePathModId("");
-                                    data.setPrestigeLevel(data.getPrestigeLevel() + 1);
-                                    sync(player);
-                                    updateArmorModifiers(player);
-                                    player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
-                                            net.minecraft.sounds.SoundEvents.BELL_BLOCK,
-                                            net.minecraft.sounds.SoundSource.PLAYERS, 1.0F, 1.0F);
-                                    player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
-                                            net.minecraft.sounds.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE,
-                                            net.minecraft.sounds.SoundSource.PLAYERS, 0.7F, 1.0F);
-                                }
-                            }
-                            return;
-                        }
                         if (pkt.pathId != null) {
                             ConfigManager.PathInfo targetPath = ConfigManager.PATHS_MAP.get(pkt.pathId);
                             if (targetPath == null || targetPath.requirements.isEmpty() || data.getMasteredPaths().contains(pkt.pathId) || !areDependenciesMastered(player, data, targetPath)) {
@@ -1491,7 +1463,6 @@ public class xdAbsoluteMastery {
         public static final Map<String, PathInfo> PATHS_MAP = new HashMap<>();
         public static final Set<String> UNIVERSAL_NAMESPACES = new HashSet<>(Arrays.asList("minecraft", "tconstruct"));
         private static long configVersion = 0;
-        public static boolean prestigeModeEnabled = false;
 
         public static long getConfigVersion() {
             return configVersion;
@@ -1585,11 +1556,7 @@ public class xdAbsoluteMastery {
 
         private static void parseJson(JsonObject json) {
             configVersion++;
-            if (json != null && json.has("prestige_mode_enabled")) {
-                prestigeModeEnabled = json.get("prestige_mode_enabled").getAsBoolean();
-            } else {
-                prestigeModeEnabled = false;
-            }
+
             UNIVERSAL_NAMESPACES.clear();
             if (json != null && json.has("universal_namespaces")) {
                 JsonArray nsArray = json.getAsJsonArray("universal_namespaces");
@@ -1679,7 +1646,6 @@ public class xdAbsoluteMastery {
 
         public static String serializePaths(List<PathInfo> pathsList) {
             JsonObject json = new JsonObject();
-            json.addProperty("prestige_mode_enabled", prestigeModeEnabled);
             
             JsonArray nsArray = new JsonArray();
             for (String ns : UNIVERSAL_NAMESPACES) {

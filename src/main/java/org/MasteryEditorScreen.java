@@ -262,15 +262,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             graphics.drawString(this.font, saveNotificationMsg, containerX + 15, msgY, notifColor, false);
         }
 
-        // Custom Prestige toggle checkbox
-        int prestX = containerX + 140;
-        int prestY = containerY + containerH - footerH + (footerH - 12) / 2;
-        boolean prestHovered = mouseX >= prestX && mouseX < prestX + 110 && mouseY >= prestY && mouseY < prestY + 12;
-        drawFlatPanel(graphics, prestX, prestY, 12, 12, xdAbsoluteMastery.ConfigManager.prestigeModeEnabled ? 0xFF2A593E : 0xFF14100E, prestHovered ? COLOR_BRASS : COLOR_COPPER);
-        if (xdAbsoluteMastery.ConfigManager.prestigeModeEnabled) {
-            graphics.drawString(this.font, "✔", prestX + 2, prestY + 2, 0xFF55FF55, false);
-        }
-        graphics.drawString(this.font, "Modo Prestigio", prestX + 18, prestY + 2, prestHovered ? TEXT_PRIMARY : TEXT_SECONDARY, false);
+
 
         // Custom Discard button (dark red/grey)
         boolean discHovered = mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
@@ -834,14 +826,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 }
             }
 
-            // Click Prestige Switch
-            int prestX = containerX + 140;
-            int prestY = containerY + containerH - footerH + (footerH - 12) / 2;
-            if (mouseX >= prestX && mouseX < prestX + 110 && mouseY >= prestY && mouseY < prestY + 12) {
-                playClickSound();
-                xdAbsoluteMastery.ConfigManager.prestigeModeEnabled = !xdAbsoluteMastery.ConfigManager.prestigeModeEnabled;
-                return true;
-            }
+
 
             // Footer buttons (Descartar Todo, Guardar Estructura)
             int footBtnW = 120;

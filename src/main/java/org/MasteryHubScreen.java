@@ -30,9 +30,6 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
         String titleText = Component.translatable("xam.screen.mastery_hub.header").getString();
-        if (playerData != null && playerData.getPrestigeLevel() > 0) {
-            titleText += " - Prestige " + playerData.getPrestigeLevel();
-        }
         graphics.drawString(this.font, titleText, containerX + 15, titleY, TEXT_SECONDARY, false);
         drawCloseButton(graphics, mouseX, mouseY);
     }
@@ -44,8 +41,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
         int btnH = 20;
         int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
 
-        boolean canPrestige = xdAbsoluteMastery.ConfigManager.prestigeModeEnabled && hasPlayerMasteredAllBranches();
-        String mainBtnText = canPrestige ? "PRESTIGIAR" : Component.translatable("xam.screen.mastery_hub.choose_branch").getString();
+        String mainBtnText = Component.translatable("xam.screen.mastery_hub.choose_branch").getString();
 
         if (isOp) {
             int totalW = btnW + 20 + btnW;
@@ -150,58 +146,57 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.select_branch_tip").getString(), leftX + 12, leftY + 45, TEXT_SECONDARY, false);
         }
 
-        // Ramas Empezadas list
+        // Ramas Empezadas list - Grid layout
         int empY = leftY + 98;
         graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.in_progress").getString(), leftX + 12, empY, COLOR_BRASS, false);
         graphics.fill(leftX + 12, empY + 11, leftX + leftW - 12, empY + 12, 0xFF2C221D);
 
-        int empListStartY = empY + 16;
+        int empGridStartY = empY + 16;
+        int medalSize = 22;
+        int medalGap = 6;
+        int medalsPerRow = Math.max(1, (leftW - 24) / (medalSize + medalGap));
+
         int empCount = 0;
+        String hoveredEmpPathId = null;
         if (playerData != null && playerData.getStartedPaths() != null) {
             for (String id : playerData.getStartedPaths()) {
                 if (id.equals(activePathId) || playerData.getMasteredPaths().contains(id)) {
                     continue;
                 }
-                String name = id;
-                for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
-                    if (path.id.equals(id)) {
-                        name = path.name;
-                        break;
-                    }
-                }
-                int maxEmpNameW = leftW - 38;
-                if (this.font.width(name) > maxEmpNameW) {
-                    name = this.font.plainSubstrByWidth(name, maxEmpNameW - 10) + "...";
-                }
-                // Render Icon
                 net.minecraft.world.item.ItemStack iconStack = getPathIcon(id);
+                int row = empCount / medalsPerRow;
+                int col = empCount % medalsPerRow;
+                int mx = leftX + 12 + col * (medalSize + medalGap);
+                int my = empGridStartY + row * (medalSize + medalGap);
+
+                boolean hovered = mouseX >= mx && mouseX < mx + medalSize && mouseY >= my && mouseY < my + medalSize;
+                if (hovered) {
+                    hoveredEmpPathId = id;
+                }
+
+                int border = hovered ? COLOR_BRASS : 0xFF2C221D;
+                drawFlatPanel(graphics, mx, my, medalSize, medalSize, PANEL_INNER_BG, border);
+
                 graphics.pose().pushPose();
-                graphics.pose().translate(leftX + 12, empListStartY + empCount * 13, 0);
-                graphics.pose().scale(0.75F, 0.75F, 1.0F);
+                graphics.pose().translate(mx + (medalSize - 16) / 2.0F, my + (medalSize - 16) / 2.0F, 0);
                 graphics.renderFakeItem(iconStack, 0, 0);
                 graphics.pose().popPose();
 
-                graphics.drawString(this.font, name, leftX + 28, empListStartY + empCount * 13 + 2, TEXT_SECONDARY, false);
                 empCount++;
-                if (empListStartY + (empCount + 1) * 13 >= leftY + 150) {
-                    break;
-                }
             }
         }
         if (empCount == 0) {
-            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.none").getString(), leftX + 12, empListStartY, TEXT_MUTED, false);
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.none").getString(), leftX + 12, empGridStartY, TEXT_MUTED, false);
         }
 
         // Ramas Dominadas list - 2D Medals Grid
-        int domY = leftY + 152;
+        int empRows = empCount > 0 ? (empCount + medalsPerRow - 1) / medalsPerRow : 1;
+        int empHeight = empRows * (medalSize + medalGap);
+        int domY = empGridStartY + empHeight + 10;
         graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.mastered_branches").getString(), leftX + 12, domY, COLOR_BRASS, false);
         graphics.fill(leftX + 12, domY + 11, leftX + leftW - 12, domY + 12, 0xFF2C221D);
 
         int domGridStartY = domY + 16;
-        int medalSize = 22;
-        int medalGap = 6;
-        int medalsPerRow = Math.max(1, (leftW - 24) / (medalSize + medalGap));
-        
         int domCount = 0;
         if (playerData != null && !playerData.getMasteredPaths().isEmpty()) {
             for (int i = 0; i < playerData.getMasteredPaths().size(); i++) {
@@ -448,7 +443,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 ttY = height - ttH - 6;
             }
 
-            drawFlatPanel(graphics, ttX, ttY, ttW, ttH, PANEL_BACKGROUND, COLOR_COPPER);
+            drawFlatPanel(graphics, ttX, ttY, ttW, ttH, 0xFF120E0D, COLOR_COPPER);
 
             // 1. Draw large item icon
             net.minecraft.world.item.ItemStack dummyStack = net.minecraft.world.item.ItemStack.EMPTY;
@@ -510,6 +505,26 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             }
             graphics.drawString(this.font, helpText, ttX + 8, ttY + 44, TEXT_SECONDARY, false);
         }
+
+        if (hoveredEmpPathId != null) {
+            xdAbsoluteMastery.ConfigManager.PathInfo path = xdAbsoluteMastery.ConfigManager.PATHS_MAP.get(hoveredEmpPathId);
+            if (path != null) {
+                int ttX = mouseX + 12;
+                int ttY = mouseY - 12;
+                int ttW = Math.max(100, this.font.width(path.name) + 16);
+                int ttH = 20;
+
+                if (ttX + ttW > width) {
+                    ttX = mouseX - ttW - 12;
+                }
+                if (ttY + ttH > height) {
+                    ttY = height - ttH - 6;
+                }
+
+                drawFlatPanel(graphics, ttX, ttY, ttW, ttH, 0xFF120E0D, COLOR_COPPER);
+                graphics.drawString(this.font, path.name, ttX + 8, ttY + 6, TEXT_PRIMARY, false);
+            }
+        }
     }
 
     private net.minecraft.world.item.ItemStack getPathIcon(String pathId) {
@@ -557,6 +572,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     }    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
+            String prevFlippedPathId = flippedPathId;
             flippedPathId = null;
 
             // Header Close Button
@@ -570,11 +586,28 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             int leftW = (int) (containerW * 0.35);
             int leftX = containerX + 10;
             int leftY = bodyY + 10;
-            int domY = leftY + 152;
-            int domGridStartY = domY + 16;
+
+            // Recalculate domY dynamically based on in-progress count
+            int empY = leftY + 98;
+            int empGridStartY = empY + 16;
             int medalSize = 22;
             int medalGap = 6;
             int medalsPerRow = Math.max(1, (leftW - 24) / (medalSize + medalGap));
+
+            int empCount = 0;
+            if (playerData != null && playerData.getStartedPaths() != null) {
+                String activePathId = playerData.getCurrentPath();
+                for (String id : playerData.getStartedPaths()) {
+                    if (id.equals(activePathId) || playerData.getMasteredPaths().contains(id)) {
+                        continue;
+                    }
+                    empCount++;
+                }
+            }
+            int empRows = empCount > 0 ? (empCount + medalsPerRow - 1) / medalsPerRow : 1;
+            int empHeight = empRows * (medalSize + medalGap);
+            int domY = empGridStartY + empHeight + 10;
+            int domGridStartY = domY + 16;
 
             if (playerData != null && !playerData.getMasteredPaths().isEmpty()) {
                 for (int i = 0; i < playerData.getMasteredPaths().size(); i++) {
@@ -585,9 +618,14 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                     
                     if (mouseX >= mx && mouseX < mx + medalSize && mouseY >= my && mouseY < my + medalSize) {
                         String id = playerData.getMasteredPaths().get(i);
-                        flippedPathId = id;
-                        lastFlipTime = System.currentTimeMillis();
-                        playGearSound();
+                        if (id.equals(prevFlippedPathId)) {
+                            // Clicked the same medal -> keep it null (flips back)
+                            playGearSound();
+                        } else {
+                            flippedPathId = id;
+                            lastFlipTime = System.currentTimeMillis();
+                            playGearSound();
+                        }
                         return true;
                     }
                 }
@@ -598,20 +636,14 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             int btnW = 120;
             int btnH = 20;
             int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
-            boolean canPrestige = xdAbsoluteMastery.ConfigManager.prestigeModeEnabled && hasPlayerMasteredAllBranches();
 
             if (isOp) {
                 int totalW = btnW + 20 + btnW;
                 int startX = containerX + (containerW - totalW) / 2;
-                // Elegir Rama o Prestigiar
+                // Elegir Rama
                 if (mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
                     playClickSound();
-                    if (canPrestige) {
-                        xdAbsoluteMastery.CHANNEL.sendToServer(new xdAbsoluteMastery.SelectPathPacket("PRESTIGE"));
-                        this.onClose();
-                    } else {
-                        this.minecraft.setScreen(new PathSelectionScreen(this, playerData));
-                    }
+                    this.minecraft.setScreen(new PathSelectionScreen(this, playerData));
                     return true;
                 }
                 // Editor
@@ -625,12 +657,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 int startX = containerX + (containerW - btnW) / 2;
                 if (mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
                     playClickSound();
-                    if (canPrestige) {
-                        xdAbsoluteMastery.CHANNEL.sendToServer(new xdAbsoluteMastery.SelectPathPacket("PRESTIGE"));
-                        this.onClose();
-                    } else {
-                        this.minecraft.setScreen(new PathSelectionScreen(this, playerData));
-                    }
+                    this.minecraft.setScreen(new PathSelectionScreen(this, playerData));
                     return true;
                 }
             }

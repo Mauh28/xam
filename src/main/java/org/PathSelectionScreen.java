@@ -297,7 +297,8 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
                 btnText = "DOMINADA";
                 btnEnabled = false;
             } else if (isSelectable) {
-                btnText = "ELEGIR CAMINO";
+                boolean hasBeenStarted = playerData != null && playerData.getStartedPaths().contains(path.id);
+                btnText = hasBeenStarted ? "CONTINUAR" : "ELEGIR CAMINO";
                 btnEnabled = true;
             } else {
                 btnText = "BLOQUEADO";

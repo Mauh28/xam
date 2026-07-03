@@ -137,24 +137,73 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
         drawFlatPanel(graphics, incX, ampY, 20, 16, incHover ? COLOR_COPPER_HOVER : COLOR_COPPER, incHover ? COLOR_BRASS : 0xFF2C221D);
         graphics.drawCenteredString(this.font, "+", incX + 10, ampY + 4, TEXT_PRIMARY);
 
-        // Render Preset pills/buttons below
-        int presetY = ampY + 25;
-        graphics.drawString(this.font, "Presets:", fieldX, presetY, TEXT_MUTED, false);
+        // Render Preset pills/buttons below - Adjustable Grid Layout with Icons and Tooltips
+        int presetY = ampY + 22;
+        graphics.drawString(this.font, "Presets:", fieldX, presetY + 6, TEXT_MUTED, false);
         
-        int px = fieldX + 45;
-        for (PerkPreset preset : presets) {
-            int pW = this.font.width(preset.name) + 8;
-            if (px + pW > panelX + panelW - 15) {
-                presetY += 16;
-                px = fieldX + 45;
+        int px = fieldX + 52;
+        int btnSize = 22;
+        int btnGap = 6;
+        int maxGridX = panelX + panelW - 20;
+
+        String hoveredPresetName = null;
+
+        for (int i = 0; i < presets.size(); i++) {
+            PerkPreset preset = presets.get(i);
+            
+            if (px + btnSize > maxGridX) {
+                presetY += btnSize + btnGap;
+                px = fieldX + 52;
             }
+
             boolean pActive = effectIdEdit.getValue().equals(preset.effectId);
-            boolean pHover = mouseX >= px && mouseX < px + pW && mouseY >= presetY && mouseY < presetY + 12;
+            boolean pHover = mouseX >= px && mouseX < px + btnSize && mouseY >= presetY && mouseY < presetY + btnSize;
+            
+            if (pHover) {
+                hoveredPresetName = preset.name;
+            }
+
             int pBg = pActive ? 0xFF2A593E : (pHover ? 0xFF251E1C : 0xFF171312);
             int pBorder = pActive ? 0xFF55FF55 : (pHover ? COLOR_BRASS : 0xFF3E332E);
-            drawFlatPanel(graphics, px, presetY, pW, 12, pBg, pBorder);
-            graphics.drawCenteredString(this.font, preset.name, px + pW / 2, presetY + 2, pActive ? 0xFFFFFFFF : TEXT_SECONDARY);
-            px += pW + 4;
+            drawFlatPanel(graphics, px, presetY, btnSize, btnSize, pBg, pBorder);
+
+            // Render effect icon or fallback inside the button
+            if (preset.effectId.isEmpty()) {
+                net.minecraft.world.item.ItemStack barrier = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.BARRIER);
+                graphics.pose().pushPose();
+                graphics.pose().translate(px + (btnSize - 16) / 2.0F, presetY + (btnSize - 16) / 2.0F, 0);
+                graphics.renderFakeItem(barrier, 0, 0);
+                graphics.pose().popPose();
+            } else {
+                net.minecraft.world.effect.MobEffect effect = net.minecraftforge.registries.ForgeRegistries.MOB_EFFECTS.getValue(net.minecraft.resources.ResourceLocation.tryParse(preset.effectId));
+                if (effect != null) {
+                    net.minecraft.client.renderer.texture.TextureAtlasSprite sprite = Minecraft.getInstance().getMobEffectTextures().get(effect);
+                    if (sprite != null) {
+                        com.mojang.blaze3d.systems.RenderSystem.setShaderTexture(0, net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS);
+                        graphics.blit(px + (btnSize - 18) / 2, presetY + (btnSize - 18) / 2, 0, 18, 18, sprite);
+                    }
+                }
+            }
+
+            px += btnSize + btnGap;
+        }
+
+        // Draw hovered preset tooltip
+        if (hoveredPresetName != null) {
+            int ttX = mouseX + 12;
+            int ttY = mouseY - 12;
+            int ttW = this.font.width(hoveredPresetName) + 12;
+            int ttH = 20;
+
+            if (ttX + ttW > width) {
+                ttX = mouseX - ttW - 12;
+            }
+            if (ttY + ttH > height) {
+                ttY = height - ttH - 6;
+            }
+
+            drawFlatPanel(graphics, ttX, ttY, ttW, ttH, 0xFF120E0D, COLOR_COPPER);
+            graphics.drawString(this.font, hoveredPresetName, ttX + 6, ttY + 6, TEXT_PRIMARY, false);
         }
 
         // Draw overlay input boxes
@@ -170,21 +219,24 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
         }
 
         if (button == 0) {
-            // Preset pills clicks
-            int presetY = ampY + 25;
-            int px = fieldX + 45;
+            // Preset pills clicks - Grid Layout
+            int presetY = ampY + 22;
+            int px = fieldX + 52;
+            int btnSize = 22;
+            int btnGap = 6;
+            int maxGridX = panelX + panelW - 20;
+
             for (PerkPreset preset : presets) {
-                int pW = this.font.width(preset.name) + 8;
-                if (px + pW > panelX + panelW - 15) {
-                    presetY += 16;
-                    px = fieldX + 45;
+                if (px + btnSize > maxGridX) {
+                    presetY += btnSize + btnGap;
+                    px = fieldX + 52;
                 }
-                if (mouseX >= px && mouseX < px + pW && mouseY >= presetY && mouseY < presetY + 12) {
+                if (mouseX >= px && mouseX < px + btnSize && mouseY >= presetY && mouseY < presetY + btnSize) {
                     playClickSound();
                     effectIdEdit.setValue(preset.effectId);
                     return true;
                 }
-                px += pW + 4;
+                px += btnSize + btnGap;
             }
 
             // Decrement Level
