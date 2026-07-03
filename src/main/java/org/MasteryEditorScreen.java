@@ -1474,7 +1474,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     int scrollbarHeight = maxVisible * entryHeight;
                     int thumbHeight = Math.max(15, (int) (((float) maxVisible / totalRows) * scrollbarHeight));
 
-                    if (mouseX >= scrollbarX && mouseX < scrollbarX + 6 && mouseY >= startY && mouseY < startY + scrollbarHeight) {
+                    if (mouseX >= scrollbarX - 4 && mouseX < scrollbarX + 10 && mouseY >= startY && mouseY < startY + scrollbarHeight) {
                         this.isDraggingGridScrollbar = true;
                         updateGridScrollFromMouse(mouseY, startY, scrollbarHeight, thumbHeight);
                         return true;
@@ -1488,6 +1488,20 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             boolean handled = super.mouseClicked(mouseX, mouseY, button);
             this.filteredEntries.addAll(temp);
             return handled;
+        }
+
+        @Override
+        public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+            int totalRows = (filteredEntries.size() + 1) / 2;
+            if (totalRows > maxVisible) {
+                if (delta > 0) {
+                    scrollOffset = Math.max(0, scrollOffset - 1);
+                } else if (delta < 0) {
+                    scrollOffset = Math.min(totalRows - maxVisible, scrollOffset + 1);
+                }
+                return true;
+            }
+            return super.mouseScrolled(mouseX, mouseY, delta);
         }
     }
 }
