@@ -591,6 +591,7 @@ public class xdAbsoluteMastery {
         if (stack.isEmpty()) return true;
         if (data != null && data.isDevMode()) return true;
         if (isUniversal(stack)) return true;
+        if (getPathFromItemTags(stack) == null) return true;
 
         ResourceLocation rl = ForgeRegistries.ITEMS.getKey(stack.getItem());
         if (rl == null) return false;
