@@ -39,8 +39,6 @@ public class XamJadePlugin implements IWailaPlugin {
             if (player != null) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     ItemStack stack = accessor.getPickedResult();
-                    LOGGER.info("[XAM-JADE] BlockProvider: target item = {}, isItemValid = {}", 
-                            stack.getItem().toString(), xdAbsoluteMastery.isItemValid(stack, data));
                     if (!stack.isEmpty() && !xdAbsoluteMastery.isItemValid(stack, data)) {
                         String reqPathName = null;
                         ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
@@ -81,8 +79,6 @@ public class XamJadePlugin implements IWailaPlugin {
             if (player != null) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     ItemStack stack = accessor.getPickedResult();
-                    LOGGER.info("[XAM-JADE] EntityProvider: target item = {}, isItemValid = {}", 
-                            stack.getItem().toString(), xdAbsoluteMastery.isItemValid(stack, data));
                     if (!stack.isEmpty() && !xdAbsoluteMastery.isItemValid(stack, data)) {
                         String reqPathName = null;
                         ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());

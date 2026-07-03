@@ -2019,7 +2019,11 @@ public class xdAbsoluteMastery {
 
         @SubscribeEvent
         public static void onItemTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent event) {
-            Player player = event.getEntity();
+            Player p = event.getEntity();
+            if (p == null) {
+                p = net.minecraft.client.Minecraft.getInstance().player;
+            }
+            final Player player = p;
             if (player != null) {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     ItemStack stack = event.getItemStack();
