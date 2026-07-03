@@ -1,0 +1,236 @@
+package org;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import org.xdAbsoluteMastery.ConfigManager.PathInfo;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class PerksConfigScreen extends AbstractMasteryScreen {
+    private final Screen parent;
+    private final PathInfo path;
+
+    private EditBox effectIdEdit;
+    private int perkAmplifier;
+
+    // Preset options
+    private static class PerkPreset {
+        final String name;
+        final String effectId;
+
+        PerkPreset(String name, String effectId) {
+            this.name = name;
+            this.effectId = effectId;
+        }
+    }
+    private final List<PerkPreset> presets = new ArrayList<>();
+
+    // Layout fields
+    private int panelW, panelH, panelX, panelY;
+    private int fieldX, fieldY, fieldW;
+    private int ampX, ampY, ampW;
+
+    public PerksConfigScreen(Screen parent, PathInfo path) {
+        super(Component.literal("CONFIGURAR PERKS DE LA RAMA"));
+        this.parent = parent;
+        this.path = path;
+        this.perkAmplifier = path.perkAmplifier;
+
+        // Populate presets
+        presets.add(new PerkPreset("Velocidad", "minecraft:speed"));
+        presets.add(new PerkPreset("Prisa Minera", "minecraft:haste"));
+        presets.add(new PerkPreset("Resistencia", "minecraft:resistance"));
+        presets.add(new PerkPreset("Regeneración", "minecraft:regeneration"));
+        presets.add(new PerkPreset("Fuerza", "minecraft:strength"));
+        presets.add(new PerkPreset("Sin Perk", ""));
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+
+        this.panelW = 280;
+        this.panelH = 160;
+        this.panelX = containerX + (containerW - panelW) / 2;
+        this.panelY = bodyY + (bodyH - panelH) / 2;
+
+        this.fieldX = panelX + 20;
+        this.fieldY = panelY + 45;
+        this.fieldW = panelW - 40;
+
+        this.ampX = fieldX;
+        this.ampY = fieldY + 32;
+        this.ampW = fieldW;
+
+        this.effectIdEdit = new EditBox(this.font, fieldX + 4, fieldY + 5, fieldW - 8, 12, Component.literal("ID del Efecto"));
+        this.effectIdEdit.setBordered(false);
+        this.effectIdEdit.setTextColor(TEXT_PRIMARY);
+        this.effectIdEdit.setValue(path.perkEffect != null ? path.perkEffect : "");
+        this.addRenderableWidget(this.effectIdEdit);
+    }
+
+    @Override
+    protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
+        int titleY = containerY + (headerH - 8) / 2;
+        graphics.drawString(this.font, "PERKS: " + path.name.toUpperCase(), containerX + 15, titleY, COLOR_BRASS, false);
+        drawBackButton(graphics, mouseX, mouseY);
+    }
+
+    @Override
+    protected void renderFooter(GuiGraphics graphics, int mouseX, int mouseY) {
+        int btnW = 90;
+        int btnH = 20;
+        int startX = containerX + containerW - 15 - (btnW * 2 + 10);
+        int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
+
+        // Custom Discard button
+        boolean discHovered = mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
+        int discBg = discHovered ? 0xFF2A1C1A : 0xFF1C1312;
+        int discBorder = discHovered ? 0xFFFF5555 : 0xFF3E2D2B;
+        drawFlatPanel(graphics, startX, btnY, btnW, btnH, discBg, discBorder);
+        graphics.drawCenteredString(this.font, "Cancelar", startX + btnW / 2, btnY + 6, discHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
+
+        // Custom Save button
+        int saveX = startX + btnW + 10;
+        boolean saveHovered = mouseX >= saveX && mouseX < saveX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
+        int saveBg = saveHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
+        int saveBorder = saveHovered ? COLOR_BRASS : 0xFF2C221D;
+        drawFlatPanel(graphics, saveX, btnY, btnW, btnH, saveBg, saveBorder);
+        graphics.drawCenteredString(this.font, "Aceptar", saveX + btnW / 2, btnY + 6, TEXT_PRIMARY);
+    }
+
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        super.render(graphics, mouseX, mouseY, partialTick);
+
+        // Draw main config card
+        drawFlatPanel(graphics, panelX, panelY, panelW, panelH, PANEL_INNER_BG, COLOR_COPPER);
+
+        // Title of details
+        graphics.drawString(this.font, "Configura el beneficio al completar la rama al 100%:", panelX + 15, panelY + 12, COLOR_BRASS, false);
+        graphics.fill(panelX + 15, panelY + 23, panelX + panelW - 15, panelY + 24, 0xFF2C221D);
+
+        // Label for Effect ID input
+        graphics.drawString(this.font, "ID del Efecto de Poción / Perk (ej. minecraft:speed)", fieldX, fieldY - 10, TEXT_SECONDARY, false);
+        drawFlatPanel(graphics, fieldX, fieldY, fieldW, 20, INPUT_BACKGROUND, COLOR_COPPER);
+
+        // Label and selector for level (Amplifier)
+        graphics.drawString(this.font, "Nivel de Efecto / Intensidad:", ampX, ampY - 10, TEXT_SECONDARY, false);
+        
+        // Decrement button (-)
+        int decX = ampX;
+        boolean decHover = mouseX >= decX && mouseX < decX + 20 && mouseY >= ampY && mouseY < ampY + 16;
+        drawFlatPanel(graphics, decX, ampY, 20, 16, decHover ? COLOR_COPPER_HOVER : COLOR_COPPER, decHover ? COLOR_BRASS : 0xFF2C221D);
+        graphics.drawCenteredString(this.font, "-", decX + 10, ampY + 4, TEXT_PRIMARY);
+
+        // Level text display (e.g. Level I, Level II, Level III)
+        String levelStr = "Nivel " + (perkAmplifier + 1);
+        graphics.drawCenteredString(this.font, levelStr, decX + 20 + 35, ampY + 4, COLOR_BRASS);
+
+        // Increment button (+)
+        int incX = decX + 20 + 70;
+        boolean incHover = mouseX >= incX && mouseX < incX + 20 && mouseY >= ampY && mouseY < ampY + 16;
+        drawFlatPanel(graphics, incX, ampY, 20, 16, incHover ? COLOR_COPPER_HOVER : COLOR_COPPER, incHover ? COLOR_BRASS : 0xFF2C221D);
+        graphics.drawCenteredString(this.font, "+", incX + 10, ampY + 4, TEXT_PRIMARY);
+
+        // Render Preset pills/buttons below
+        int presetY = ampY + 25;
+        graphics.drawString(this.font, "Presets:", fieldX, presetY, TEXT_MUTED, false);
+        
+        int px = fieldX + 45;
+        for (PerkPreset preset : presets) {
+            int pW = this.font.width(preset.name) + 8;
+            if (px + pW > panelX + panelW - 15) {
+                presetY += 16;
+                px = fieldX + 45;
+            }
+            boolean pActive = effectIdEdit.getValue().equals(preset.effectId);
+            boolean pHover = mouseX >= px && mouseX < px + pW && mouseY >= presetY && mouseY < presetY + 12;
+            int pBg = pActive ? 0xFF2A593E : (pHover ? 0xFF251E1C : 0xFF171312);
+            int pBorder = pActive ? 0xFF55FF55 : (pHover ? COLOR_BRASS : 0xFF3E332E);
+            drawFlatPanel(graphics, px, presetY, pW, 12, pBg, pBorder);
+            graphics.drawCenteredString(this.font, preset.name, px + pW / 2, presetY + 2, pActive ? 0xFFFFFFFF : TEXT_SECONDARY);
+            px += pW + 4;
+        }
+
+        // Draw overlay input boxes
+        this.effectIdEdit.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && isBackButtonClicked(mouseX, mouseY)) {
+            playClickSound();
+            Minecraft.getInstance().setScreen(this.parent);
+            return true;
+        }
+
+        if (button == 0) {
+            // Preset pills clicks
+            int presetY = ampY + 25;
+            int px = fieldX + 45;
+            for (PerkPreset preset : presets) {
+                int pW = this.font.width(preset.name) + 8;
+                if (px + pW > panelX + panelW - 15) {
+                    presetY += 16;
+                    px = fieldX + 45;
+                }
+                if (mouseX >= px && mouseX < px + pW && mouseY >= presetY && mouseY < presetY + 12) {
+                    playClickSound();
+                    effectIdEdit.setValue(preset.effectId);
+                    return true;
+                }
+                px += pW + 4;
+            }
+
+            // Decrement Level
+            int decX = ampX;
+            if (mouseX >= decX && mouseX < decX + 20 && mouseY >= ampY && mouseY < ampY + 16) {
+                if (perkAmplifier > 0) {
+                    playClickSound();
+                    perkAmplifier--;
+                }
+                return true;
+            }
+
+            // Increment Level
+            int incX = decX + 20 + 70;
+            if (mouseX >= incX && mouseX < incX + 20 && mouseY >= ampY && mouseY < ampY + 16) {
+                if (perkAmplifier < 9) { // Max Level 10
+                    playClickSound();
+                    perkAmplifier++;
+                }
+                return true;
+            }
+
+            // Footer buttons (Cancelar / Aceptar)
+            int btnW = 90;
+            int btnH = 20;
+            int startX = containerX + containerW - 15 - (btnW * 2 + 10);
+            int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
+
+            // Cancel
+            if (mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
+                playClickSound();
+                Minecraft.getInstance().setScreen(this.parent);
+                return true;
+            }
+
+            // Save
+            int saveX = startX + btnW + 10;
+            if (mouseX >= saveX && mouseX < saveX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
+                playClickSound();
+                path.perkEffect = effectIdEdit.getValue().trim();
+                path.perkAmplifier = perkAmplifier;
+                Minecraft.getInstance().setScreen(this.parent);
+                return true;
+            }
+        }
+
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+}

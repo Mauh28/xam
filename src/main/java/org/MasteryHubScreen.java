@@ -8,16 +8,32 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     private final PlayerData playerData;
     private double scrollY = 0;
     private double targetScrollY = 0;
+    private String flippedPathId = null;
+    private long lastFlipTime = 0;
 
     public MasteryHubScreen(PlayerData playerData) {
         super(Component.translatable("xam.screen.mastery_hub.title"));
         this.playerData = playerData;
     }
 
+    private boolean hasPlayerMasteredAllBranches() {
+        if (playerData == null || xdAbsoluteMastery.ConfigManager.PATHS.isEmpty()) return false;
+        for (xdAbsoluteMastery.ConfigManager.PathInfo p : xdAbsoluteMastery.ConfigManager.PATHS) {
+            if (!p.requirements.isEmpty() && !playerData.getMasteredPaths().contains(p.id)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     @Override
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
-        graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.header").getString(), containerX + 15, titleY, TEXT_SECONDARY, false);
+        String titleText = Component.translatable("xam.screen.mastery_hub.header").getString();
+        if (playerData != null && playerData.getPrestigeLevel() > 0) {
+            titleText += " - Prestige " + playerData.getPrestigeLevel();
+        }
+        graphics.drawString(this.font, titleText, containerX + 15, titleY, TEXT_SECONDARY, false);
         drawCloseButton(graphics, mouseX, mouseY);
     }
 
@@ -28,19 +44,23 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
         int btnH = 20;
         int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
 
+        boolean canPrestige = xdAbsoluteMastery.ConfigManager.prestigeModeEnabled && hasPlayerMasteredAllBranches();
+        String mainBtnText = canPrestige ? "PRESTIGIAR" : Component.translatable("xam.screen.mastery_hub.choose_branch").getString();
+
         if (isOp) {
             int totalW = btnW + 20 + btnW;
             int startX = containerX + (containerW - totalW) / 2;
-            drawFlatButton(graphics, startX, btnY, btnW, btnH, Component.translatable("xam.screen.mastery_hub.choose_branch").getString(), mouseX, mouseY, true, false);
+            drawFlatButton(graphics, startX, btnY, btnW, btnH, mainBtnText, mouseX, mouseY, true, false);
             drawFlatButton(graphics, startX + btnW + 20, btnY, btnW, btnH, Component.translatable("xam.screen.mastery_hub.op_editor").getString(), mouseX, mouseY, true, true);
         } else {
             int startX = containerX + (containerW - btnW) / 2;
-            drawFlatButton(graphics, startX, btnY, btnW, btnH, Component.translatable("xam.screen.mastery_hub.choose_branch").getString(), mouseX, mouseY, true, false);
+            drawFlatButton(graphics, startX, btnY, btnW, btnH, mainBtnText, mouseX, mouseY, true, false);
         }
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        xdAbsoluteMastery.ConfigManager.Requirement hoveredRequirement = null;
         // Draw container base and headers/footers
         super.render(graphics, mouseX, mouseY, partialTick);
 
@@ -172,44 +192,114 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.none").getString(), leftX + 12, empListStartY, TEXT_MUTED, false);
         }
 
-        // Ramas Dominadas list
+        // Ramas Dominadas list - 2D Medals Grid
         int domY = leftY + 152;
         graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.mastered_branches").getString(), leftX + 12, domY, COLOR_BRASS, false);
         graphics.fill(leftX + 12, domY + 11, leftX + leftW - 12, domY + 12, 0xFF2C221D);
 
-        int domListStartY = domY + 16;
+        int domGridStartY = domY + 16;
+        int medalSize = 22;
+        int medalGap = 6;
+        int medalsPerRow = Math.max(1, (leftW - 24) / (medalSize + medalGap));
+        
         int domCount = 0;
         if (playerData != null && !playerData.getMasteredPaths().isEmpty()) {
             for (int i = 0; i < playerData.getMasteredPaths().size(); i++) {
                 String id = playerData.getMasteredPaths().get(i);
-                String name = id;
-                for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
-                    if (path.id.equals(id)) {
-                        name = path.name;
-                        break;
-                    }
-                }
-                int maxDomNameW = leftW - 38;
-                if (this.font.width(name) > maxDomNameW) {
-                    name = this.font.plainSubstrByWidth(name, maxDomNameW - 10) + "...";
-                }
-                // Render Icon
                 net.minecraft.world.item.ItemStack iconStack = getPathIcon(id);
-                graphics.pose().pushPose();
-                graphics.pose().translate(leftX + 12, domListStartY + domCount * 13, 0);
-                graphics.pose().scale(0.75F, 0.75F, 1.0F);
-                graphics.renderFakeItem(iconStack, 0, 0);
-                graphics.pose().popPose();
-
-                graphics.drawString(this.font, name, leftX + 28, domListStartY + domCount * 13 + 2, TEXT_PRIMARY, false);
-                domCount++;
-                if (domListStartY + (domCount + 1) * 13 >= leftY + leftH) {
+                
+                int row = domCount / medalsPerRow;
+                int col = domCount % medalsPerRow;
+                int mx = leftX + 12 + col * (medalSize + medalGap);
+                int my = domGridStartY + row * (medalSize + medalGap);
+                
+                if (my + medalSize >= leftY + leftH) {
                     break;
                 }
+
+                // Animation calculations
+                boolean isFlipped = id.equals(flippedPathId);
+                float scaleX = 1.0F;
+                if (isFlipped && lastFlipTime > 0) {
+                    float elapsed = (System.currentTimeMillis() - lastFlipTime) / 300.0F;
+                    if (elapsed < 1.0F) {
+                        scaleX = Math.abs(1.0F - 2.0F * elapsed);
+                    }
+                }
+                
+                graphics.pose().pushPose();
+                graphics.pose().translate(mx + medalSize / 2.0F, my + medalSize / 2.0F, 0);
+                graphics.pose().scale(scaleX, 1.0F, 1.0F);
+                graphics.pose().translate(-medalSize / 2.0F, -medalSize / 2.0F, 0);
+                
+                boolean flipStateBack = isFlipped;
+                if (isFlipped && lastFlipTime > 0) {
+                    float elapsed = (System.currentTimeMillis() - lastFlipTime) / 300.0F;
+                    if (elapsed < 0.5F) flipStateBack = false;
+                }
+                
+                boolean hovered = mouseX >= mx && mouseX < mx + medalSize && mouseY >= my && mouseY < my + medalSize;
+                
+                if (flipStateBack) {
+                    // Back side: Golden info seal
+                    drawFlatPanel(graphics, 0, 0, medalSize, medalSize, 0xFFDF9E3F, 0xFFCD613C);
+                    graphics.drawCenteredString(this.font, "i", medalSize / 2, (medalSize - 8) / 2, 0xFFFFFFFF);
+                } else {
+                    // Front side: framed item icon
+                    int border = hovered ? COLOR_BRASS : 0xFF2C221D;
+                    drawFlatPanel(graphics, 0, 0, medalSize, medalSize, PANEL_INNER_BG, border);
+                    
+                    graphics.pose().pushPose();
+                    graphics.pose().translate((medalSize - 16) / 2.0F, (medalSize - 16) / 2.0F, 0);
+                    graphics.renderFakeItem(iconStack, 0, 0);
+                    graphics.pose().popPose();
+                }
+                
+                graphics.pose().popPose();
+                domCount++;
             }
+        } else {
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.none").getString(), leftX + 12, domGridStartY, TEXT_MUTED, false);
         }
-        if (domCount == 0) {
-            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.none").getString(), leftX + 12, domListStartY, TEXT_MUTED, false);
+
+        // Render hovered/flipped medal detail popup
+        if (flippedPathId != null && playerData != null) {
+            int fIdx = playerData.getMasteredPaths().indexOf(flippedPathId);
+            if (fIdx >= 0) {
+                int row = fIdx / medalsPerRow;
+                int col = fIdx % medalsPerRow;
+                int mx = leftX + 12 + col * (medalSize + medalGap);
+                int my = domGridStartY + row * (medalSize + medalGap);
+                
+                int popX = mx + medalSize + 6;
+                int popY = my - 10;
+                int popW = 115;
+                int popH = 50;
+                
+                if (popX + popW > containerX + containerW) {
+                    popX = mx - popW - 6;
+                }
+                
+                drawFlatPanel(graphics, popX, popY, popW, popH, PANEL_BACKGROUND, COLOR_BRASS);
+                
+                xdAbsoluteMastery.ConfigManager.PathInfo path = xdAbsoluteMastery.ConfigManager.PATHS_MAP.get(flippedPathId);
+                if (path != null) {
+                    String pName = path.name;
+                    if (this.font.width(pName) > popW - 10) {
+                        pName = this.font.plainSubstrByWidth(pName, popW - 15) + "...";
+                    }
+                    graphics.drawString(this.font, pName, popX + 6, popY + 6, TEXT_PRIMARY, false);
+                    graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.completed").getString(), popX + 6, popY + 18, 0xFF4ADE80, false);
+                    
+                    String perkText = "Ninguno";
+                    if (path.perkEffect != null && !path.perkEffect.isEmpty()) {
+                        String name = path.perkEffect;
+                        if (name.contains(":")) name = name.split(":")[1];
+                        perkText = Character.toUpperCase(name.charAt(0)) + name.substring(1) + " " + (path.perkAmplifier + 1);
+                    }
+                    graphics.drawString(this.font, "Perk: " + perkText, popX + 6, popY + 32, COLOR_BRASS, false);
+                }
+            }
         }
 
         // --- RIGHT PANEL: Tasks details list ---
@@ -262,6 +352,9 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
 
                 // Check card hover
                 boolean cardHovered = mouseX >= listX && mouseX < listX + listW && mouseY >= cardY && mouseY < cardY + cardH && mouseY >= listY && mouseY < listY + listH;
+                if (cardHovered) {
+                    hoveredRequirement = req;
+                }
 
                 // Draw task card background based on completed status & hover
                 boolean isCompleted = xdAbsoluteMastery.isRequirementCompleted(this.minecraft.player, playerData, activePath.id, req);
@@ -340,6 +433,83 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 drawFlatPanel(graphics, scrollbarX, thumbY, 4, thumbHeight, COLOR_COPPER, COLOR_BRASS);
             }
         }
+
+        // Render rich tooltip if hovered
+        if (hoveredRequirement != null) {
+            int ttX = mouseX + 12;
+            int ttY = mouseY - 12;
+            int ttW = 160;
+            int ttH = 68;
+
+            if (ttX + ttW > width) {
+                ttX = mouseX - ttW - 12;
+            }
+            if (ttY + ttH > height) {
+                ttY = height - ttH - 6;
+            }
+
+            drawFlatPanel(graphics, ttX, ttY, ttW, ttH, PANEL_BACKGROUND, COLOR_COPPER);
+
+            // 1. Draw large item icon
+            net.minecraft.world.item.ItemStack dummyStack = net.minecraft.world.item.ItemStack.EMPTY;
+            if (hoveredRequirement.type.equals("craft") || hoveredRequirement.type.equals("collect")) {
+                net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(hoveredRequirement.id));
+                if (item != null && item != net.minecraft.world.item.Items.AIR) {
+                    dummyStack = new net.minecraft.world.item.ItemStack(item);
+                }
+            }
+            if (dummyStack.isEmpty()) {
+                dummyStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
+            }
+
+            graphics.pose().pushPose();
+            graphics.pose().translate(ttX + 8, ttY + 8, 200);
+            graphics.pose().scale(1.5F, 1.5F, 1.0F);
+            graphics.renderFakeItem(dummyStack, 0, 0);
+            graphics.pose().popPose();
+
+            // 2. Draw Type Badge
+            String typeBadge = hoveredRequirement.type.toUpperCase();
+            int badgeCol = 0xFFDF9E3F;
+            if (typeBadge.equals("CRAFT")) badgeCol = 0xFF5DADE2;
+            else if (typeBadge.equals("COLLECT")) badgeCol = 0xFF58D68D;
+            else if (typeBadge.equals("ADVANCEMENT")) badgeCol = 0xFFF5B041;
+            else if (typeBadge.equals("KILL")) badgeCol = 0xFFEC7063;
+
+            graphics.drawString(this.font, typeBadge, ttX + 38, ttY + 8, badgeCol, false);
+
+            // 3. Draw Dependency Status
+            String depStatus = "Desbloqueado";
+            int depCol = 0xFF55FF55;
+            if (playerData != null && activePath != null) {
+                boolean isUnlocked = true;
+                if (hoveredRequirement.dependencies != null) {
+                    for (String depId : hoveredRequirement.dependencies) {
+                        if (!xdAbsoluteMastery.isRequirementCompleted(this.minecraft.player, playerData, activePath.id, findRequirementById(activePath, depId))) {
+                            isUnlocked = false;
+                            break;
+                        }
+                    }
+                }
+                if (!isUnlocked) {
+                    depStatus = "Bloqueado (Falta dependencias)";
+                    depCol = 0xFFFF5555;
+                }
+            }
+
+            String depText = depStatus;
+            if (this.font.width(depText) > ttW - 44) {
+                depText = this.font.plainSubstrByWidth(depText, ttW - 50) + "...";
+            }
+            graphics.drawString(this.font, depText, ttX + 38, ttY + 20, depCol, false);
+
+            // 4. Draw Description
+            String helpText = hoveredRequirement.description.isEmpty() ? hoveredRequirement.id : hoveredRequirement.description;
+            if (this.font.width(helpText) > ttW - 16) {
+                helpText = this.font.plainSubstrByWidth(helpText, ttW - 22) + "...";
+            }
+            graphics.drawString(this.font, helpText, ttX + 8, ttY + 44, TEXT_SECONDARY, false);
+        }
     }
 
     private net.minecraft.world.item.ItemStack getPathIcon(String pathId) {
@@ -384,11 +554,11 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             }
         }
         return super.mouseScrolled(mouseX, mouseY, delta);
-    }
-
-    @Override
+    }    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
+            flippedPathId = null;
+
             // Header Close Button
             if (isCloseButtonClicked(mouseX, mouseY)) {
                 playClickSound();
@@ -396,18 +566,52 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 return true;
             }
 
+            // Medal click check
+            int leftW = (int) (containerW * 0.35);
+            int leftX = containerX + 10;
+            int leftY = bodyY + 10;
+            int domY = leftY + 152;
+            int domGridStartY = domY + 16;
+            int medalSize = 22;
+            int medalGap = 6;
+            int medalsPerRow = Math.max(1, (leftW - 24) / (medalSize + medalGap));
+
+            if (playerData != null && !playerData.getMasteredPaths().isEmpty()) {
+                for (int i = 0; i < playerData.getMasteredPaths().size(); i++) {
+                    int row = i / medalsPerRow;
+                    int col = i % medalsPerRow;
+                    int mx = leftX + 12 + col * (medalSize + medalGap);
+                    int my = domGridStartY + row * (medalSize + medalGap);
+                    
+                    if (mouseX >= mx && mouseX < mx + medalSize && mouseY >= my && mouseY < my + medalSize) {
+                        String id = playerData.getMasteredPaths().get(i);
+                        flippedPathId = id;
+                        lastFlipTime = System.currentTimeMillis();
+                        playGearSound();
+                        return true;
+                    }
+                }
+            }
+
             // Footer Buttons
             boolean isOp = this.minecraft.player != null && (this.minecraft.player.hasPermissions(2) || this.minecraft.player.getAbilities().instabuild);
             int btnW = 120;
             int btnH = 20;
             int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
+            boolean canPrestige = xdAbsoluteMastery.ConfigManager.prestigeModeEnabled && hasPlayerMasteredAllBranches();
+
             if (isOp) {
                 int totalW = btnW + 20 + btnW;
                 int startX = containerX + (containerW - totalW) / 2;
-                // Elegir Rama
+                // Elegir Rama o Prestigiar
                 if (mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
                     playClickSound();
-                    this.minecraft.setScreen(new PathSelectionScreen(this, playerData));
+                    if (canPrestige) {
+                        xdAbsoluteMastery.CHANNEL.sendToServer(new xdAbsoluteMastery.SelectPathPacket("PRESTIGE"));
+                        this.onClose();
+                    } else {
+                        this.minecraft.setScreen(new PathSelectionScreen(this, playerData));
+                    }
                     return true;
                 }
                 // Editor
@@ -421,7 +625,12 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 int startX = containerX + (containerW - btnW) / 2;
                 if (mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
                     playClickSound();
-                    this.minecraft.setScreen(new PathSelectionScreen(this, playerData));
+                    if (canPrestige) {
+                        xdAbsoluteMastery.CHANNEL.sendToServer(new xdAbsoluteMastery.SelectPathPacket("PRESTIGE"));
+                        this.onClose();
+                    } else {
+                        this.minecraft.setScreen(new PathSelectionScreen(this, playerData));
+                    }
                     return true;
                 }
             }
@@ -480,5 +689,14 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             }
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    private xdAbsoluteMastery.ConfigManager.Requirement findRequirementById(xdAbsoluteMastery.ConfigManager.PathInfo path, String reqId) {
+        if (path != null && reqId != null) {
+            for (xdAbsoluteMastery.ConfigManager.Requirement r : path.requirements) {
+                if (r.id.equals(reqId)) return r;
+            }
+        }
+        return null;
     }
 }

@@ -179,6 +179,57 @@ public abstract class AbstractMasteryScreen extends Screen {
         graphics.fill(x + w - 2, y + 2, x + w, y + h - 2, shadowColor); // Right
     }
 
+    // Helper: draw copper oxidized panel with golden sweep scanning border in ping-pong motion
+    public static void drawScannedPanel(GuiGraphics graphics, int x, int y, int w, int h, int colorFondo, int colorBorde) {
+        // Draw base beveled panel first
+        drawFlatPanel(graphics, x, y, w, h, colorFondo, colorBorde);
+
+        net.minecraft.client.multiplayer.ClientLevel level = Minecraft.getInstance().level;
+        long time = level != null ? level.getGameTime() : System.currentTimeMillis() / 50;
+
+        int perimeter = 2 * (w + h);
+        int scanSize = 16; // Length of the scan glow
+        int cycle = perimeter - scanSize;
+        if (cycle <= 0) return;
+
+        // Ping-pong travel position along the perimeter
+        int t = (int) (time * 1.5);
+        int currentPos;
+        if ((t / cycle) % 2 == 0) {
+            currentPos = t % cycle;
+        } else {
+            currentPos = cycle - (t % cycle);
+        }
+
+        float alphaFactor = getFadeProgress();
+        int glowColor = adjustAlpha(COLOR_BRASS, alphaFactor);
+
+        for (int offset = 0; offset < scanSize; offset++) {
+            int p = currentPos + offset;
+            if (p < 0 || p >= perimeter) continue;
+
+            float intensity = 1.0f - Math.abs(offset - scanSize / 2.0f) / (scanSize / 2.0f);
+            int col = adjustAlpha(glowColor, intensity * 0.85f);
+
+            if (p < w) {
+                // Top border
+                graphics.fill(x + p, y, x + p + 1, y + 2, col);
+            } else if (p < w + h) {
+                // Right border
+                int py = p - w;
+                graphics.fill(x + w - 2, y + py, x + w, y + py + 1, col);
+            } else if (p < 2 * w + h) {
+                // Bottom border
+                int px = p - w - h;
+                graphics.fill(x + w - px - 1, y + h - 2, x + w - px, y + h, col);
+            } else {
+                // Left border
+                int py = p - 2 * w - h;
+                graphics.fill(x, y + h - py - 1, x + 2, y + h - py, col);
+            }
+        }
+    }
+
     // Helper: draw flat button with vertical gradient & hover states
     public boolean drawFlatButton(GuiGraphics graphics, int x, int y, int w, int h, String text, int mouseX, int mouseY, boolean enabled, boolean isOp) {
         boolean hovered = enabled && mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
@@ -211,7 +262,31 @@ public abstract class AbstractMasteryScreen extends Screen {
     protected void playClickSound() {
         Minecraft.getInstance().getSoundManager().play(
                 net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
-                        net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F
+                        net.minecraft.sounds.SoundEvents.LEVER_CLICK, 1.2F, 0.9F
+                )
+        );
+    }
+
+    public void playGearSound() {
+        Minecraft.getInstance().getSoundManager().play(
+                net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
+                        net.minecraft.sounds.SoundEvents.IRON_TRAPDOOR_OPEN, 1.3F, 0.8F
+                )
+        );
+    }
+
+    public void playSteamSound() {
+        Minecraft.getInstance().getSoundManager().play(
+                net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
+                        net.minecraft.sounds.SoundEvents.LAVA_EXTINGUISH, 1.2F, 0.5F
+                )
+        );
+    }
+
+    public void playCompleteSound() {
+        Minecraft.getInstance().getSoundManager().play(
+                net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
+                        net.minecraft.sounds.SoundEvents.BELL_BLOCK, 1.0F, 1.1F
                 )
         );
     }

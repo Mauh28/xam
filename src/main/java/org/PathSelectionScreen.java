@@ -34,11 +34,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
         super.init();
         
         availablePaths.clear();
-        for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
-            if (playerData == null || !playerData.getMasteredPaths().contains(path.id)) {
-                availablePaths.add(path);
-            }
-        }
+        availablePaths.addAll(xdAbsoluteMastery.ConfigManager.PATHS);
 
         // Dynamically adjust column cards based on container width
         if (containerW < 360) {
@@ -136,14 +132,17 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             boolean isActivePath = playerData != null && path.id.equals(playerData.getCurrentPath());
             boolean hasActivePath = playerData != null && playerData.getCurrentPath() != null;
             boolean canSwitch = xdAbsoluteMastery.canSwitchFromCurrentPath(net.minecraft.client.Minecraft.getInstance().player, playerData);
-            boolean isSelectable = isUnlocked && (!hasActivePath || isActivePath || canSwitch);
+            boolean isMastered = playerData != null && playerData.getMasteredPaths().contains(path.id);
+            boolean isSelectable = isUnlocked && !isMastered && (!hasActivePath || isActivePath || canSwitch);
 
             boolean cardHovered = mouseX >= cardX && mouseX < cardX + cardW && mouseY >= cardY && mouseY < cardY + cardH;
             
-            int cardBg = isSelectable ? (cardHovered ? adjustColorBrightness(currentWidgetBg, 12) : currentWidgetBg) : 0xFF181515;
+            int cardBg = isMastered ? 0xFF121B16 : (isSelectable ? (cardHovered ? adjustColorBrightness(currentWidgetBg, 12) : currentWidgetBg) : 0xFF181515);
             int cardBorder;
             if (isActivePath) {
                 cardBorder = COLOR_BRASS;
+            } else if (isMastered) {
+                cardBorder = 0xFF5F9E8E;
             } else if (isSelectable) {
                 cardBorder = cardHovered ? COLOR_BRASS : currentBorderStd;
             } else {
@@ -151,7 +150,11 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             }
 
             // Draw Card Panel
-            drawFlatPanel(graphics, cardX, cardY, cardW, cardH, cardBg, cardBorder);
+            if (isMastered) {
+                drawScannedPanel(graphics, cardX, cardY, cardW, cardH, cardBg, cardBorder);
+            } else {
+                drawFlatPanel(graphics, cardX, cardY, cardW, cardH, cardBg, cardBorder);
+            }
 
             // Card Height Breakdowns:
             int cabH = (int) (cardH * 0.20);
@@ -290,6 +293,9 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             if (isActivePath) {
                 btnText = "EQUIPADO";
                 btnEnabled = false;
+            } else if (isMastered) {
+                btnText = "DOMINADA";
+                btnEnabled = false;
             } else if (isSelectable) {
                 btnText = "ELEGIR CAMINO";
                 btnEnabled = true;
@@ -353,7 +359,8 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
                 boolean isActivePath = playerData != null && path.id.equals(playerData.getCurrentPath());
                 boolean hasActivePath = playerData != null && playerData.getCurrentPath() != null;
                 boolean canSwitch = xdAbsoluteMastery.canSwitchFromCurrentPath(Minecraft.getInstance().player, playerData);
-                boolean isSelectable = isUnlocked && (!hasActivePath || isActivePath || canSwitch);
+                boolean isMastered = playerData != null && playerData.getMasteredPaths().contains(path.id);
+                boolean isSelectable = isUnlocked && !isMastered && (!hasActivePath || isActivePath || canSwitch);
 
                 int cardX = containerX + 60 + gap + i * (cardW + gap);
                 int btnX = cardX + 8;

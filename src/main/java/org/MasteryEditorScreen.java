@@ -73,6 +73,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             p.mod_id = path.mod_id;
             p.icon = path.icon;
             p.min_to_switch = path.min_to_switch;
+            p.perkEffect = path.perkEffect != null ? path.perkEffect : "";
+            p.perkAmplifier = path.perkAmplifier;
             p.dependencies = new ArrayList<>(path.dependencies);
             p.requirements = new ArrayList<>();
             for (Requirement req : path.requirements) {
@@ -260,6 +262,16 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             graphics.drawString(this.font, saveNotificationMsg, containerX + 15, msgY, notifColor, false);
         }
 
+        // Custom Prestige toggle checkbox
+        int prestX = containerX + 140;
+        int prestY = containerY + containerH - footerH + (footerH - 12) / 2;
+        boolean prestHovered = mouseX >= prestX && mouseX < prestX + 110 && mouseY >= prestY && mouseY < prestY + 12;
+        drawFlatPanel(graphics, prestX, prestY, 12, 12, xdAbsoluteMastery.ConfigManager.prestigeModeEnabled ? 0xFF2A593E : 0xFF14100E, prestHovered ? COLOR_BRASS : COLOR_COPPER);
+        if (xdAbsoluteMastery.ConfigManager.prestigeModeEnabled) {
+            graphics.drawString(this.font, "✔", prestX + 2, prestY + 2, 0xFF55FF55, false);
+        }
+        graphics.drawString(this.font, "Modo Prestigio", prestX + 18, prestY + 2, prestHovered ? TEXT_PRIMARY : TEXT_SECONDARY, false);
+
         // Custom Discard button (dark red/grey)
         boolean discHovered = mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
         int discBg = discHovered ? 0xFF2A1C1A : 0xFF1C1312;
@@ -444,6 +456,17 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             graphics.drawString(this.font, "REQUISITOS", editorX + 20, reqTitleY, COLOR_BRASS, false);
             int reqTitleW = this.font.width("REQUISITOS");
             graphics.fill(editorX + 20, reqTitleY + 10, editorX + 20 + reqTitleW, reqTitleY + 11, COLOR_COPPER);
+
+            // Button "CONFIGURAR PERKS" with Cobre Ponder style
+            int perksBtnX = editorX + editorW - 215;
+            int perksBtnY = reqTitleY - 4;
+            int perksBtnW = 90;
+            int perksBtnH = 16;
+            boolean perksHovered = mouseX >= perksBtnX && mouseX < perksBtnX + perksBtnW && mouseY >= perksBtnY && mouseY < perksBtnY + perksBtnH;
+            int perksBg = perksHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
+            int perksBorder = perksHovered ? COLOR_BRASS : 0xFF2C221D;
+            drawFlatPanel(graphics, perksBtnX, perksBtnY, perksBtnW, perksBtnH, perksBg, perksBorder);
+            graphics.drawCenteredString(this.font, "Perks", perksBtnX + perksBtnW / 2, perksBtnY + 4, TEXT_PRIMARY);
 
             // Button "+ AÑADIR TAREA" with Cobre Ponder style
             int addReqBtnX = editorX + editorW - 120;
@@ -810,6 +833,16 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     return true;
                 }
             }
+
+            // Click Prestige Switch
+            int prestX = containerX + 140;
+            int prestY = containerY + containerH - footerH + (footerH - 12) / 2;
+            if (mouseX >= prestX && mouseX < prestX + 110 && mouseY >= prestY && mouseY < prestY + 12) {
+                playClickSound();
+                xdAbsoluteMastery.ConfigManager.prestigeModeEnabled = !xdAbsoluteMastery.ConfigManager.prestigeModeEnabled;
+                return true;
+            }
+
             // Footer buttons (Descartar Todo, Guardar Estructura)
             int footBtnW = 120;
             int footBtnH = 20;
@@ -865,6 +898,17 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             // Right side editor clicks
             if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
                 PathInfo p = localPaths.get(selectedPathIndex);
+
+                // Perks Button Click
+                int perksBtnX = editorX + editorW - 215;
+                int perksBtnY = reqTitleY - 4;
+                int perksBtnW = 90;
+                int perksBtnH = 16;
+                if (mouseX >= perksBtnX && mouseX < perksBtnX + perksBtnW && mouseY >= perksBtnY && mouseY < perksBtnY + perksBtnH) {
+                    playClickSound();
+                    Minecraft.getInstance().setScreen(new PerksConfigScreen(this, p));
+                    return true;
+                }
 
                 // Add Requirement Button
                 int addReqBtnX = editorX + editorW - 120;

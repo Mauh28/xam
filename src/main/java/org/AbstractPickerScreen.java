@@ -55,7 +55,7 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
         int searchY = bodyY + (showFilter ? 37 : 10);
 
         // searchBox is designed borderless within drawFlatPanel
-        this.searchBox = new EditBox(this.font, panelX + 24, searchY + 4, containerW - 48, 12, Component.literal("Buscar..."));
+        this.searchBox = new EditBox(this.font, panelX + 36, searchY + 4, containerW - 74, 12, Component.literal("Buscar..."));
         this.searchBox.setBordered(false);
         this.searchBox.setTextColor(TEXT_PRIMARY);
         this.searchBox.setResponder(text -> {
@@ -132,6 +132,15 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
         int searchY = bodyY + (showFilter ? 37 : 10);
         drawFlatPanel(guiGraphics, panelX + 20, searchY, containerW - 40, 20, INPUT_BACKGROUND, COLOR_COPPER);
 
+        // Lupa character
+        guiGraphics.drawString(this.font, "🔍", panelX + 24, searchY + 6, TEXT_MUTED, false);
+
+        // Clear button if search box is not empty
+        if (!searchBox.getValue().isEmpty()) {
+            boolean hoveredClear = mouseX >= panelX + containerW - 35 && mouseX < panelX + containerW - 22 && mouseY >= searchY + 4 && mouseY < searchY + 16;
+            guiGraphics.drawString(this.font, "✕", panelX + containerW - 33, searchY + 6, hoveredClear ? 0xFFFF5555 : TEXT_MUTED, false);
+        }
+
         // Render virtual list entries
         int startY = getListStartY();
         int listWidth = containerW - 40;
@@ -193,6 +202,17 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
                     this.scrollOffset = 0;
                     Minecraft.getInstance().setScreen(this);
                 }));
+                return true;
+            }
+        }
+
+        // Clear Search Button click check
+        int searchY = bodyY + (showFilter ? 37 : 10);
+        if (button == 0 && !searchBox.getValue().isEmpty()) {
+            if (mouseX >= panelX + containerW - 35 && mouseX < panelX + containerW - 22 && mouseY >= searchY + 4 && mouseY < searchY + 16) {
+                playClickSound();
+                searchBox.setValue("");
+                searchBox.setFocused(true);
                 return true;
             }
         }
