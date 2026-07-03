@@ -196,7 +196,7 @@ public class xdAbsoluteMastery {
             data.getCompletedRequirements().removeIf(k -> k.startsWith(pathInfo.id + ":"));
             sync(player);
             updateArmorModifiers(player);
-            player.sendSystemMessage(Component.literal("¡Has dominado " + pathInfo.name + "! Ahora puedes elegir un nuevo camino."));
+            player.sendSystemMessage(Component.translatable("xam.msg.mastered_announcement", pathInfo.name));
         }
     }
 
@@ -237,13 +237,13 @@ public class xdAbsoluteMastery {
 
     private static void printPlayerInfo(net.minecraft.commands.CommandSourceStack source, ServerPlayer player) {
         player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-            final String active = data.getCurrentPath() != null ? data.getCurrentPath() : "Ninguna";
-            final String mastered = data.getMasteredPaths().isEmpty() ? "Ninguna" : String.join(", ", data.getMasteredPaths());
+            final String active = data.getCurrentPath() != null ? data.getCurrentPath() : Component.translatable("xam.screen.mastery_hub.none").getString();
+            final String mastered = data.getMasteredPaths().isEmpty() ? Component.translatable("xam.screen.mastery_hub.none").getString() : String.join(", ", data.getMasteredPaths());
             final boolean devMode = data.isDevMode();
-            source.sendSuccess(() -> Component.literal("=== Información de " + player.getGameProfile().getName() + " ==="), false);
-            source.sendSuccess(() -> Component.literal("Rama Activa: " + active), false);
-            source.sendSuccess(() -> Component.literal("Ramas Dominadas: " + mastered), false);
-            source.sendSuccess(() -> Component.literal("Modo Dev: " + (devMode ? "Activo" : "Inactivo")), false);
+            source.sendSuccess(() -> Component.translatable("xam.msg.info_header", player.getGameProfile().getName()), false);
+            source.sendSuccess(() -> Component.translatable("xam.msg.info_active", active), false);
+            source.sendSuccess(() -> Component.translatable("xam.msg.info_mastered", mastered), false);
+            source.sendSuccess(() -> Component.translatable("xam.msg.info_dev_mode", (devMode ? Component.translatable("xam.msg.dev_mode_on") : Component.translatable("xam.msg.dev_mode_off"))), false);
         });
     }
 
@@ -257,7 +257,7 @@ public class xdAbsoluteMastery {
                 }
             }
             if (!exists) {
-                source.sendFailure(Component.literal("La rama '" + pathId + "' no existe."));
+                source.sendFailure(Component.translatable("xam.msg.path_not_exists", pathId));
                 return;
             }
             if (mastered) {
@@ -268,12 +268,12 @@ public class xdAbsoluteMastery {
                 }
                 sync(player);
                 updateArmorModifiers(player);
-                source.sendSuccess(() -> Component.literal("Rama '" + pathId + "' dominada para " + player.getGameProfile().getName()), true);
+                source.sendSuccess(() -> Component.translatable("xam.msg.path_mastered_success", pathId, player.getGameProfile().getName()), true);
             } else {
                 data.getMasteredPaths().remove(pathId);
                 sync(player);
                 updateArmorModifiers(player);
-                source.sendSuccess(() -> Component.literal("Rama '" + pathId + "' desmarcada como dominada para " + player.getGameProfile().getName()), true);
+                source.sendSuccess(() -> Component.translatable("xam.msg.path_unmastered_success", pathId, player.getGameProfile().getName()), true);
             }
         });
     }
@@ -282,7 +282,7 @@ public class xdAbsoluteMastery {
         player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
             ConfigManager.PathInfo targetPath = ConfigManager.PATHS_MAP.get(pathId);
             if (targetPath == null) {
-                source.sendFailure(Component.literal("La rama '" + pathId + "' no existe."));
+                source.sendFailure(Component.translatable("xam.msg.path_not_exists", pathId));
                 return;
             }
             // ponytail: only clear requirements from the old path, not everything
@@ -293,7 +293,7 @@ public class xdAbsoluteMastery {
             data.setCurrentPath(pathId);
             sync(player);
             updateArmorModifiers(player);
-            source.sendSuccess(() -> Component.literal("Rama '" + pathId + "' seleccionada para " + player.getGameProfile().getName()), true);
+            source.sendSuccess(() -> Component.translatable("xam.msg.path_selected_success", pathId, player.getGameProfile().getName()), true);
         });
     }
 
@@ -307,11 +307,11 @@ public class xdAbsoluteMastery {
             name = Character.toUpperCase(name.charAt(0)) + name.substring(1);
         }
         switch (req.type) {
-            case "craft": return "Craftear " + name;
-            case "collect": return "Recolectar " + name;
-            case "combat": return "Derrotar " + name;
-            case "advancement": return "Completar logro " + name;
-            default: return req.type + " " + name;
+            case "craft": return Component.translatable("xam.req_type.craft", name).getString();
+            case "collect": return Component.translatable("xam.req_type.collect", name).getString();
+            case "combat": return Component.translatable("xam.req_type.combat", name).getString();
+            case "advancement": return Component.translatable("xam.req_type.advancement", name).getString();
+            default: return Component.translatable("xam.req_type.default", req.type, name).getString();
         }
     }
 
@@ -319,15 +319,15 @@ public class xdAbsoluteMastery {
         player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
             String currentPath = data.getCurrentPath();
             if (currentPath == null) {
-                source.sendSuccess(() -> Component.literal(player.getGameProfile().getName() + " no tiene ninguna maestría activa."), false);
+                source.sendSuccess(() -> Component.translatable("xam.msg.no_active_mastery", player.getGameProfile().getName()), false);
                 return;
             }
             ConfigManager.PathInfo pathInfo = ConfigManager.PATHS_MAP.get(currentPath);
             if (pathInfo == null) {
-                source.sendSuccess(() -> Component.literal(player.getGameProfile().getName() + " tiene una maestría activa inválida."), false);
+                source.sendSuccess(() -> Component.translatable("xam.msg.invalid_active_mastery", player.getGameProfile().getName()), false);
                 return;
             }
-            source.sendSuccess(() -> Component.literal("=== Progreso de " + player.getGameProfile().getName() + " en " + pathInfo.name + " ==="), false);
+            source.sendSuccess(() -> Component.translatable("xam.msg.progress_header", player.getGameProfile().getName(), pathInfo.name), false);
             for (ConfigManager.Requirement req : pathInfo.requirements) {
                 boolean done = isRequirementCompleted(player, data, pathInfo.id, req);
                 String symbol = done ? "§a[✔]§r" : "§c[✘]§r";
@@ -341,12 +341,12 @@ public class xdAbsoluteMastery {
         player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
             String currentPath = data.getCurrentPath();
             if (currentPath == null) {
-                source.sendFailure(Component.literal(player.getGameProfile().getName() + " no tiene ninguna maestría activa."));
+                source.sendFailure(Component.translatable("xam.msg.no_active_mastery", player.getGameProfile().getName()));
                 return;
             }
             ConfigManager.PathInfo pathInfo = ConfigManager.PATHS_MAP.get(currentPath);
             if (pathInfo == null) {
-                source.sendFailure(Component.literal("La maestría del jugador es inválida."));
+                source.sendFailure(Component.translatable("xam.msg.invalid_mastery"));
                 return;
             }
             boolean exists = false;
@@ -364,10 +364,9 @@ public class xdAbsoluteMastery {
                 }
             }
             if (!exists) {
-                source.sendFailure(Component.literal("El requisito '" + reqKey + "' no pertenece a la maestría activa '" + currentPath + "'."));
+                source.sendFailure(Component.translatable("xam.msg.req_not_in_path", reqKey, currentPath));
                 return;
             }
-
             if (type.equals("advancement")) {
                 ResourceLocation resLoc = ResourceLocation.tryParse(targetId);
                 if (resLoc != null) {
@@ -389,7 +388,7 @@ public class xdAbsoluteMastery {
                     checkPathCompletion(player, data, pathInfo);
                 }
             }
-            source.sendSuccess(() -> Component.literal("Requisito '" + reqKey + "' marcado como completado para " + player.getGameProfile().getName()), true);
+            source.sendSuccess(() -> Component.translatable("xam.msg.req_completed_success", reqKey, player.getGameProfile().getName()), true);
         });
     }
 
@@ -489,15 +488,13 @@ public class xdAbsoluteMastery {
         return false; // all paths mastered or none unlocked, no restriction
     }
 
-    private static final String MUST_SELECT_MSG = "Debes elegir una maestría antes de realizar acciones. Presiona M para abrir el menú.";
-
-    public static void sendWarning(Player player, String message) {
+    public static void sendWarning(Player player, Component message) {
         long now = System.currentTimeMillis();
-        String key = player.getUUID().toString() + "_" + message;
+        String key = player.getUUID().toString() + "_" + message.getString();
         Long last = COOLDOWNS.get(key);
         if (last == null || (now - last) >= 5000) {
             COOLDOWNS.put(key, now);
-            player.sendSystemMessage(Component.literal(message).withStyle(net.minecraft.ChatFormatting.RED));
+            player.sendSystemMessage(message.copy().withStyle(net.minecraft.ChatFormatting.RED));
         }
     }
 
@@ -518,9 +515,9 @@ public class xdAbsoluteMastery {
 
     public static void sendItemWarning(Player player, ItemStack stack) {
         if (isWeapon(stack)) {
-            sendWarning(player, "Esta arma no tiene efecto bajo tu maestría");
+            sendWarning(player, Component.translatable("xam.msg.weapon_no_effect"));
         } else {
-            sendWarning(player, "Esta herramienta no tiene efecto bajo tu maestría");
+            sendWarning(player, Component.translatable("xam.msg.tool_no_effect"));
         }
     }
 
@@ -915,7 +912,7 @@ public class xdAbsoluteMastery {
                             updateArmorModifiers(player);
                         });
                     }
-                    context.getSource().sendSuccess(() -> Component.literal("Configuración de maestrías recargada y sincronizada correctamente."), true);
+                    context.getSource().sendSuccess(() -> Component.translatable("xam.msg.reload_success"), true);
                     return 1;
                 })
             );
@@ -980,17 +977,17 @@ public class xdAbsoluteMastery {
                 .executes(context -> {
                     net.minecraft.commands.CommandSourceStack source = context.getSource();
                     boolean isOp = source.hasPermission(2);
-                    source.sendSuccess(() -> Component.literal("=== Comandos de xd Absolute Mastery ==="), false);
-                    source.sendSuccess(() -> Component.literal("/xam info [jugador] - Muestra información de maestría del jugador."), false);
-                    source.sendSuccess(() -> Component.literal("/xam progress [jugador] - Muestra el progreso de requisitos actuales."), false);
-                    source.sendSuccess(() -> Component.literal("/xam help - Muestra esta lista de ayuda."), false);
+                    source.sendSuccess(() -> Component.translatable("xam.cmd.help_header"), false);
+                    source.sendSuccess(() -> Component.translatable("xam.cmd.help_info"), false);
+                    source.sendSuccess(() -> Component.translatable("xam.cmd.help_progress"), false);
+                    source.sendSuccess(() -> Component.translatable("xam.cmd.help_help"), false);
                     if (isOp) {
-                        source.sendSuccess(() -> Component.literal("/xam dev - Activa/desactiva el modo desarrollador (sin restricciones)."), false);
-                        source.sendSuccess(() -> Component.literal("/xam select <rama_id> [jugador] - Selecciona una rama activa."), false);
-                        source.sendSuccess(() -> Component.literal("/xam master <rama_id> [true/false] [jugador] - Domina o desmarca una rama."), false);
-                        source.sendSuccess(() -> Component.literal("/xam complete_req <requisito_id> [jugador] - Completa un requisito manual."), false);
-                        source.sendSuccess(() -> Component.literal("/xam reset <jugador> - Restablece todo el progreso de maestría."), false);
-                        source.sendSuccess(() -> Component.literal("/xam reload - Recarga la configuración xam_paths.json desde disco."), false);
+                        source.sendSuccess(() -> Component.translatable("xam.cmd.help_dev"), false);
+                        source.sendSuccess(() -> Component.translatable("xam.cmd.help_select"), false);
+                        source.sendSuccess(() -> Component.translatable("xam.cmd.help_master"), false);
+                        source.sendSuccess(() -> Component.translatable("xam.cmd.help_complete_req"), false);
+                        source.sendSuccess(() -> Component.translatable("xam.cmd.help_reset"), false);
+                        source.sendSuccess(() -> Component.translatable("xam.cmd.help_reload"), false);
                     }
                     return 1;
                 })
@@ -1020,7 +1017,7 @@ public class xdAbsoluteMastery {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     if (mustSelectPath(player, data)) {
                         event.setAmount(1.0f);
-                        sendWarning(player, MUST_SELECT_MSG);
+                        sendWarning(player, Component.translatable("xam.msg.must_select_path"));
                         return;
                     }
                     ItemStack mainHand = player.getMainHandItem();
@@ -1041,7 +1038,7 @@ public class xdAbsoluteMastery {
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                 if (mustSelectPath(player, data)) {
                     event.setNewSpeed(0.0f);
-                    sendWarning(player, MUST_SELECT_MSG);
+                    sendWarning(player, Component.translatable("xam.msg.must_select_path"));
                     return;
                 }
                 ItemStack mainHand = player.getMainHandItem();
@@ -1061,7 +1058,7 @@ public class xdAbsoluteMastery {
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                 if (mustSelectPath(player, data)) {
                     event.setCanceled(true);
-                    sendWarning(player, MUST_SELECT_MSG);
+                    sendWarning(player, Component.translatable("xam.msg.must_select_path"));
                     return;
                 }
                 ItemStack mainHand = player.getMainHandItem();
@@ -1081,7 +1078,7 @@ public class xdAbsoluteMastery {
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                 if (mustSelectPath(player, data)) {
                     event.setCanceled(true);
-                    sendWarning(player, MUST_SELECT_MSG);
+                    sendWarning(player, Component.translatable("xam.msg.must_select_path"));
                     return;
                 }
                 ItemStack stack = event.getItemStack();
@@ -1101,7 +1098,7 @@ public class xdAbsoluteMastery {
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                 if (mustSelectPath(player, data)) {
                     event.setCanceled(true);
-                    sendWarning(player, MUST_SELECT_MSG);
+                    sendWarning(player, Component.translatable("xam.msg.must_select_path"));
                     return;
                 }
                 ItemStack stack = event.getItemStack();
@@ -1121,7 +1118,7 @@ public class xdAbsoluteMastery {
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                 if (mustSelectPath(player, data)) {
                     event.setCanceled(true);
-                    sendWarning(player, MUST_SELECT_MSG);
+                    sendWarning(player, Component.translatable("xam.msg.must_select_path"));
                     return;
                 }
                 ItemStack stack = event.getItemStack();
@@ -1165,7 +1162,7 @@ public class xdAbsoluteMastery {
                             if (slot.getType() == EquipmentSlot.Type.ARMOR) {
                                 ItemStack armorStack = player.getItemBySlot(slot);
                                 if (!armorStack.isEmpty() && !isItemValid(armorStack, data)) {
-                                    sendWarning(player, "Tu maestría rechaza esta armadura, no te protegerá");
+                                    sendWarning(player, Component.translatable("xam.msg.armor_rejected"));
                                     break; // Only send one warning per check
                                 }
                             }
@@ -1850,8 +1847,8 @@ public class xdAbsoluteMastery {
                                 }
                                 // Show custom premium left-aligned client-side toast notification
                                 mc.getToasts().addToast(new MasteryCompletionToast(
-                                        Component.literal("¡Maestría Completada!"),
-                                        Component.literal("Has dominado: " + pathName),
+                                        Component.translatable("xam.toast.mastery_completed"),
+                                        Component.translatable("xam.toast.mastered_format", pathName),
                                         iconStack
                                 ));
                                 break;
@@ -2041,11 +2038,11 @@ public class xdAbsoluteMastery {
                         }
 
                         if (mustSelectPath(player, data)) {
-                            event.getToolTip().add(Component.literal("✖ Bloqueado - Elige maestría").withStyle(net.minecraft.ChatFormatting.RED));
+                            event.getToolTip().add(Component.translatable("xam.msg.locked_choose_mastery").withStyle(net.minecraft.ChatFormatting.RED));
                         } else if (reqPathName != null) {
-                            event.getToolTip().add(Component.literal("✖ Bloqueado - Requiere maestría: " + reqPathName).withStyle(net.minecraft.ChatFormatting.RED));
+                            event.getToolTip().add(Component.translatable("xam.msg.locked_requires_mastery", reqPathName).withStyle(net.minecraft.ChatFormatting.RED));
                         } else {
-                            event.getToolTip().add(Component.literal("✖ Bloqueado - Incompatible con tu maestría").withStyle(net.minecraft.ChatFormatting.RED));
+                            event.getToolTip().add(Component.translatable("xam.msg.locked_incompatible").withStyle(net.minecraft.ChatFormatting.RED));
                         }
                     }
                 });

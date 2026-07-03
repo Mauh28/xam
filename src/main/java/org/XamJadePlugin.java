@@ -53,11 +53,11 @@ public class XamJadePlugin implements IWailaPlugin {
                         }
 
                         if (xdAbsoluteMastery.mustSelectPath(player, data)) {
-                            tooltip.add(Component.literal("✖ Bloqueado - Elige maestría").withStyle(ChatFormatting.RED));
+                            tooltip.add(Component.translatable("xam.msg.locked_choose_mastery").withStyle(ChatFormatting.RED));
                         } else if (reqPathName != null) {
-                            tooltip.add(Component.literal("✖ Bloqueado - Requiere maestría: " + reqPathName).withStyle(ChatFormatting.RED));
+                            tooltip.add(Component.translatable("xam.msg.locked_requires_mastery", reqPathName).withStyle(ChatFormatting.RED));
                         } else {
-                            tooltip.add(Component.literal("✖ Bloqueado - Incompatible con tu maestría").withStyle(ChatFormatting.RED));
+                            tooltip.add(Component.translatable("xam.msg.locked_incompatible").withStyle(ChatFormatting.RED));
                         }
                     }
                 });
@@ -93,11 +93,11 @@ public class XamJadePlugin implements IWailaPlugin {
                         }
 
                         if (xdAbsoluteMastery.mustSelectPath(player, data)) {
-                            tooltip.add(Component.literal("✖ Bloqueado - Elige maestría").withStyle(ChatFormatting.RED));
+                            tooltip.add(Component.translatable("xam.msg.locked_choose_mastery").withStyle(ChatFormatting.RED));
                         } else if (reqPathName != null) {
-                            tooltip.add(Component.literal("✖ Bloqueado - Requiere maestría: " + reqPathName).withStyle(ChatFormatting.RED));
+                            tooltip.add(Component.translatable("xam.msg.locked_requires_mastery", reqPathName).withStyle(ChatFormatting.RED));
                         } else {
-                            tooltip.add(Component.literal("✖ Bloqueado - Incompatible con tu maestría").withStyle(ChatFormatting.RED));
+                            tooltip.add(Component.translatable("xam.msg.locked_incompatible").withStyle(ChatFormatting.RED));
                         }
                         return; // Done
                     }
@@ -112,7 +112,7 @@ public class XamJadePlugin implements IWailaPlugin {
                         for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
                             if (path.mod_id != null && path.mod_id.equals(namespace)) {
                                 if (xdAbsoluteMastery.mustSelectPath(player, data)) {
-                                    tooltip.add(Component.literal("✖ Bloqueado - Elige maestría").withStyle(ChatFormatting.RED));
+                                    tooltip.add(Component.translatable("xam.msg.locked_choose_mastery").withStyle(ChatFormatting.RED));
                                     return;
                                 }
                                 
@@ -126,7 +126,7 @@ public class XamJadePlugin implements IWailaPlugin {
                                 }
                                 
                                 if (!hasPathActiveOrMastered && !data.isDevMode()) {
-                                    tooltip.add(Component.literal("✖ Requiere maestría: " + path.name).withStyle(ChatFormatting.RED));
+                                    tooltip.add(Component.translatable("xam.msg.jade_requires_mastery", path.name).withStyle(ChatFormatting.RED));
                                 }
                                 break;
                             }

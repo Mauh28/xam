@@ -50,7 +50,7 @@
   "xam.msg.req_not_in_path": "El requisito '%s' no pertenece a la maestría activa '%s'.",
   "xam.msg.req_completed_success": "Requisito '%s' marcado como completado para %s",
 
-  "xam.req_type.craft": "Craftear %s",
+  "xam.req_type.craft": "Fabricar %s",
   "xam.req_type.collect": "Recolectar %s",
   "xam.req_type.combat": "Derrotar %s",
   "xam.req_type.advancement": "Completar logro %s",

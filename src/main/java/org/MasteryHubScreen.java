@@ -9,14 +9,14 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     private double scrollY = 0;
 
     public MasteryHubScreen(PlayerData playerData) {
-        super(Component.literal("Sistema de Maestría"));
+        super(Component.translatable("xam.screen.mastery_hub.title"));
         this.playerData = playerData;
     }
 
     @Override
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
-        graphics.drawString(this.font, "SISTEMA DE MAESTRÍA", containerX + 15, titleY, TEXT_SECONDARY, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.header").getString(), containerX + 15, titleY, TEXT_SECONDARY, false);
         drawCloseButton(graphics, mouseX, mouseY);
     }
 
@@ -30,11 +30,11 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
         if (isOp) {
             int totalW = btnW + 20 + btnW;
             int startX = containerX + (containerW - totalW) / 2;
-            drawFlatButton(graphics, startX, btnY, btnW, btnH, "Elegir Rama", mouseX, mouseY, true, false);
-            drawFlatButton(graphics, startX + btnW + 20, btnY, btnW, btnH, "[OP] Editor Maestrías", mouseX, mouseY, true, true);
+            drawFlatButton(graphics, startX, btnY, btnW, btnH, Component.translatable("xam.screen.mastery_hub.choose_branch").getString(), mouseX, mouseY, true, false);
+            drawFlatButton(graphics, startX + btnW + 20, btnY, btnW, btnH, Component.translatable("xam.screen.mastery_hub.op_editor").getString(), mouseX, mouseY, true, true);
         } else {
             int startX = containerX + (containerW - btnW) / 2;
-            drawFlatButton(graphics, startX, btnY, btnW, btnH, "Elegir Rama", mouseX, mouseY, true, false);
+            drawFlatButton(graphics, startX, btnY, btnW, btnH, Component.translatable("xam.screen.mastery_hub.choose_branch").getString(), mouseX, mouseY, true, false);
         }
     }
 
@@ -56,7 +56,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
 
         // --- LEFT PANEL: Active branch progress & mastered list ---
         drawFlatPanel(graphics, leftX, leftY, leftW, leftH, currentWidgetBg, currentBorderStd);
-        graphics.drawString(this.font, "PROGRESO", leftX + 12, leftY + 10, COLOR_BRASS, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.progress").getString(), leftX + 12, leftY + 10, COLOR_BRASS, false);
 
         String activePathId = playerData != null ? playerData.getCurrentPath() : null;
         xdAbsoluteMastery.ConfigManager.PathInfo activePath = null;
@@ -108,8 +108,8 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             int pctInt = (int) (pct * 100);
 
             // Progress text
-            graphics.drawString(this.font, "Completado: " + pctInt + "%", leftX + 12, leftY + 54, COLOR_BRASS, false);
-            graphics.drawString(this.font, completedReqs + " / " + totalReqs + " tareas", leftX + 12, leftY + 66, TEXT_SECONDARY, false);
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.completed_format", pctInt).getString(), leftX + 12, leftY + 54, COLOR_BRASS, false);
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.tasks_format", completedReqs, totalReqs).getString(), leftX + 12, leftY + 66, TEXT_SECONDARY, false);
 
             // Progress bar box
             int barX = leftX + 12;
@@ -122,13 +122,13 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 graphics.fill(barX + 1, barY + 1, barX + fillW - 1, barY + barH - 1, COLOR_COPPER);
             }
         } else {
-            graphics.drawString(this.font, "Ninguna Rama Activa", leftX + 12, leftY + 30, TEXT_MUTED, false);
-            graphics.drawString(this.font, "Selecciona una en 'Elegir Rama'", leftX + 12, leftY + 45, TEXT_SECONDARY, false);
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.no_active_branch").getString(), leftX + 12, leftY + 30, TEXT_MUTED, false);
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.select_branch_tip").getString(), leftX + 12, leftY + 45, TEXT_SECONDARY, false);
         }
 
         // Ramas Empezadas list
         int empY = leftY + 98;
-        graphics.drawString(this.font, "EN PROGRESO", leftX + 12, empY, COLOR_BRASS, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.in_progress").getString(), leftX + 12, empY, COLOR_BRASS, false);
         graphics.fill(leftX + 12, empY + 11, leftX + leftW - 12, empY + 12, 0xFF2C221D);
 
         int empListStartY = empY + 16;
@@ -165,12 +165,12 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             }
         }
         if (empCount == 0) {
-            graphics.drawString(this.font, "Ninguna", leftX + 12, empListStartY, TEXT_MUTED, false);
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.none").getString(), leftX + 12, empListStartY, TEXT_MUTED, false);
         }
 
         // Ramas Dominadas list
         int domY = leftY + 152;
-        graphics.drawString(this.font, "RAMAS DOMINADAS", leftX + 12, domY, COLOR_BRASS, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.mastered_branches").getString(), leftX + 12, domY, COLOR_BRASS, false);
         graphics.fill(leftX + 12, domY + 11, leftX + leftW - 12, domY + 12, 0xFF2C221D);
 
         int domListStartY = domY + 16;
@@ -205,16 +205,16 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             }
         }
         if (domCount == 0) {
-            graphics.drawString(this.font, "Ninguna", leftX + 12, domListStartY, TEXT_MUTED, false);
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.none").getString(), leftX + 12, domListStartY, TEXT_MUTED, false);
         }
 
         // --- RIGHT PANEL: Tasks details list ---
         drawFlatPanel(graphics, rightX, rightY, rightW, rightH, currentWidgetBg, currentBorderStd);
-        graphics.drawString(this.font, "TAREAS Y REQUISITOS", rightX + 15, rightY + 10, COLOR_BRASS, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.tasks_and_requirements").getString(), rightX + 15, rightY + 10, COLOR_BRASS, false);
 
         if (activePath == null) {
-            graphics.drawCenteredString(this.font, "No hay tareas activas disponibles.", rightX + rightW / 2, rightY + rightH / 2 - 10, TEXT_MUTED);
-            graphics.drawCenteredString(this.font, "Equipa una rama para comenzar tu camino.", rightX + rightW / 2, rightY + rightH / 2 + 5, TEXT_SECONDARY);
+            graphics.drawCenteredString(this.font, Component.translatable("xam.screen.mastery_hub.no_active_tasks").getString(), rightX + rightW / 2, rightY + rightH / 2 - 10, TEXT_MUTED);
+            graphics.drawCenteredString(this.font, Component.translatable("xam.screen.mastery_hub.start_tip").getString(), rightX + rightW / 2, rightY + rightH / 2 + 5, TEXT_SECONDARY);
         } else {
             int listX = rightX + 15;
             int listY = rightY + 26;
@@ -293,7 +293,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                     if (item != null && item != net.minecraft.world.item.Items.AIR) {
                         net.minecraft.world.item.ItemStack dummyStack = new net.minecraft.world.item.ItemStack(item);
                         boolean isAvailable = xdAbsoluteMastery.isItemValid(dummyStack, playerData);
-                        String availText = isAvailable ? "DISPONIBLE" : "BLOQUEADO";
+                        String availText = isAvailable ? Component.translatable("xam.screen.mastery_hub.available").getString() : Component.translatable("xam.screen.mastery_hub.locked").getString();
                         int availCol = isAvailable ? 0xFF55FF55 : 0xFFFF5555;
                         int availBorder = isAvailable ? 0xFF2A593E : 0xFF592A2A;
                         int availBg = isAvailable ? 0xFF152615 : 0xFF2A1515;
