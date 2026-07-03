@@ -36,11 +36,24 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
      * Los demás generan sufijos válidos para isDependencyMet (xdAbsoluteMastery.java:424).
      */
     private static final String[] AMOUNT_SUFFIX = {"", ":1", ":2", ":3", ":25%", ":50%", ":75%"};
-    private static final String[] AMOUNT_LABEL  = {"Dominar", "1 req", "2 reqs", "3 reqs", "25%", "50%", "75%"};
+    private static final String[] AMOUNT_LABEL_KEYS  = {
+        "xam.editor.dependency.master",
+        "xam.editor.dependency.1_req",
+        "xam.editor.dependency.2_reqs",
+        "xam.editor.dependency.3_reqs",
+        "xam.editor.dependency.pct_25",
+        "xam.editor.dependency.pct_50",
+        "xam.editor.dependency.pct_75"
+    };
+
+    private static String getAmountLabel(int index) {
+        if (index < 0 || index >= AMOUNT_LABEL_KEYS.length) return "";
+        return Component.translatable(AMOUNT_LABEL_KEYS[index]).getString();
+    }
 
     public DependencySelectionScreen(Screen parent, String excludeId, List<PathInfo> sources,
                                      List<String> existing, Consumer<List<String>> onSelect) {
-        super(parent, Component.literal("Seleccionar Dependencias"), null);
+        super(parent, Component.translatable("xam.screen.dependency_selection.title"), null);
         this.excludeId = excludeId;
         this.onSave = onSelect;
         // Pre-marca como seleccionadas las dependencias que YA tenía la rama editada,
@@ -100,7 +113,7 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
         // Nombre + nº de requisitos
         boolean selected = amountIndex.containsKey(p.id);
         int nameColor = selected ? COLOR_BRASS : (hovered ? TEXT_PRIMARY : TEXT_SECONDARY);
-        String label = p.name + "  (" + p.requirements.size() + " reqs)";
+        String label = Component.translatable("xam.screen.dependency_selection.reqs_count", p.name, p.requirements.size()).getString();
         g.drawString(this.font, label, x + 24, y + 6, nameColor, false);
 
         // Checkbox visual a la izquierda del icono
@@ -108,7 +121,7 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
 
         // Chip cíclico de cantidad (sólo si está seleccionada), alineado a la derecha de la fila
         if (selected) {
-            String chip = AMOUNT_LABEL[amountIndex.get(p.id)] + " ▸";
+            String chip = getAmountLabel(amountIndex.get(p.id)) + " ▸";
             int chipW = this.font.width(chip) + 12;
             int chipH = entryHeight - 4;
             int chipX = x + (containerW - 40) - chipW - 4;
@@ -154,7 +167,7 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
     private boolean clickedOnAmountChip(PathInfo p, int entryY) {
         int panelX = containerX;
         int entryX = panelX + 20;
-        String chip = AMOUNT_LABEL[amountIndex.get(p.id)] + " ▸";
+        String chip = getAmountLabel(amountIndex.get(p.id)) + " ▸";
         int chipW = this.font.width(chip) + 12;
         int chipH = entryHeight - 4;
         int chipX = entryX + (containerW - 40) - chipW - 4;
@@ -170,10 +183,10 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
         int startX = containerX + containerW - 15 - (btnW * 2 + 10);
         int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
 
-        drawFlatButton(graphics, startX, btnY, btnW, btnH, "Cancelar", mouseX, mouseY, true);
+        drawFlatButton(graphics, startX, btnY, btnW, btnH, Component.translatable("xam.editor.cancel").getString(), mouseX, mouseY, true);
 
         boolean hasSelection = !amountIndex.isEmpty();
-        String saveText = "Guardar (" + amountIndex.size() + ")";
+        String saveText = Component.translatable("xam.editor.save_format", amountIndex.size()).getString();
         drawFlatButton(graphics, startX + btnW + 10, btnY, btnW, btnH, saveText, mouseX, mouseY, hasSelection, true);
     }
 

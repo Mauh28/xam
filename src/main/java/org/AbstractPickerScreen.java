@@ -55,7 +55,7 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
         int searchY = bodyY + (showFilter ? 37 : 10);
 
         // searchBox is designed borderless within drawFlatPanel
-        this.searchBox = new EditBox(this.font, panelX + 36, searchY + 4, containerW - 74, 12, Component.literal("Buscar..."));
+        this.searchBox = new EditBox(this.font, panelX + 36, searchY + 4, containerW - 74, 12, Component.translatable("xam.editor.search_placeholder"));
         this.searchBox.setBordered(false);
         this.searchBox.setTextColor(TEXT_PRIMARY);
         this.searchBox.setResponder(text -> {
@@ -95,7 +95,7 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
         int btnX = containerX + containerW - 15 - btnW;
         int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
 
-        drawFlatButton(graphics, btnX, btnY, btnW, btnH, "Cancelar", mouseX, mouseY, true);
+        drawFlatButton(graphics, btnX, btnY, btnW, btnH, Component.translatable("xam.editor.cancel").getString(), mouseX, mouseY, true);
     }
 
     @Override
@@ -122,7 +122,8 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
             int bgBottom = adjustColorBrightness(bg, -15);
             drawGradientPanel(guiGraphics, btnX, btnY, btnW, btnH, bgTop, bgBottom, border);
             
-            String btnText = "Mod: " + selectedModFilter;
+            String displayFilter = selectedModFilter.equals("Todos") ? Component.translatable("xam.editor.all").getString() : selectedModFilter;
+            String btnText = Component.translatable("xam.editor.mod_filter_label", displayFilter).getString();
             int textX = btnX + (btnW - this.font.width(btnText)) / 2;
             int textY = btnY + (btnH - 8) / 2;
             guiGraphics.drawString(this.font, btnText, textX, textY, hovered ? TEXT_PRIMARY : TEXT_SECONDARY, false);

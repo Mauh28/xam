@@ -31,7 +31,7 @@ public class AdvancementSelectionScreen extends AbstractPickerScreen<Advancement
     private final java.util.List<AdvancementSearchEntry> cachedEntries = new java.util.ArrayList<>();
 
     public AdvancementSelectionScreen(Screen parent, Consumer<Advancement> onSelect) {
-        super(parent, Component.literal("Seleccionar Logro"), onSelect);
+        super(parent, Component.translatable("xam.screen.advancement_selection.title"), onSelect);
     }
 
     @Override

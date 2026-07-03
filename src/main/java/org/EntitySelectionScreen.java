@@ -31,7 +31,7 @@ public class EntitySelectionScreen extends AbstractPickerScreen<EntityType<?>> {
     private final java.util.List<EntitySearchEntry> cachedEntries = new java.util.ArrayList<>();
 
     public EntitySelectionScreen(Screen parent, Consumer<EntityType<?>> onSelect) {
-        super(parent, Component.literal("Seleccionar Entidad"), onSelect);
+        super(parent, Component.translatable("xam.screen.entity_selection.title"), onSelect);
         this.entryHeight = 32;
     }
 

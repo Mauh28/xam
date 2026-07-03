@@ -151,7 +151,7 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
     @Override
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
-        graphics.drawString(this.font, "EDITAR REQUISITO", containerX + 15, titleY, TEXT_PRIMARY, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.requirement_edit.title").getString(), containerX + 15, titleY, TEXT_PRIMARY, false);
         drawBackButton(graphics, mouseX, mouseY);
     }
 
@@ -168,8 +168,8 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         int startX = containerX + containerW - 15 - (btnW * 2 + 10);
         int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
 
-        drawFlatButton(graphics, startX, btnY, btnW, btnH, "Cancelar", mouseX, mouseY, true);
-        drawFlatButton(graphics, startX + btnW + 10, btnY, btnW, btnH, "Guardar", mouseX, mouseY, true, true);
+        drawFlatButton(graphics, startX, btnY, btnW, btnH, Component.translatable("xam.editor.cancel").getString(), mouseX, mouseY, true);
+        drawFlatButton(graphics, startX + btnW + 10, btnY, btnW, btnH, Component.translatable("xam.editor.save").getString(), mouseX, mouseY, true, true);
     }
 
     @Override
@@ -177,8 +177,8 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         super.render(graphics, mouseX, mouseY, partialTick);
 
         // Labels
-        graphics.drawString(this.font, "Nombre", nameX, nameY - 11, TEXT_MUTED, false);
-        graphics.drawString(this.font, "Descripción", nameX, descY - 11, TEXT_MUTED, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.requirement_edit.name").getString(), nameX, nameY - 11, TEXT_MUTED, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.requirement_edit.description").getString(), nameX, descY - 11, TEXT_MUTED, false);
 
         // Input Background Panels — highlight red if validation failed and field is empty
         boolean nameEmpty = nameEdit != null && nameEdit.getValue().trim().isEmpty();
@@ -189,10 +189,10 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         drawFlatPanel(graphics, nameX, descY, nameW, 20, INPUT_BACKGROUND, descBorder);
 
         // Tipo & ID section
-        graphics.drawString(this.font, "Objetivo (ID)", idX, idY - 11, TEXT_MUTED, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.requirement_edit.target_id").getString(), idX, idY - 11, TEXT_MUTED, false);
 
         // Draw Tipo Button
-        String typeLabel = "Tipo: " + requirement.type.toUpperCase();
+        String typeLabel = Component.translatable("xam.screen.requirement_edit.type_format", requirement.type.toUpperCase()).getString();
         drawFlatButton(graphics, typeX, typeY, typeW, 20, typeLabel, mouseX, mouseY, true);
 
         // Draw ID Panel — highlight red if empty
@@ -201,10 +201,10 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         drawFlatPanel(graphics, idX, idY, idW, 20, INPUT_BACKGROUND, idBorder);
 
         // Draw Cambiar Objetivo Button
-        drawFlatButton(graphics, changeBtnX, changeBtnY, changeBtnW, 20, "Cambiar", mouseX, mouseY, true);
+        drawFlatButton(graphics, changeBtnX, changeBtnY, changeBtnW, 20, Component.translatable("xam.screen.requirement_edit.btn.change").getString(), mouseX, mouseY, true);
 
         // Dependencias section
-        graphics.drawString(this.font, "Dependencias del Requisito (ej. botania:1, mekanism:2)", depsX, depsY - 11, TEXT_MUTED, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.requirement_edit.dependencies").getString(), depsX, depsY - 11, TEXT_MUTED, false);
         drawFlatPanel(graphics, depsX, depsY, depsEditW, 20, INPUT_BACKGROUND, BORDER_STANDARD);
 
         boolean depsBtnHovered = mouseX >= depsBtnX && mouseX < depsBtnX + 20 && mouseY >= depsY && mouseY < depsY + 20;
@@ -275,7 +275,7 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
                 boolean descOk = !requirement.description.trim().isEmpty();
                 boolean idOk = !requirement.id.trim().isEmpty();
                 if (!nameOk || !descOk || !idOk) {
-                    errorMsg = "✕ Completa todos los campos antes de guardar";
+                    errorMsg = Component.translatable("xam.screen.requirement_edit.error_empty_fields").getString();
                     return true;
                 }
                 errorMsg = null;
@@ -295,30 +295,30 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         if (req.type.equals("craft")) {
             req.type = "collect";
             if (isItem(currentId)) {
-                req.description = "Recoge " + currentName;
+                req.description = Component.translatable("xam.editor.desc.collect", currentName).getString();
             } else {
                 req.id = "minecraft:dirt";
-                req.name = "Recoger Tierra";
-                req.description = "Recoge un bloque de tierra";
+                req.name = Component.translatable("xam.editor.default.collect_dirt_name").getString();
+                req.description = Component.translatable("xam.editor.default.collect_dirt_desc").getString();
             }
         } else if (req.type.equals("collect")) {
             req.type = "kill";
             req.id = "minecraft:zombie";
             req.name = "Zombie";
-            req.description = "Derrota a Zombie";
+            req.description = Component.translatable("xam.editor.desc.kill", req.name).getString();
         } else if (req.type.equals("kill")) {
             req.type = "advancement";
             req.id = "minecraft:story/root";
             req.name = "Minecraft";
-            req.description = "Completa el logro Minecraft";
+            req.description = Component.translatable("xam.editor.desc.advancement", req.name).getString();
         } else {
             req.type = "craft";
             if (isItem(currentId)) {
-                req.description = "Craftea " + currentName;
+                req.description = Component.translatable("xam.editor.desc.craft", currentName).getString();
             } else {
                 req.id = "minecraft:dirt";
-                req.name = "Craftear Tierra";
-                req.description = "Craftea un bloque de tierra";
+                req.name = Component.translatable("xam.editor.default.craft_dirt_name").getString();
+                req.description = Component.translatable("xam.editor.default.craft_dirt_desc").getString();
             }
         }
         if (idEdit != null) idEdit.setValue(req.id);
@@ -346,7 +346,7 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
                     titleText = Character.toUpperCase(titleText.charAt(0)) + titleText.substring(1);
                 }
                 req.name = titleText;
-                req.description = adv.getDisplay() != null ? adv.getDisplay().getDescription().getString() : "Completa el logro " + titleText;
+                req.description = adv.getDisplay() != null ? adv.getDisplay().getDescription().getString() : Component.translatable("xam.editor.desc.advancement", titleText).getString();
                 mc.setScreen(this);
             }));
         } else if (req.type.equals("craft") || req.type.equals("collect")) {
@@ -357,9 +357,9 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
                     String friendlyName = item.getDescription().getString();
                     req.name = friendlyName;
                     if (req.type.equals("craft")) {
-                        req.description = "Craftea " + friendlyName;
+                        req.description = Component.translatable("xam.editor.desc.craft", friendlyName).getString();
                     } else {
-                        req.description = "Recoge " + friendlyName;
+                        req.description = Component.translatable("xam.editor.desc.collect", friendlyName).getString();
                     }
                 }
                 mc.setScreen(this);
@@ -371,7 +371,7 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
                     req.id = rl.toString();
                     String friendlyName = type.getDescription().getString();
                     req.name = friendlyName;
-                    req.description = "Derrota a " + friendlyName;
+                    req.description = Component.translatable("xam.editor.desc.kill", friendlyName).getString();
                 }
                 mc.setScreen(this);
             }));

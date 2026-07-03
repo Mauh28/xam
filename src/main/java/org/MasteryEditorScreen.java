@@ -244,7 +244,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     @Override
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
-        graphics.drawString(this.font, "EDITOR DE MAESTRÍAS", containerX + 15, titleY, COLOR_BRASS, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.mastery_editor.title").getString(), containerX + 15, titleY, COLOR_BRASS, false);
         drawBackButton(graphics, mouseX, mouseY);
     }
 
@@ -262,14 +262,12 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             graphics.drawString(this.font, saveNotificationMsg, containerX + 15, msgY, notifColor, false);
         }
 
-
-
         // Custom Discard button (dark red/grey)
         boolean discHovered = mouseX >= startX && mouseX < startX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
         int discBg = discHovered ? 0xFF2A1C1A : 0xFF1C1312;
         int discBorder = discHovered ? 0xFFFF5555 : 0xFF3E2D2B;
         drawFlatPanel(graphics, startX, btnY, btnW, btnH, discBg, discBorder);
-        graphics.drawCenteredString(this.font, "Descartar Todo", startX + btnW / 2, btnY + 6, discHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
+        graphics.drawCenteredString(this.font, Component.translatable("xam.screen.mastery_editor.discard_all").getString(), startX + btnW / 2, btnY + 6, discHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
 
         // Custom Save button (copper/brass)
         int saveX = startX + btnW + 10;
@@ -277,7 +275,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int saveBg = saveHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
         int saveBorder = saveHovered ? COLOR_BRASS : 0xFF2C221D;
         drawFlatPanel(graphics, saveX, btnY, btnW, btnH, saveBg, saveBorder);
-        graphics.drawCenteredString(this.font, "Guardar Estructura", saveX + btnW / 2, btnY + 6, TEXT_PRIMARY);
+        graphics.drawCenteredString(this.font, Component.translatable("xam.screen.mastery_editor.save_structure").getString(), saveX + btnW / 2, btnY + 6, TEXT_PRIMARY);
     }
 
     @Override
@@ -295,7 +293,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         graphics.fill(sidebarX + sidebarW, sidebarY, sidebarX + sidebarW + 2, sidebarY + sidebarH, COLOR_COPPER);
 
         // Sidebar title
-        graphics.drawString(this.font, "RAMAS", sidebarX + 15, sidebarY + 10, COLOR_BRASS, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.mastery_editor.branches").getString(), sidebarX + 15, sidebarY + 10, COLOR_BRASS, false);
 
         // Render sidebar branch items
         int listX = sidebarX + 10;
@@ -356,7 +354,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int addBg = addHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
         int addBorder = addHovered ? COLOR_BRASS : 0xFF2C221D;
         drawFlatPanel(graphics, listX, addPathBtnY, btnHalfW, 18, addBg, addBorder);
-        graphics.drawCenteredString(this.font, "+ AÑADIR", listX + btnHalfW / 2, addPathBtnY + 5, TEXT_PRIMARY);
+        graphics.drawCenteredString(this.font, Component.translatable("xam.screen.mastery_editor.add_branch").getString(), listX + btnHalfW / 2, addPathBtnY + 5, TEXT_PRIMARY);
 
         // Button "- BORRAR"
         int delBtnX = listX + btnHalfW + 4;
@@ -364,7 +362,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int delBg = delBtnHovered ? 0xFF3A1111 : 0xFF140F0D;
         int delBorder = delBtnHovered ? 0xFFFF5555 : 0xFF2C221D;
         drawFlatPanel(graphics, delBtnX, addPathBtnY, btnHalfW, 18, delBg, delBorder);
-        graphics.drawCenteredString(this.font, "- BORRAR", delBtnX + btnHalfW / 2, addPathBtnY + 5, delBtnHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
+        graphics.drawCenteredString(this.font, Component.translatable("xam.screen.mastery_editor.delete_branch").getString(), delBtnX + btnHalfW / 2, addPathBtnY + 5, delBtnHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
 
         // --- RIGHT COLUMN (Editor - 75% of body width or more if narrow) ---
         int editorX = containerX + sidebarW + 2;
@@ -378,11 +376,11 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             drawFlatPanel(graphics, editorX + 10, bodyY + 5, editorW - 20, metadataFrameH, PANEL_INNER_BG, 0xFF2A201C);
 
             // Inputs Labels
-            graphics.drawString(this.font, "Icono", iconX, iconY - 11, COLOR_BRASS, false);
-            graphics.drawString(this.font, "Título", titleX, titleY - 11, COLOR_BRASS, false);
-            graphics.drawString(this.font, "Namespace MOD", modX, modY - 11, COLOR_BRASS, false);
-            graphics.drawString(this.font, "Dependencias de Rama (ej. botania:1)", depsX, secondY - 11, COLOR_BRASS, false);
-            graphics.drawString(this.font, "Regla de Cambio", minX, minY - 11, COLOR_BRASS, false);
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_editor.icon").getString(), iconX, iconY - 11, COLOR_BRASS, false);
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_editor.branch_title").getString(), titleX, titleY - 11, COLOR_BRASS, false);
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_editor.namespace_mod").getString(), modX, modY - 11, COLOR_BRASS, false);
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_editor.branch_dependencies").getString(), depsX, secondY - 11, COLOR_BRASS, false);
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_editor.switch_rule").getString(), minX, minY - 11, COLOR_BRASS, false);
 
             // Icon background panel
             int iconW = 20;
@@ -422,11 +420,11 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
 
             String ruleText = "";
             if (p.min_to_switch < 0) {
-                ruleText = "Dominar completa";
+                ruleText = Component.translatable("xam.editor.rule.master").getString();
             } else if (p.min_to_switch == 0) {
-                ruleText = "Cambio libre";
+                ruleText = Component.translatable("xam.editor.rule.free").getString();
             } else {
-                ruleText = p.min_to_switch + " tarea" + (p.min_to_switch > 1 ? "s" : "");
+                ruleText = Component.translatable("xam.editor.rule.tasks_format", p.min_to_switch).getString();
             }
             graphics.drawCenteredString(this.font, ruleText, minX + minW / 2, minY + 6, TEXT_PRIMARY);
 
@@ -445,8 +443,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             graphics.drawCenteredString(this.font, "...", browseX + 10, modY + 6, TEXT_PRIMARY);
 
             // Requisitos Section
-            graphics.drawString(this.font, "REQUISITOS", editorX + 20, reqTitleY, COLOR_BRASS, false);
-            int reqTitleW = this.font.width("REQUISITOS");
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_editor.requirements").getString(), editorX + 20, reqTitleY, COLOR_BRASS, false);
+            int reqTitleW = this.font.width(Component.translatable("xam.screen.mastery_editor.requirements").getString());
             graphics.fill(editorX + 20, reqTitleY + 10, editorX + 20 + reqTitleW, reqTitleY + 11, COLOR_COPPER);
 
             // Button "CONFIGURAR PERKS" with Cobre Ponder style
@@ -458,7 +456,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int perksBg = perksHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
             int perksBorder = perksHovered ? COLOR_BRASS : 0xFF2C221D;
             drawFlatPanel(graphics, perksBtnX, perksBtnY, perksBtnW, perksBtnH, perksBg, perksBorder);
-            graphics.drawCenteredString(this.font, "Perks", perksBtnX + perksBtnW / 2, perksBtnY + 4, TEXT_PRIMARY);
+            graphics.drawCenteredString(this.font, Component.translatable("xam.screen.mastery_editor.perks").getString(), perksBtnX + perksBtnW / 2, perksBtnY + 4, TEXT_PRIMARY);
 
             // Button "+ AÑADIR TAREA" with Cobre Ponder style
             int addReqBtnX = editorX + editorW - 120;
@@ -469,7 +467,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int addReqBg = addReqHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
             int addReqBorder = addReqHovered ? COLOR_BRASS : 0xFF2C221D;
             drawFlatPanel(graphics, addReqBtnX, addReqBtnY, addReqBtnW, addReqBtnH, addReqBg, addReqBorder);
-            graphics.drawCenteredString(this.font, "+ AÑADIR TAREA", addReqBtnX + addReqBtnW / 2, addReqBtnY + 4, TEXT_PRIMARY);
+            graphics.drawCenteredString(this.font, Component.translatable("xam.screen.mastery_editor.add_task").getString(), addReqBtnX + addReqBtnW / 2, addReqBtnY + 4, TEXT_PRIMARY);
 
             // Requirements Scissor Region & Scrollbar logic
             int startCardY = reqTitleY + 16;
@@ -953,7 +951,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     private void addPath() {
         PathInfo p = new PathInfo();
         p.id = "nueva_rama_" + (System.currentTimeMillis() % 1000);
-        p.name = "Nueva Rama";
+        p.name = Component.translatable("xam.editor.default.new_branch_name").getString();
         p.mod_id = "modid";
         p.icon = "minecraft:writable_book";
         p.requirements = new ArrayList<>();
@@ -1050,7 +1048,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     titleText = Character.toUpperCase(titleText.charAt(0)) + titleText.substring(1);
                 }
                 req.name = titleText;
-                req.description = adv.getDisplay() != null ? adv.getDisplay().getDescription().getString() : "Completa el logro " + titleText;
+                req.description = adv.getDisplay() != null ? adv.getDisplay().getDescription().getString() : Component.translatable("xam.editor.desc.advancement", titleText).getString();
                 if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
                     updateModIdFromRequirements(localPaths.get(selectedPathIndex));
                 }
@@ -1064,9 +1062,9 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     String friendlyName = item.getDescription().getString();
                     req.name = friendlyName;
                     if (req.type.equals("craft")) {
-                        req.description = "Craftea " + friendlyName;
+                        req.description = Component.translatable("xam.editor.desc.craft", friendlyName).getString();
                     } else {
-                        req.description = "Recoge " + friendlyName;
+                        req.description = Component.translatable("xam.editor.desc.collect", friendlyName).getString();
                     }
                 }
                 if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
@@ -1081,7 +1079,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     req.id = rl.toString();
                     String friendlyName = type.getDescription().getString();
                     req.name = friendlyName;
-                    req.description = "Derrota a " + friendlyName;
+                    req.description = Component.translatable("xam.editor.desc.kill", friendlyName).getString();
                 }
                 if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
                     updateModIdFromRequirements(localPaths.get(selectedPathIndex));
@@ -1096,25 +1094,25 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         for (int i = 0; i < localPaths.size(); i++) {
             PathInfo p = localPaths.get(i);
             if (p.name.trim().isEmpty()) {
-                showError("La rama #" + (i + 1) + " no tiene nombre");
+                showError(Component.translatable("xam.screen.mastery_editor.err_branch_no_name", i + 1).getString());
                 return;
             }
             if (p.mod_id.trim().isEmpty() || p.mod_id.equals("modid")) {
-                showError("'" + p.name + "' necesita un Namespace MOD válido");
+                showError(Component.translatable("xam.screen.mastery_editor.err_need_mod_id", p.name).getString());
                 return;
             }
             for (int j = 0; j < p.requirements.size(); j++) {
                 Requirement req = p.requirements.get(j);
                 if (req.id.trim().isEmpty()) {
-                    showError("Tarea #" + (j + 1) + " de '" + p.name + "' sin objetivo (ID)");
+                    showError(Component.translatable("xam.screen.mastery_editor.err_task_no_id", j + 1, p.name).getString());
                     return;
                 }
                 if (req.name.trim().isEmpty()) {
-                    showError("Tarea #" + (j + 1) + " de '" + p.name + "' sin nombre");
+                    showError(Component.translatable("xam.screen.mastery_editor.err_task_no_name", j + 1, p.name).getString());
                     return;
                 }
                 if (req.description.trim().isEmpty()) {
-                    showError("Tarea #" + (j + 1) + " de '" + p.name + "' sin descripción");
+                    showError(Component.translatable("xam.screen.mastery_editor.err_task_no_desc", j + 1, p.name).getString());
                     return;
                 }
             }
@@ -1123,7 +1121,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         String json = xdAbsoluteMastery.ConfigManager.serializePaths(localPaths);
         xdAbsoluteMastery.CHANNEL.sendToServer(new xdAbsoluteMastery.UpdateConfigPacket(json));
 
-        this.saveNotificationMsg = "✔ ¡Maestría guardada correctamente!";
+        this.saveNotificationMsg = "✔ " + Component.translatable("xam.screen.mastery_editor.save_success").getString();
         this.saveNotificationTime = System.currentTimeMillis();
     }
 
@@ -1141,7 +1139,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         private final Screen returnScreen;
 
         public ConfirmDeleteScreen(Screen parent, Runnable onConfirm, String targetName, Screen returnScreen) {
-            super(Component.literal("¿CONFIRMAR ELIMINACIÓN?"));
+            super(Component.translatable("xam.screen.mastery_editor.confirm_delete.title"));
             this.parent = parent;
             this.onConfirm = onConfirm;
             this.targetName = targetName;
@@ -1155,7 +1153,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         @Override
         protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
             int titleY = containerY + (headerH - 8) / 2;
-            graphics.drawString(this.font, "CONFIRMAR ELIMINACIÓN", containerX + 15, titleY, TEXT_PRIMARY, false);
+            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_editor.confirm_delete.header").getString(), containerX + 15, titleY, TEXT_PRIMARY, false);
             drawBackButton(graphics, mouseX, mouseY);
         }
 
@@ -1171,10 +1169,10 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int confirmBg = confirmHovered ? 0xFF3A1111 : 0xFF140F0D;
             int confirmBorder = confirmHovered ? 0xFFFF5555 : 0xFF2C221D;
             drawFlatPanel(graphics, startX, btnY, btnW, btnH, confirmBg, confirmBorder);
-            graphics.drawCenteredString(this.font, "Confirmar", startX + btnW / 2, btnY + 6, confirmHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
+            graphics.drawCenteredString(this.font, Component.translatable("xam.screen.mastery_editor.confirm_delete.btn_confirm").getString(), startX + btnW / 2, btnY + 6, confirmHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
 
             // Regresar button (standard copper)
-            drawFlatButton(graphics, startX + btnW + 10, btnY, btnW, btnH, "Regresar", mouseX, mouseY, true);
+            drawFlatButton(graphics, startX + btnW + 10, btnY, btnW, btnH, Component.translatable("xam.screen.mastery_editor.confirm_delete.btn_back").getString(), mouseX, mouseY, true);
         }
 
         @Override
@@ -1188,9 +1186,9 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
 
             drawFlatPanel(graphics, panelX, panelY, panelW, panelH, PANEL_INNER_BG, WARM_BORDER);
 
-            String text1 = "¿Estás seguro de que deseas borrar?";
+            String text1 = Component.translatable("xam.screen.mastery_editor.confirm_delete.warn_sure").getString();
             String text2 = "\"" + targetName + "\"?";
-            String text3 = "Esta acción no se puede deshacer.";
+            String text3 = Component.translatable("xam.screen.mastery_editor.confirm_delete.warn_undone").getString();
 
             graphics.drawCenteredString(this.font, text1, panelX + panelW / 2, panelY + 25, TEXT_PRIMARY);
             graphics.drawCenteredString(this.font, text2, panelX + panelW / 2, panelY + 45, COLOR_BRASS);
@@ -1235,7 +1233,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         private final List<String> selectedIds = new ArrayList<>();
 
         public DeleteMasteryScreen(MasteryEditorScreen editor) {
-            super(editor, Component.literal("SELECCIONAR MAESTRÍAS A BORRAR"), null);
+            super(editor, Component.translatable("xam.screen.mastery_editor.delete_mastery.title"), null);
             this.editor = editor;
         }
 
@@ -1296,10 +1294,10 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int startX = containerX + containerW - 15 - (btnW * 2 + 10);
             int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
 
-            drawFlatButton(graphics, startX, btnY, btnW, btnH, "Cancelar", mouseX, mouseY, true);
+            drawFlatButton(graphics, startX, btnY, btnW, btnH, Component.translatable("xam.editor.cancel").getString(), mouseX, mouseY, true);
 
             boolean hasSelection = !selectedIds.isEmpty();
-            String deleteText = "Borrar (" + selectedIds.size() + ")";
+            String deleteText = Component.translatable("xam.screen.mastery_editor.delete_mastery.btn_delete", selectedIds.size()).getString();
             // Borrar button uses danger hover style
             boolean delHovered = hasSelection && mouseX >= startX + btnW + 10 && mouseX < startX + btnW + 10 + btnW && mouseY >= btnY && mouseY < btnY + btnH;
             int delBg = delHovered ? 0xFF3A1111 : (hasSelection ? COLOR_COPPER : 0xFF181818);

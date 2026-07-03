@@ -13,7 +13,7 @@ public class ModSelectionScreen extends AbstractPickerScreen<String> {
     private boolean isDraggingGridScrollbar = false;
 
     public ModSelectionScreen(Screen parent, Consumer<String> onSelect) {
-        super(parent, Component.literal("Seleccionar Mod"), onSelect);
+        super(parent, Component.translatable("xam.screen.mod_selection.title"), onSelect);
     }
 
     @Override
@@ -151,9 +151,13 @@ public class ModSelectionScreen extends AbstractPickerScreen<String> {
 
                 // Draw mod ID/Name next to logo
                 String displayName = entry;
-                int textMaxW = colWidth - 46;
-                if (this.font.width(displayName) > textMaxW) {
-                    displayName = this.font.plainSubstrByWidth(displayName, textMaxW - 10) + "...";
+                if (entry.equals("Todos")) {
+                    displayName = Component.translatable("xam.screen.mod_selection.all_mods").getString();
+                } else {
+                    int textMaxW = colWidth - 46;
+                    if (this.font.width(displayName) > textMaxW) {
+                        displayName = this.font.plainSubstrByWidth(displayName, textMaxW - 10) + "...";
+                    }
                 }
                 int textY = entryY + (cardH - 8) / 2;
                 guiGraphics.drawString(this.font, displayName, entryX + 42, textY, hovered ? COLOR_BRASS : TEXT_PRIMARY, false);

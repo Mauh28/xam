@@ -46,7 +46,7 @@ public class ItemSelectionScreen extends AbstractMasteryScreen {
     private boolean isDraggingScrollbar = false;
 
     public ItemSelectionScreen(Screen parent, Consumer<Item> onSelect) {
-        super(Component.literal("Seleccionar Ítem"));
+        super(Component.translatable("xam.screen.item_selection.title"));
         this.parent = parent;
         this.onSelect = onSelect;
     }
@@ -64,7 +64,7 @@ public class ItemSelectionScreen extends AbstractMasteryScreen {
         this.visibleRows = Math.max(1, gridH / (slotSize + gap));
 
         int searchY = bodyY + 37;
-        this.searchBox = new EditBox(this.font, panelX + 24, searchY + 4, containerW - 48, 12, Component.literal("Buscar..."));
+        this.searchBox = new EditBox(this.font, panelX + 24, searchY + 4, containerW - 48, 12, Component.translatable("xam.editor.search_placeholder"));
         this.searchBox.setBordered(false);
         this.searchBox.setTextColor(TEXT_PRIMARY);
         this.searchBox.setResponder(text -> {
@@ -100,7 +100,7 @@ public class ItemSelectionScreen extends AbstractMasteryScreen {
     @Override
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
-        graphics.drawString(this.font, "Seleccionar Ítem / Bloque", containerX + 15, titleY, COLOR_BRASS, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.item_selection.title").getString(), containerX + 15, titleY, COLOR_BRASS, false);
     }
 
     @Override
@@ -109,7 +109,7 @@ public class ItemSelectionScreen extends AbstractMasteryScreen {
         int btnH = 20;
         int btnX = containerX + containerW - 15 - btnW;
         int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
-        drawFlatButton(graphics, btnX, btnY, btnW, btnH, "Cancelar", mouseX, mouseY, true);
+        drawFlatButton(graphics, btnX, btnY, btnW, btnH, Component.translatable("xam.editor.cancel").getString(), mouseX, mouseY, true);
     }
 
     @Override
@@ -128,7 +128,8 @@ public class ItemSelectionScreen extends AbstractMasteryScreen {
         int filterBorder = filterHovered ? BUTTON_HOVER_BORDER : BUTTON_BORDER;
         drawFlatPanel(guiGraphics, btnX, btnY, btnW, btnH, filterBg, filterBorder);
         
-        String btnText = "Mod: " + selectedModFilter;
+        String displayFilter = selectedModFilter.equals("Todos") ? Component.translatable("xam.editor.all").getString() : selectedModFilter;
+        String btnText = Component.translatable("xam.editor.mod_filter_label", displayFilter).getString();
         int textX = btnX + (btnW - this.font.width(btnText)) / 2;
         int textY = btnY + (btnH - 8) / 2;
         guiGraphics.drawString(this.font, btnText, textX, textY, filterHovered ? TEXT_PRIMARY : TEXT_SECONDARY, false);

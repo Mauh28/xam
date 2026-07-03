@@ -76,7 +76,7 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
     @Override
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
-        graphics.drawString(this.font, "PERKS: " + path.name.toUpperCase(), containerX + 15, titleY, COLOR_BRASS, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.perks_config.title", path.name.toUpperCase()).getString(), containerX + 15, titleY, COLOR_BRASS, false);
         drawBackButton(graphics, mouseX, mouseY);
     }
 
@@ -92,7 +92,7 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
         int discBg = discHovered ? 0xFF2A1C1A : 0xFF1C1312;
         int discBorder = discHovered ? 0xFFFF5555 : 0xFF3E2D2B;
         drawFlatPanel(graphics, startX, btnY, btnW, btnH, discBg, discBorder);
-        graphics.drawCenteredString(this.font, "Cancelar", startX + btnW / 2, btnY + 6, discHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
+        graphics.drawCenteredString(this.font, Component.translatable("xam.editor.cancel").getString(), startX + btnW / 2, btnY + 6, discHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
 
         // Custom Save button
         int saveX = startX + btnW + 10;
@@ -100,7 +100,7 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
         int saveBg = saveHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
         int saveBorder = saveHovered ? COLOR_BRASS : 0xFF2C221D;
         drawFlatPanel(graphics, saveX, btnY, btnW, btnH, saveBg, saveBorder);
-        graphics.drawCenteredString(this.font, "Aceptar", saveX + btnW / 2, btnY + 6, TEXT_PRIMARY);
+        graphics.drawCenteredString(this.font, Component.translatable("xam.editor.accept").getString(), saveX + btnW / 2, btnY + 6, TEXT_PRIMARY);
     }
 
     @Override
@@ -111,15 +111,15 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
         drawFlatPanel(graphics, panelX, panelY, panelW, panelH, PANEL_INNER_BG, COLOR_COPPER);
 
         // Title of details
-        graphics.drawString(this.font, "Configura el beneficio al completar la rama al 100%:", panelX + 15, panelY + 12, COLOR_BRASS, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.perks_config.header").getString(), panelX + 15, panelY + 12, COLOR_BRASS, false);
         graphics.fill(panelX + 15, panelY + 23, panelX + panelW - 15, panelY + 24, 0xFF2C221D);
 
         // Label for Effect ID input
-        graphics.drawString(this.font, "ID del Efecto de Poción / Perk (ej. minecraft:speed)", fieldX, fieldY - 10, TEXT_SECONDARY, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.perks_config.effect_id").getString(), fieldX, fieldY - 10, TEXT_SECONDARY, false);
         drawFlatPanel(graphics, fieldX, fieldY, fieldW, 20, INPUT_BACKGROUND, COLOR_COPPER);
 
         // Label and selector for level (Amplifier)
-        graphics.drawString(this.font, "Nivel de Efecto / Intensidad:", ampX, ampY - 10, TEXT_SECONDARY, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.perks_config.intensity").getString(), ampX, ampY - 10, TEXT_SECONDARY, false);
         
         // Decrement button (-)
         int decX = ampX;
@@ -128,7 +128,7 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
         graphics.drawCenteredString(this.font, "-", decX + 10, ampY + 4, TEXT_PRIMARY);
 
         // Level text display (e.g. Level I, Level II, Level III)
-        String levelStr = "Nivel " + (perkAmplifier + 1);
+        String levelStr = Component.translatable("xam.screen.perks_config.level_format", perkAmplifier + 1).getString();
         graphics.drawCenteredString(this.font, levelStr, decX + 20 + 35, ampY + 4, COLOR_BRASS);
 
         // Increment button (+)
@@ -139,7 +139,7 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
 
         // Render Preset pills/buttons below - Adjustable Grid Layout with Icons and Tooltips
         int presetY = ampY + 22;
-        graphics.drawString(this.font, "Presets:", fieldX, presetY + 6, TEXT_MUTED, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.perks_config.presets").getString(), fieldX, presetY + 6, TEXT_MUTED, false);
         
         int px = fieldX + 52;
         int btnSize = 22;
