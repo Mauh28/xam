@@ -118,7 +118,9 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
             int bg = hovered ? BUTTON_HOVER_BG : BUTTON_BACKGROUND;
             int border = hovered ? BUTTON_HOVER_BORDER : BUTTON_BORDER;
             
-            drawFlatPanel(guiGraphics, btnX, btnY, btnW, btnH, bg, border);
+            int bgTop = adjustColorBrightness(bg, 12);
+            int bgBottom = adjustColorBrightness(bg, -15);
+            drawGradientPanel(guiGraphics, btnX, btnY, btnW, btnH, bgTop, bgBottom, border);
             
             String btnText = "Mod: " + selectedModFilter;
             int textX = btnX + (btnW - this.font.width(btnText)) / 2;
@@ -146,7 +148,7 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
             
             // Hover background
             if (hovered) {
-                guiGraphics.fill(entryX, entryY, entryX + listWidth, entryY + entryHeight, 0x33FFFFFF);
+                guiGraphics.fill(entryX + 1, entryY + 1, entryX + listWidth - 1, entryY + entryHeight - 1, 0x1AFFFFFF);
             }
             
             renderEntry(guiGraphics, entry, entryX, entryY, entryIndex, hovered);
@@ -158,15 +160,12 @@ public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
             int scrollbarY = startY;
             int scrollbarHeight = maxVisible * entryHeight;
             
-            // Track in dark copper
-            guiGraphics.fill(scrollbarX, scrollbarY, scrollbarX + 4, scrollbarY + scrollbarHeight, 0xFF2A201C);
-            
-            // Scroll thumb in copper
             float fraction = (float) scrollOffset / (filteredEntries.size() - maxVisible);
             int thumbHeight = Math.max(15, (int) (((float) maxVisible / filteredEntries.size()) * scrollbarHeight));
             int thumbY = scrollbarY + (int) (fraction * (scrollbarHeight - thumbHeight));
             
-            guiGraphics.fill(scrollbarX, thumbY, scrollbarX + 4, thumbY + thumbHeight, COLOR_COPPER);
+            drawFlatPanel(guiGraphics, scrollbarX, scrollbarY, 4, scrollbarHeight, 0xFF140F0D, 0xFF2C221D);
+            drawFlatPanel(guiGraphics, scrollbarX, thumbY, 4, thumbHeight, COLOR_COPPER, COLOR_BRASS);
         }
     }
 

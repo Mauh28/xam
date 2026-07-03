@@ -7,6 +7,7 @@ import net.minecraft.network.chat.Component;
 public class MasteryHubScreen extends AbstractMasteryScreen {
     private final PlayerData playerData;
     private double scrollY = 0;
+    private double targetScrollY = 0;
 
     public MasteryHubScreen(PlayerData playerData) {
         super(Component.translatable("xam.screen.mastery_hub.title"));
@@ -119,7 +120,10 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             drawFlatPanel(graphics, barX, barY, barW, barH, 0xFF140F0D, 0xFF2C221D);
             if (completedReqs > 0) {
                 int fillW = (int) (barW * pct);
-                graphics.fill(barX + 1, barY + 1, barX + fillW - 1, barY + barH - 1, COLOR_COPPER);
+                if (fillW > 4) {
+                    graphics.fillGradient(barX + 2, barY + 2, barX + fillW - 2, barY + barH - 2, COLOR_COPPER, adjustColorBrightness(COLOR_COPPER, -20));
+                    graphics.fill(barX + 2, barY + 2, barX + fillW - 2, barY + 3, adjustColorBrightness(COLOR_COPPER, 40));
+                }
             }
         } else {
             graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.no_active_branch").getString(), leftX + 12, leftY + 30, TEXT_MUTED, false);
@@ -225,8 +229,18 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             int gap = 6;
             int totalReqsH = activePath.requirements.size() * (cardH + gap);
 
-            if (scrollY > Math.max(0, totalReqsH - listH)) {
-                scrollY = Math.max(0, totalReqsH - listH);
+            // Smooth Lerp scroll
+            scrollY = scrollY + (targetScrollY - scrollY) * 0.15;
+            if (Math.abs(targetScrollY - scrollY) < 0.5) {
+                scrollY = targetScrollY;
+            }
+
+            int maxScroll = Math.max(0, totalReqsH - listH);
+            if (targetScrollY > maxScroll) {
+                targetScrollY = maxScroll;
+            }
+            if (scrollY > maxScroll) {
+                scrollY = maxScroll;
             }
 
             double guiScale = Minecraft.getInstance().getWindow().getGuiScale();
@@ -241,10 +255,25 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 xdAbsoluteMastery.ConfigManager.Requirement req = activePath.requirements.get(i);
                 int cardY = listY + i * (cardH + gap) - (int) scrollY;
 
-                // Draw task card background based on completed status
+                // Optimization: Skip rendering cards that are completely out of view bounds
+                if (cardY + cardH < listY || cardY > listY + listH) {
+                    continue;
+                }
+
+                // Check card hover
+                boolean cardHovered = mouseX >= listX && mouseX < listX + listW && mouseY >= cardY && mouseY < cardY + cardH && mouseY >= listY && mouseY < listY + listH;
+
+                // Draw task card background based on completed status & hover
                 boolean isCompleted = xdAbsoluteMastery.isRequirementCompleted(this.minecraft.player, playerData, activePath.id, req);
-                int cardBg = isCompleted ? 0xFF17251C : PANEL_INNER_BG;
-                int cardBorder = isCompleted ? 0xFF2A593E : WARM_BORDER;
+                int cardBg;
+                int cardBorder;
+                if (isCompleted) {
+                    cardBg = cardHovered ? 0xFF1C3124 : 0xFF17251C;
+                    cardBorder = cardHovered ? 0xFF3D7D57 : 0xFF2A593E;
+                } else {
+                    cardBg = cardHovered ? 0xFF181312 : PANEL_INNER_BG;
+                    cardBorder = cardHovered ? COLOR_BRASS : WARM_BORDER;
+                }
 
                 drawFlatPanel(graphics, listX, cardY, listW, cardH, cardBg, cardBorder);
 
@@ -261,7 +290,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 if (this.font.width(reqNameText) > reqNameMaxW) {
                     reqNameText = this.font.plainSubstrByWidth(reqNameText, reqNameMaxW - 10) + "...";
                 }
-                graphics.drawString(this.font, reqNameText, listX + 25, cardY + 6, isCompleted ? 0xFF6A8A73 : TEXT_PRIMARY, false);
+                graphics.drawString(this.font, reqNameText, listX + 25, cardY + 6, isCompleted ? 0xFF8AA893 : TEXT_PRIMARY, false);
 
                 // Task Description
                 String reqDescText = req.description;
@@ -269,15 +298,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 if (this.font.width(reqDescText) > reqNameMaxW) {
                     reqDescText = this.font.plainSubstrByWidth(reqDescText, reqNameMaxW - 10) + "...";
                 }
-                graphics.drawString(this.font, reqDescText, listX + 25, cardY + 20, isCompleted ? 0xFF516958 : TEXT_SECONDARY, false);
-
-                // Strike-through line if completed
-                if (isCompleted) {
-                    int nameW_text = this.font.width(reqNameText);
-                    int descW_text = this.font.width(reqDescText);
-                    graphics.fill(listX + 25, cardY + 9, listX + 25 + nameW_text, cardY + 10, 0xFF5A7264);
-                    graphics.fill(listX + 25, cardY + 23, listX + 25 + descW_text, cardY + 24, 0xFF435849);
-                }
+                graphics.drawString(this.font, reqDescText, listX + 25, cardY + 20, isCompleted ? 0xFF657E6D : TEXT_SECONDARY, false);
 
                 // Task Type badge on the right
                 String badge = req.type.toUpperCase();
@@ -357,7 +378,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 int gap = 6;
                 int totalReqsH = activePath.requirements.size() * (cardH + gap);
                 if (totalReqsH > listH) {
-                    scrollY = Math.max(0, Math.min(totalReqsH - listH, scrollY - delta * 12));
+                    targetScrollY = Math.max(0, Math.min(totalReqsH - listH, targetScrollY - delta * 18));
                     return true;
                 }
             }

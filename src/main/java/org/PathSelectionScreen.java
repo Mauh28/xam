@@ -89,8 +89,12 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
         if (!prevActive) {
             prevBg = 0xFF181818;
             prevBorder = 0xFF282828;
+            drawFlatPanel(graphics, prevX, prevY, 50, 80, prevBg, prevBorder);
+        } else {
+            int prevBgTop = adjustColorBrightness(prevBg, 12);
+            int prevBgBottom = adjustColorBrightness(prevBg, -15);
+            drawGradientPanel(graphics, prevX, prevY, 50, 80, prevBgTop, prevBgBottom, prevBorder);
         }
-        drawFlatPanel(graphics, prevX, prevY, 50, 80, prevBg, prevBorder);
         int prevCol = prevActive ? (prevHovered ? TEXT_PRIMARY : TEXT_SECONDARY) : TEXT_MUTED;
         graphics.drawCenteredString(this.font, "◀", prevX + 25, prevY + 36, prevCol);
 
@@ -104,8 +108,12 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
         if (!nextActive) {
             nextBg = 0xFF181818;
             nextBorder = 0xFF282828;
+            drawFlatPanel(graphics, nextX, nextY, 50, 80, nextBg, nextBorder);
+        } else {
+            int nextBgTop = adjustColorBrightness(nextBg, 12);
+            int nextBgBottom = adjustColorBrightness(nextBg, -15);
+            drawGradientPanel(graphics, nextX, nextY, 50, 80, nextBgTop, nextBgBottom, nextBorder);
         }
-        drawFlatPanel(graphics, nextX, nextY, 50, 80, nextBg, nextBorder);
         int nextCol = nextActive ? (nextHovered ? TEXT_PRIMARY : TEXT_SECONDARY) : TEXT_MUTED;
         graphics.drawCenteredString(this.font, "▶", nextX + 25, nextY + 36, nextCol);
 
@@ -132,7 +140,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
 
             boolean cardHovered = mouseX >= cardX && mouseX < cardX + cardW && mouseY >= cardY && mouseY < cardY + cardH;
             
-            int cardBg = isSelectable ? currentWidgetBg : 0xFF181515;
+            int cardBg = isSelectable ? (cardHovered ? adjustColorBrightness(currentWidgetBg, 12) : currentWidgetBg) : 0xFF181515;
             int cardBorder;
             if (isActivePath) {
                 cardBorder = COLOR_BRASS;
