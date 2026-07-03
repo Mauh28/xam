@@ -20,7 +20,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
     private int cardsPerPage = 3;
 
     public PathSelectionScreen(Screen parent, PlayerData playerData) {
-        super(Component.literal("SELECCIÓN DE RAMA"));
+        super(Component.translatable("xam.screen.path_selection.title"));
         this.parent = parent;
         this.playerData = playerData;
     }
@@ -54,7 +54,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
     @Override
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
-        graphics.drawString(this.font, "SELECCIÓN DE RAMA", containerX + 15, titleY, TEXT_PRIMARY, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.path_selection.title").getString(), containerX + 15, titleY, TEXT_PRIMARY, false);
         if (canExit()) {
             drawBackButton(graphics, mouseX, mouseY);
         }
@@ -62,7 +62,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
 
     @Override
     protected void renderFooter(GuiGraphics graphics, int mouseX, int mouseY) {
-        String pageIndicator = String.format("[ Página %d de %d ]", currentPage + 1, Math.max(1, totalPages));
+        String pageIndicator = Component.translatable("xam.screen.path_selection.page_format", currentPage + 1, Math.max(1, totalPages)).getString();
         int textX = containerX + (containerW - this.font.width(pageIndicator)) / 2;
         int textY = containerY + containerH - footerH + (footerH - 8) / 2;
         graphics.drawString(this.font, pageIndicator, textX, textY, TEXT_MUTED, false);
@@ -193,8 +193,9 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             // 2. Cuerpo (60%)
             if (isUnlocked) {
                 if (hasActivePath && !isActivePath && !canSwitch) {
-                    graphics.drawString(this.font, "Bloqueado por progreso", cardX + 10, cardY + cabH + 6, 0xFFFF5555, false);
-                    int labelWidth = this.font.width("Bloqueado por progreso");
+                    String blockedText = Component.translatable("xam.screen.path_selection.blocked_by_progress").getString();
+                    graphics.drawString(this.font, blockedText, cardX + 10, cardY + cabH + 6, 0xFFFF5555, false);
+                    int labelWidth = this.font.width(blockedText);
                     graphics.fill(cardX + 10, cardY + cabH + 15, cardX + 10 + labelWidth, cardY + cabH + 16, 0xFF772222);
 
                     int reqY = cardY + cabH + 25;
@@ -203,16 +204,17 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
                     String activeName = activePath != null ? activePath.name : activeId;
                     int min = activePath != null ? activePath.min_to_switch : 0;
                     
-                    String line1 = "Completa la maestría";
-                    String line2 = "o llega a " + min + " reqs";
-                    String line3 = "de " + activeName;
+                    String line1 = Component.translatable("xam.screen.path_selection.complete_mastery").getString();
+                    String line2 = Component.translatable("xam.screen.path_selection.or_reach_reqs", min).getString();
+                    String line3 = Component.translatable("xam.screen.path_selection.of_path", activeName).getString();
                     
                     graphics.drawString(this.font, line1, cardX + 10, reqY, TEXT_MUTED, false);
                     graphics.drawString(this.font, line2, cardX + 10, reqY + 11, TEXT_MUTED, false);
                     graphics.drawString(this.font, line3, cardX + 10, reqY + 22, TEXT_MUTED, false);
                 } else {
-                    graphics.drawString(this.font, "Requisitos", cardX + 10, cardY + cabH + 6, COLOR_BRASS, false);
-                    int labelWidth = this.font.width("Requisitos");
+                    String reqText = Component.translatable("xam.screen.path_selection.requirements").getString();
+                    graphics.drawString(this.font, reqText, cardX + 10, cardY + cabH + 6, COLOR_BRASS, false);
+                    int labelWidth = this.font.width(reqText);
                     graphics.fill(cardX + 10, cardY + cabH + 15, cardX + 10 + labelWidth, cardY + cabH + 16, COLOR_COPPER);
 
                     // Clipping/Scissor region for requirements list text
@@ -239,16 +241,18 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
                 }
             } else {
                 if (!hasTasks) {
-                    graphics.drawString(this.font, "Sin tareas asignadas", cardX + 10, cardY + cabH + 6, 0xFFFF5555, false);
-                    int labelWidth = this.font.width("Sin tareas asignadas");
+                    String noTasksText = Component.translatable("xam.screen.path_selection.no_tasks").getString();
+                    graphics.drawString(this.font, noTasksText, cardX + 10, cardY + cabH + 6, 0xFFFF5555, false);
+                    int labelWidth = this.font.width(noTasksText);
                     graphics.fill(cardX + 10, cardY + cabH + 15, cardX + 10 + labelWidth, cardY + cabH + 16, 0xFF772222);
 
                     int reqY = cardY + cabH + 25;
-                    graphics.drawString(this.font, "Esta maestría no tiene", cardX + 10, reqY, TEXT_MUTED, false);
-                    graphics.drawString(this.font, "tareas registradas aún.", cardX + 10, reqY + 11, TEXT_MUTED, false);
+                    graphics.drawString(this.font, Component.translatable("xam.screen.path_selection.no_tasks_line1").getString(), cardX + 10, reqY, TEXT_MUTED, false);
+                    graphics.drawString(this.font, Component.translatable("xam.screen.path_selection.no_tasks_line2").getString(), cardX + 10, reqY + 11, TEXT_MUTED, false);
                 } else {
-                    graphics.drawString(this.font, "Requiere:", cardX + 10, cardY + cabH + 6, 0xFFFF5555, false);
-                    int labelWidth = this.font.width("Requiere:");
+                    String requiresText = Component.translatable("xam.screen.path_selection.requires").getString();
+                    graphics.drawString(this.font, requiresText, cardX + 10, cardY + cabH + 6, 0xFFFF5555, false);
+                    int labelWidth = this.font.width(requiresText);
                     graphics.fill(cardX + 10, cardY + cabH + 15, cardX + 10 + labelWidth, cardY + cabH + 16, 0xFF772222);
 
                     int reqY = cardY + cabH + 20;
@@ -262,9 +266,9 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
                             xdAbsoluteMastery.ConfigManager.PathInfo depPath = xdAbsoluteMastery.ConfigManager.PATHS_MAP.get(depId);
                             String name = depPath != null ? depPath.name : depId;
                             if (amt.equalsIgnoreCase("mastered") || amt.equalsIgnoreCase("all")) {
-                                missingNames.add("Dominar " + name);
+                                missingNames.add(Component.translatable("xam.screen.path_selection.master_path", name).getString());
                             } else {
-                                missingNames.add(name + " (" + amt + " reqs)");
+                                missingNames.add(Component.translatable("xam.screen.path_selection.reqs_format", name, amt).getString());
                             }
                         }
                     }
@@ -291,17 +295,19 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             String btnText;
             boolean btnEnabled;
             if (isActivePath) {
-                btnText = "EQUIPADO";
+                btnText = Component.translatable("xam.screen.path_selection.btn.equipped").getString();
                 btnEnabled = false;
             } else if (isMastered) {
-                btnText = "DOMINADA";
+                btnText = Component.translatable("xam.screen.path_selection.btn.mastered").getString();
                 btnEnabled = false;
             } else if (isSelectable) {
                 boolean hasBeenStarted = playerData != null && playerData.getStartedPaths().contains(path.id);
-                btnText = hasBeenStarted ? "CONTINUAR" : "ELEGIR CAMINO";
+                btnText = hasBeenStarted 
+                    ? Component.translatable("xam.screen.path_selection.btn.continue").getString() 
+                    : Component.translatable("xam.screen.path_selection.btn.choose_path").getString();
                 btnEnabled = true;
             } else {
-                btnText = "BLOQUEADO";
+                btnText = Component.translatable("xam.screen.path_selection.btn.locked").getString();
                 btnEnabled = false;
             }
 

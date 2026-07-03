@@ -286,13 +286,13 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                     graphics.drawString(this.font, pName, popX + 6, popY + 6, TEXT_PRIMARY, false);
                     graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.completed").getString(), popX + 6, popY + 18, 0xFF4ADE80, false);
                     
-                    String perkText = "Ninguno";
+                    String perkText = Component.translatable("xam.screen.mastery_hub.perk_none").getString();
                     if (path.perkEffect != null && !path.perkEffect.isEmpty()) {
                         String name = path.perkEffect;
                         if (name.contains(":")) name = name.split(":")[1];
                         perkText = Character.toUpperCase(name.charAt(0)) + name.substring(1) + " " + (path.perkAmplifier + 1);
                     }
-                    graphics.drawString(this.font, "Perk: " + perkText, popX + 6, popY + 32, COLOR_BRASS, false);
+                    graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.perk_label", perkText).getString(), popX + 6, popY + 32, COLOR_BRASS, false);
                 }
             }
         }
@@ -389,7 +389,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 graphics.drawString(this.font, reqDescText, listX + 25, cardY + 20, isCompleted ? 0xFF657E6D : TEXT_SECONDARY, false);
 
                 // Task Type badge on the right
-                String badge = req.type.toUpperCase();
+                String badge = Component.translatable("xam.req_type.badge." + req.type.toLowerCase()).getString();
                 int badgeW = this.font.width(badge) + 10;
                 int badgeX = listX + listW - badgeW - 10;
                 int badgeY = cardY + (cardH - 12) / 2;
@@ -464,14 +464,15 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             graphics.pose().popPose();
 
             // 2. Draw Type Badge
-            String typeBadge = hoveredRequirement.type.toUpperCase();
+            String typeBadge = hoveredRequirement.type.toLowerCase();
+            String displayBadge = Component.translatable("xam.req_type.badge." + typeBadge).getString();
             int badgeCol = 0xFFDF9E3F;
-            if (typeBadge.equals("CRAFT")) badgeCol = 0xFF5DADE2;
-            else if (typeBadge.equals("COLLECT")) badgeCol = 0xFF58D68D;
-            else if (typeBadge.equals("ADVANCEMENT")) badgeCol = 0xFFF5B041;
-            else if (typeBadge.equals("KILL")) badgeCol = 0xFFEC7063;
+            if (typeBadge.equals("craft")) badgeCol = 0xFF5DADE2;
+            else if (typeBadge.equals("collect")) badgeCol = 0xFF58D68D;
+            else if (typeBadge.equals("advancement")) badgeCol = 0xFFF5B041;
+            else if (typeBadge.equals("kill")) badgeCol = 0xFFEC7063;
 
-            graphics.drawString(this.font, typeBadge, ttX + 38, ttY + 8, badgeCol, false);
+            graphics.drawString(this.font, displayBadge, ttX + 38, ttY + 8, badgeCol, false);
 
             // 3. Draw Dependency Status
             String depStatus = "Desbloqueado";

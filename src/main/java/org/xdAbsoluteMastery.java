@@ -309,7 +309,8 @@ public class xdAbsoluteMastery {
         switch (req.type) {
             case "craft": return Component.translatable("xam.req_type.craft", name).getString();
             case "collect": return Component.translatable("xam.req_type.collect", name).getString();
-            case "combat": return Component.translatable("xam.req_type.combat", name).getString();
+            case "combat":
+            case "kill": return Component.translatable("xam.req_type.combat", name).getString();
             case "advancement": return Component.translatable("xam.req_type.advancement", name).getString();
             default: return Component.translatable("xam.req_type.default", req.type, name).getString();
         }
