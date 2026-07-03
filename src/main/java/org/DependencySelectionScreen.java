@@ -75,6 +75,17 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
         return 0; // desconocido -> "Dominar"
     }
 
+    private boolean isDraggingGridScrollbar = false;
+
+    @Override
+    protected void init() {
+        super.init();
+        this.entryHeight = 44;
+        boolean showFilter = shouldShowNamespaceFilter() && containerH >= 220;
+        int listHeight = bodyH - (showFilter ? 70 : 45);
+        this.maxVisible = Math.max(2, listHeight / entryHeight);
+    }
+
     @Override
     protected boolean shouldShowNamespaceFilter() { return false; }
 
@@ -101,79 +112,143 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
 
     @Override
     protected void renderEntry(GuiGraphics g, PathInfo p, int x, int y, int index, boolean hovered) {
-        // Icono de la rama (mismo fallback que MasteryEditorScreen:353-369)
-        ItemStack icon = ItemStack.EMPTY;
-        if (p.icon != null) {
-            net.minecraft.world.item.Item item = ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse(p.icon));
-            if (item != null) icon = new ItemStack(item);
-        }
-        if (icon.isEmpty()) icon = new ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
-        g.renderFakeItem(icon, x + 2, y + 1);
-
-        // Nombre + nº de requisitos
-        boolean selected = amountIndex.containsKey(p.id);
-        int nameColor = selected ? COLOR_BRASS : (hovered ? TEXT_PRIMARY : TEXT_SECONDARY);
-        String label = Component.translatable("xam.screen.dependency_selection.reqs_count", p.name, p.requirements.size()).getString();
-        g.drawString(this.font, label, x + 24, y + 6, nameColor, false);
-
-        // Checkbox visual a la izquierda del icono
-        g.drawString(this.font, selected ? "☑" : "☐", x - 12, y + 6, selected ? COLOR_BRASS : TEXT_MUTED, false);
-
-        // Chip cíclico de cantidad (sólo si está seleccionada), alineado a la derecha de la fila
-        if (selected) {
-            String chip = getAmountLabel(amountIndex.get(p.id)) + " ▸";
-            int chipW = this.font.width(chip) + 12;
-            int chipH = entryHeight - 4;
-            int chipX = x + (containerW - 40) - chipW - 4;
-            int chipY = y + 2;
-            drawFlatPanel(g, chipX, chipY, chipW, chipH, PANEL_INNER_BG, COLOR_COPPER);
-            g.drawString(this.font, chip, chipX + 6, chipY + (chipH - 8) / 2 + 1, COLOR_BRASS, false);
-        }
+        // No-op because we completely override render
     }
 
-    /**
-     * Override del clic de fila: NO cierra la pantalla ni llama a onSelect.
-     * Alterna la selección. El clic en el chip de cantidad se resuelve por coordenadas aquí mismo.
-     */
     @Override
     protected void onClickEntry(PathInfo p) {
-        if (amountIndex.containsKey(p.id)) {
-            // ¿Clic dentro del chip? -> ciclar cantidad en vez de deseleccionar.
-            int entryY = currentEntryY(p);
-            if (entryY >= 0 && clickedOnAmountChip(p, entryY)) {
-                int idx = amountIndex.get(p.id);
-                amountIndex.put(p.id, (idx + 1) % AMOUNT_SUFFIX.length);
-                return;
-            }
-            amountIndex.remove(p.id); // deseleccionar
-        } else {
-            amountIndex.put(p.id, 0); // seleccionar (por defecto "Dominar")
-        }
+        // No-op because we completely override mouseClicked
     }
 
-    /** Reconstruye la Y de una fila visible a partir de su índice en filteredEntries. */
-    private int currentEntryY(PathInfo p) {
-        int startY = getListStartY();
-        for (int i = 0; i < maxVisible; i++) {
-            int entryIndex = scrollOffset + i;
-            if (entryIndex >= filteredEntries.size()) break;
-            if (filteredEntries.get(entryIndex).id.equals(p.id)) {
-                return startY + i * entryHeight;
-            }
-        }
-        return -1;
-    }
+    @Override
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        // Temporarily clear filteredEntries to prevent super.render from drawing the default single column list
+        java.util.List<PathInfo> temp = new java.util.ArrayList<>(this.filteredEntries);
+        this.filteredEntries.clear();
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        this.filteredEntries.addAll(temp);
 
-    private boolean clickedOnAmountChip(PathInfo p, int entryY) {
         int panelX = containerX;
-        int entryX = panelX + 20;
-        String chip = getAmountLabel(amountIndex.get(p.id)) + " ▸";
-        int chipW = this.font.width(chip) + 12;
-        int chipH = entryHeight - 4;
-        int chipX = entryX + (containerW - 40) - chipW - 4;
-        int chipY = entryY + 2;
-        return lastMouseX >= chipX && lastMouseX < chipX + chipW
-            && lastMouseY >= chipY && lastMouseY < chipY + chipH;
+        int startY = getListStartY();
+        int listWidth = containerW - 40;
+        int colWidth = (listWidth - 6) / 2;
+        int gap = 6;
+        int cardH = entryHeight - 4; // 40px
+
+        // Render double column list
+        for (int i = 0; i < maxVisible; i++) {
+            for (int col = 0; col < 2; col++) {
+                int entryIndex = scrollOffset * 2 + i * 2 + col;
+                if (entryIndex >= filteredEntries.size()) break;
+
+                PathInfo p = filteredEntries.get(entryIndex);
+                int entryX = panelX + 20 + col * (colWidth + gap);
+                int entryY = startY + i * entryHeight;
+
+                boolean hovered = mouseX >= entryX && mouseX < entryX + colWidth && mouseY >= entryY && mouseY < entryY + cardH;
+                boolean selected = amountIndex.containsKey(p.id);
+
+                // Draw card background
+                int bg = selected ? 0xFF2A201A : (hovered ? BUTTON_HOVER_BG : PANEL_INNER_BG);
+                int border = selected ? COLOR_BRASS : (hovered ? BUTTON_HOVER_BORDER : WARM_BORDER);
+                drawFlatPanel(guiGraphics, entryX, entryY, colWidth, cardH, bg, border);
+
+                // Draw custom Checkbox
+                int cbX = entryX + 8;
+                int cbY = entryY + (cardH - 12) / 2;
+                drawFlatPanel(guiGraphics, cbX, cbY, 12, 12, 0xFF140F0D, selected ? COLOR_BRASS : 0xFF2C221D);
+                if (selected) {
+                    guiGraphics.drawString(this.font, "✔", cbX + 2, cbY + 2, COLOR_BRASS, false);
+                }
+
+                // Render Branch Icon
+                ItemStack icon = ItemStack.EMPTY;
+                if (p.icon != null) {
+                    net.minecraft.world.item.Item item = ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse(p.icon));
+                    if (item != null) icon = new ItemStack(item);
+                }
+                if (icon.isEmpty()) icon = new ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
+                guiGraphics.renderFakeItem(icon, entryX + 26, entryY + (cardH - 16) / 2);
+
+                // Name + requirements count
+                int textX = entryX + 46;
+                int textY = entryY + (cardH - 8) / 2;
+                int labelW = colWidth - 46 - 10;
+                
+                // If selected, we draw the cycle chip on the right
+                if (selected) {
+                    String chip = getAmountLabel(amountIndex.get(p.id)) + " ▸";
+                    int chipW = this.font.width(chip) + 12;
+                    int chipX = entryX + colWidth - chipW - 4;
+                    int chipY = entryY + (cardH - 18) / 2;
+                    
+                    // Chip hover check
+                    boolean chipHover = mouseX >= chipX && mouseX < chipX + chipW && mouseY >= chipY && mouseY < chipY + 18;
+                    int chipBg = chipHover ? COLOR_COPPER_HOVER : PANEL_INNER_BG;
+                    int chipBorder = chipHover ? COLOR_BRASS : COLOR_COPPER;
+                    drawFlatPanel(guiGraphics, chipX, chipY, chipW, 18, chipBg, chipBorder);
+                    guiGraphics.drawString(this.font, chip, chipX + 6, chipY + 5, COLOR_BRASS, false);
+                    
+                    labelW -= (chipW + 6);
+                }
+
+                String label = Component.translatable("xam.screen.dependency_selection.reqs_count", p.name, p.requirements.size()).getString();
+                if (this.font.width(label) > labelW) {
+                    label = this.font.plainSubstrByWidth(label, labelW - 8) + "...";
+                }
+                guiGraphics.drawString(this.font, label, textX, textY, selected ? COLOR_BRASS : (hovered ? TEXT_PRIMARY : TEXT_SECONDARY), false);
+            }
+        }
+
+        // Render custom scrollbar based on rows count
+        int totalRows = (filteredEntries.size() + 1) / 2;
+        if (totalRows > maxVisible) {
+            int scrollbarX = panelX + containerW - 15;
+            int scrollbarY = startY;
+            int scrollbarHeight = maxVisible * entryHeight;
+
+            // Track
+            guiGraphics.fill(scrollbarX, scrollbarY, scrollbarX + 4, scrollbarY + scrollbarHeight, 0xFF2A201C);
+
+            // Thumb
+            float fraction = (float) scrollOffset / (totalRows - maxVisible);
+            int thumbHeight = Math.max(15, (int) (((float) maxVisible / totalRows) * scrollbarHeight));
+            int thumbY = scrollbarY + (int) (fraction * (scrollbarHeight - thumbHeight));
+
+            guiGraphics.fill(scrollbarX, thumbY, scrollbarX + 4, thumbY + thumbHeight, COLOR_COPPER);
+        }
+    }
+
+    private void updateGridScrollFromMouse(double mouseY, int startY, int scrollbarHeight, int thumbHeight) {
+        int totalRows = (filteredEntries.size() + 1) / 2;
+        int maxScrollOffset = totalRows - maxVisible;
+        if (maxScrollOffset <= 0) return;
+
+        double relativeY = mouseY - startY - (thumbHeight / 2.0);
+        double trackLength = scrollbarHeight - thumbHeight;
+        double pct = Math.max(0.0, Math.min(1.0, relativeY / trackLength));
+        this.scrollOffset = (int) Math.round(pct * maxScrollOffset);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 0) {
+            this.isDraggingGridScrollbar = false;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        int totalRows = (filteredEntries.size() + 1) / 2;
+        if (this.isDraggingGridScrollbar && button == 0 && totalRows > maxVisible) {
+            int startY = getListStartY();
+            int scrollbarHeight = maxVisible * entryHeight;
+            int thumbHeight = Math.max(15, (int) (((float) maxVisible / totalRows) * scrollbarHeight));
+            updateGridScrollFromMouse(mouseY, startY, scrollbarHeight, thumbHeight);
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
     @Override
@@ -218,7 +293,71 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
             return true;
         }
 
-        return super.mouseClicked(mouseX, mouseY, button);
+        // Check grid click
+        int startY = getListStartY();
+        int panelX = containerX;
+        int listWidth = containerW - 40;
+        int colWidth = (listWidth - 6) / 2;
+        int gap = 6;
+        int totalRows = (filteredEntries.size() + 1) / 2;
+        int cardH = entryHeight - 4;
+
+        if (button == 0) {
+            for (int i = 0; i < maxVisible; i++) {
+                for (int col = 0; col < 2; col++) {
+                    int entryIndex = scrollOffset * 2 + i * 2 + col;
+                    if (entryIndex >= filteredEntries.size()) break;
+
+                    PathInfo p = filteredEntries.get(entryIndex);
+                    int entryX = panelX + 20 + col * (colWidth + gap);
+                    int entryY = startY + i * entryHeight;
+
+                    if (mouseX >= entryX && mouseX < entryX + colWidth && mouseY >= entryY && mouseY < entryY + cardH) {
+                        playClickSound();
+                        
+                        boolean selected = amountIndex.containsKey(p.id);
+                        if (selected) {
+                            // Check if clicked specifically on the cycle chip
+                            String chip = getAmountLabel(amountIndex.get(p.id)) + " ▸";
+                            int chipW = this.font.width(chip) + 12;
+                            int chipX = entryX + colWidth - chipW - 4;
+                            int chipY = entryY + (cardH - 18) / 2;
+                            if (mouseX >= chipX && mouseX < chipX + chipW && mouseY >= chipY && mouseY < chipY + 18) {
+                                int currentIdx = amountIndex.get(p.id);
+                                amountIndex.put(p.id, (currentIdx + 1) % AMOUNT_SUFFIX.length);
+                                return true;
+                            }
+                            // Otherwise, clicking the card deselects it
+                            amountIndex.remove(p.id);
+                        } else {
+                            // Click card selects it with default "Dominar" (index 0)
+                            amountIndex.put(p.id, 0);
+                        }
+                        return true;
+                    }
+                }
+            }
+
+            // Check scrollbar click
+            if (totalRows > maxVisible) {
+                int scrollbarX = panelX + containerW - 15;
+                int scrollbarHeight = maxVisible * entryHeight;
+                int thumbHeight = Math.max(15, (int) (((float) maxVisible / totalRows) * scrollbarHeight));
+
+                if (mouseX >= scrollbarX && mouseX < scrollbarX + 6 && mouseY >= startY && mouseY < startY + scrollbarHeight) {
+                    this.isDraggingGridScrollbar = true;
+                    updateGridScrollFromMouse(mouseY, startY, scrollbarHeight, thumbHeight);
+                    return true;
+                }
+            }
+        }
+
+        // Delegate search box click to super
+        java.util.List<PathInfo> temp = new java.util.ArrayList<>(this.filteredEntries);
+        this.filteredEntries.clear();
+        boolean handled = super.mouseClicked(mouseX, mouseY, button);
+        this.filteredEntries.addAll(temp);
+        return handled;
     }
 
     /** Serializa la selección a la lista de tokens que entiende isDependencyMet. */
