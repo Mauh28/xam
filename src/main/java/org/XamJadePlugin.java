@@ -19,7 +19,7 @@ import net.minecraft.ChatFormatting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@WailaPlugin
+@WailaPlugin(xdAbsoluteMastery.MODID)
 public class XamJadePlugin implements IWailaPlugin {
     private static final Logger LOGGER = LogManager.getLogger(XamJadePlugin.class);
 
