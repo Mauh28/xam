@@ -57,7 +57,7 @@ import java.util.function.Supplier;
 @Mod(xdAbsoluteMastery.MODID)
 public class xdAbsoluteMastery {
     public static final String MODID = "xam";
-    private static final Logger LOGGER = LogUtils.getLogger();
+    public static final Logger LOGGER = LogUtils.getLogger();
 
     // Network Channel Setup
     public static final String PROTOCOL_VERSION = "1";
@@ -173,6 +173,7 @@ public class xdAbsoluteMastery {
     }
 
     public static boolean isRequirementCompleted(Player player, PlayerData data, String pathId, ConfigManager.Requirement req) {
+        if (req == null) return false;
         if (req.type.equals("advancement")) {
             return isAdvancementCompleted(player, req.id);
         } else {
@@ -469,9 +470,23 @@ public class xdAbsoluteMastery {
 
     public static boolean areRequirementDependenciesMet(Player player, PlayerData data, ConfigManager.Requirement req) {
         if (req.dependencies == null || req.dependencies.isEmpty()) return true;
-        for (String dep : req.dependencies) {
-            if (!isDependencyMet(player, data, dep)) {
-                return false;
+        String currentPath = data.getCurrentPath();
+        if (currentPath == null) return false;
+        ConfigManager.PathInfo path = ConfigManager.PATHS_MAP.get(currentPath);
+        if (path == null) return false;
+
+        for (String depId : req.dependencies) {
+            ConfigManager.Requirement depReq = null;
+            for (ConfigManager.Requirement r : path.requirements) {
+                if (r.id.equals(depId)) {
+                    depReq = r;
+                    break;
+                }
+            }
+            if (depReq != null) {
+                if (!isRequirementCompleted(player, data, path.id, depReq)) {
+                    return false;
+                }
             }
         }
         return true;
@@ -550,15 +565,29 @@ public class xdAbsoluteMastery {
         return false;
     }
 
+    private static Class<?> modifiableItemClass = null;
+    private static boolean checkedTconstruct = false;
+
     private static boolean isTinkersItem(Item item) {
         // ponytail: using reflection to check ModifiableItem without adding tconstruct compile dependency
-        try {
-            Class<?> clazz = Class.forName("slimeknights.tconstruct.library.tools.item.ModifiableItem");
-            if (clazz.isInstance(item)) {
-                return true;
-            }
-        } catch (ClassNotFoundException ignored) {}
-        return false;
+        if (!checkedTconstruct) {
+            try {
+                modifiableItemClass = Class.forName("slimeknights.tconstruct.library.tools.item.ModifiableItem");
+            } catch (ClassNotFoundException ignored) {}
+            checkedTconstruct = true;
+        }
+        return modifiableItemClass != null && modifiableItemClass.isInstance(item);
+    }
+
+    private static boolean checkedCurios = false;
+    private static boolean isCuriosLoaded = false;
+
+    public static boolean isCuriosInstalled() {
+        if (!checkedCurios) {
+            isCuriosLoaded = net.minecraftforge.fml.ModList.get().isLoaded("curios");
+            checkedCurios = true;
+        }
+        return isCuriosLoaded;
     }
 
     public static String getPathFromItemTags(ItemStack stack) {
@@ -1167,6 +1196,17 @@ public class xdAbsoluteMastery {
                                     sendWarning(player, Component.translatable("xam.msg.armor_rejected"));
                                     break; // Only send one warning per check
                                 }
+                            }
+                        }
+
+                        // Check and eject unallowed curios
+                        if (isCuriosInstalled()) {
+                            try {
+                                Class.forName("org.CuriosCompatHelper")
+                                     .getMethod("checkAndEjectCurios", Player.class, PlayerData.class)
+                                     .invoke(null, player, data);
+                            } catch (Exception e) {
+                                LOGGER.error("Failed to execute Curios compatibility check", e);
                             }
                         }
 
@@ -1792,120 +1832,7 @@ public class xdAbsoluteMastery {
     }
 
     // --- Client Only Packet Handler to avoid Dedicated Server crashes ---
-
-    public static class ClientPacketHandler {
-        public static boolean shouldOpenPathSelection = false;
-        private static java.lang.reflect.Field progressField;
-
-        static {
-            try {
-                progressField = net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredField("f_104378_");
-                progressField.setAccessible(true);
-            } catch (Exception e) {
-                try {
-                    progressField = net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredField("progress");
-                    progressField.setAccessible(true);
-                } catch (Exception e2) {
-                    LOGGER.error("Failed to cache ClientAdvancements progress field", e2);
-                }
-            }
-        }
-
-        public static boolean isClientAdvancementCompleted(String id) {
-            ResourceLocation resLoc = ResourceLocation.tryParse(id);
-            if (resLoc == null || progressField == null) return false;
-            var connection = net.minecraft.client.Minecraft.getInstance().getConnection();
-            if (connection != null) {
-                var clientAdvs = connection.getAdvancements();
-                net.minecraft.advancements.Advancement adv = clientAdvs.getAdvancements().get(resLoc);
-                if (adv != null) {
-                    try {
-                        java.util.Map<?, ?> map = (java.util.Map<?, ?>) progressField.get(clientAdvs);
-                        if (map != null) {
-                            Object val = map.get(adv);
-                            if (val instanceof net.minecraft.advancements.AdvancementProgress progress) {
-                                return progress.isDone();
-                            }
-                        }
-                    } catch (Exception ignored) {}
-                }
-            }
-            return false;
-        }
-
-        public static void handleSync(CompoundTag nbt) {
-            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-            if (mc.player != null) {
-                mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                    boolean isFirstSync = !data.isInitialized();
-                    List<String> oldMastered = new ArrayList<>(data.getMasteredPaths());
-                    data.loadNBTData(nbt);
-                    data.setInitialized(true);
-
-                    if (!isFirstSync) {
-                        List<String> newMastered = data.getMasteredPaths();
-                        for (String pathId : newMastered) {
-                            if (!oldMastered.contains(pathId)) {
-                                // Find the name and icon of the mastered path
-                                String pathName = pathId;
-                                net.minecraft.world.item.ItemStack iconStack = net.minecraft.world.item.ItemStack.EMPTY;
-                                ConfigManager.PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
-                                if (path != null) {
-                                    pathName = path.name;
-                                    if (path.icon != null) {
-                                        net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(path.icon));
-                                        if (item != null) {
-                                            iconStack = new net.minecraft.world.item.ItemStack(item);
-                                        }
-                                    }
-                                }
-                                if (iconStack.isEmpty()) {
-                                    if (pathId.equals("botania")) {
-                                        iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.POPPY);
-                                    } else if (pathId.equals("mekanism")) {
-                                        iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE);
-                                    } else {
-                                        iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
-                                    }
-                                }
-                                // Show custom premium left-aligned client-side toast notification
-                                mc.getToasts().addToast(new MasteryCompletionToast(
-                                        Component.translatable("xam.toast.mastery_completed"),
-                                        Component.translatable("xam.toast.mastered_format", pathName),
-                                        iconStack
-                                ));
-                                break;
-                            }
-                        }
-                    } else {
-                        // Open path selection screen automatically on first join if no path is active
-                        if (data.getCurrentPath() == null) {
-                            boolean hasAvailablePaths = false;
-                            for (ConfigManager.PathInfo path : ConfigManager.PATHS) {
-                                if (!data.getMasteredPaths().contains(path.id)) {
-                                    hasAvailablePaths = true;
-                                    break;
-                                }
-                            }
-                            if (hasAvailablePaths) {
-                                shouldOpenPathSelection = true;
-                            }
-                        }
-                    }
-                });
-            }
-        }
-
-        public static void handleSyncConfig(String json) {
-            ConfigManager.loadConfigFromJson(json);
-        }
-
-        public static void handleNotifyConfigUpdate(long version) {
-            if (ConfigManager.getConfigVersion() < version) {
-                CHANNEL.sendToServer(new RequestConfigPacket());
-            }
-        }
-    }
+    // ponytail: moved to standalone ClientPacketHandler.java to prevent NoClassDefFoundError on servers
 
     // --- Client Only Keybinds & Suppressions ---
 

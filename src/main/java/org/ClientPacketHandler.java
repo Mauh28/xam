@@ -1,0 +1,129 @@
+package org;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraftforge.registries.ForgeRegistries;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ClientPacketHandler {
+    private static final Logger LOGGER = LogManager.getLogger(ClientPacketHandler.class);
+    public static boolean shouldOpenPathSelection = false;
+    private static java.lang.reflect.Field progressField;
+
+    static {
+        try {
+            progressField = net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredField("f_104378_");
+            progressField.setAccessible(true);
+        } catch (Exception e) {
+            try {
+                progressField = net.minecraft.client.multiplayer.ClientAdvancements.class.getDeclaredField("progress");
+                progressField.setAccessible(true);
+            } catch (Exception e2) {
+                LOGGER.error("Failed to cache ClientAdvancements progress field", e2);
+            }
+        }
+    }
+
+    public static boolean isClientAdvancementCompleted(String id) {
+        ResourceLocation resLoc = ResourceLocation.tryParse(id);
+        if (resLoc == null || progressField == null) return false;
+        var connection = Minecraft.getInstance().getConnection();
+        if (connection != null) {
+            var clientAdvs = connection.getAdvancements();
+            net.minecraft.advancements.Advancement adv = clientAdvs.getAdvancements().get(resLoc);
+            if (adv != null) {
+                try {
+                    java.util.Map<?, ?> map = (java.util.Map<?, ?>) progressField.get(clientAdvs);
+                    if (map != null) {
+                        Object val = map.get(adv);
+                        if (val instanceof net.minecraft.advancements.AdvancementProgress progress) {
+                            return progress.isDone();
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+        return false;
+    }
+
+    public static void handleSync(CompoundTag nbt) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) {
+            mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                boolean isFirstSync = !data.isInitialized();
+                List<String> oldMastered = new ArrayList<>(data.getMasteredPaths());
+                data.loadNBTData(nbt);
+                data.setInitialized(true);
+
+                if (!isFirstSync) {
+                    List<String> newMastered = data.getMasteredPaths();
+                    for (String pathId : newMastered) {
+                        if (!oldMastered.contains(pathId)) {
+                            // Find the name and icon of the mastered path
+                            String pathName = pathId;
+                            ItemStack iconStack = ItemStack.EMPTY;
+                            xdAbsoluteMastery.ConfigManager.PathInfo path = xdAbsoluteMastery.ConfigManager.PATHS_MAP.get(pathId);
+                            if (path != null) {
+                                pathName = path.name;
+                                if (path.icon != null) {
+                                    Item item = ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse(path.icon));
+                                    if (item != null) {
+                                        iconStack = new ItemStack(item);
+                                    }
+                                }
+                            }
+                            if (iconStack.isEmpty()) {
+                                if (pathId.equals("botania")) {
+                                    iconStack = new ItemStack(Items.POPPY);
+                                } else if (pathId.equals("mekanism")) {
+                                    iconStack = new ItemStack(Items.REDSTONE);
+                                } else {
+                                    iconStack = new ItemStack(Items.WRITABLE_BOOK);
+                                }
+                            }
+                            // Show custom premium left-aligned client-side toast notification
+                            mc.getToasts().addToast(new MasteryCompletionToast(
+                                    Component.translatable("xam.toast.mastery_completed"),
+                                    Component.translatable("xam.toast.mastered_format", pathName),
+                                    iconStack
+                            ));
+                            break;
+                        }
+                    }
+                } else {
+                    // Open path selection screen automatically on first join if no path is active
+                    if (data.getCurrentPath() == null) {
+                        boolean hasAvailablePaths = false;
+                        for (xdAbsoluteMastery.ConfigManager.PathInfo path : xdAbsoluteMastery.ConfigManager.PATHS) {
+                            if (!data.getMasteredPaths().contains(path.id)) {
+                                hasAvailablePaths = true;
+                                break;
+                            }
+                        }
+                        if (hasAvailablePaths) {
+                            shouldOpenPathSelection = true;
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    public static void handleSyncConfig(String json) {
+        xdAbsoluteMastery.ConfigManager.loadConfigFromJson(json);
+    }
+
+    public static void handleNotifyConfigUpdate(long version) {
+        if (xdAbsoluteMastery.ConfigManager.getConfigVersion() < version) {
+            xdAbsoluteMastery.CHANNEL.sendToServer(new xdAbsoluteMastery.RequestConfigPacket());
+        }
+    }
+}

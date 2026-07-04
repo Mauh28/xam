@@ -59,6 +59,7 @@
   "xam.msg.weapon_no_effect": "Esta arma no tiene efecto bajo tu maestría",
   "xam.msg.tool_no_effect": "Esta herramienta no tiene efecto bajo tu maestría",
   "xam.msg.armor_rejected": "Tu maestría rechaza esta armadura, no te protegerá",
+  "xam.msg.curio_rejected": "Tu maestría rechaza este accesorio, ha sido removido",
 
   "xam.msg.mastered_announcement": "¡Has dominado %s! Ahora puedes elegir un nuevo camino.",
   "xam.msg.dev_mode_format": "Modo Dev %s para %s",

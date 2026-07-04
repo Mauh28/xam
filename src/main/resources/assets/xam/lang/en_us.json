@@ -59,6 +59,7 @@
   "xam.msg.weapon_no_effect": "This weapon has no effect under your mastery",
   "xam.msg.tool_no_effect": "This tool has no effect under your mastery",
   "xam.msg.armor_rejected": "Your mastery rejects this armor, it will not protect you",
+  "xam.msg.curio_rejected": "Your mastery rejects this accessory, it has been removed",
 
   "xam.msg.mastered_announcement": "You have mastered %s! Now you can choose a new path.",
   "xam.msg.dev_mode_format": "Dev Mode %s for %s",

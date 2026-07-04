@@ -718,7 +718,13 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                         if (req.type.equals("craft") || req.type.equals("collect")) {
                             if (net.minecraftforge.fml.ModList.get().isLoaded("jei")) {
                                 playClickSound();
-                                JeiIntegrationHelper.showRecipe(req.id);
+                                try {
+                                    Class.forName("org.JeiIntegrationHelper")
+                                         .getMethod("showRecipe", String.class)
+                                         .invoke(null, req.id);
+                                } catch (Exception e) {
+                                    xdAbsoluteMastery.LOGGER.error("Failed to show recipe via JEI", e);
+                                }
                                 return true;
                             }
                         }
