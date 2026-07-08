@@ -70,24 +70,6 @@ public class ClientForgeEvents {
         }
     }
 
-    public static void addWidgetToScreen(net.minecraft.client.gui.screens.Screen screen, net.minecraft.client.gui.components.AbstractWidget widget) {
-        try {
-            java.lang.reflect.Method method = null;
-            for (java.lang.reflect.Method m : net.minecraft.client.gui.screens.Screen.class.getDeclaredMethods()) {
-                if (m.getName().equals("addRenderableWidget") || m.getName().equals("m_142416_")) {
-                    method = m;
-                    break;
-                }
-            }
-            if (method != null) {
-                method.setAccessible(true);
-                method.invoke(screen, widget);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     @SubscribeEvent
     public static void onScreenInitPost(ScreenEvent.Init.Post event) {
         net.minecraft.client.gui.screens.Screen screen = event.getScreen();
@@ -134,7 +116,7 @@ public class ClientForgeEvents {
                 }
             };
 
-            addWidgetToScreen(screen, button);
+            event.addListener(button);
         }
     }
 
