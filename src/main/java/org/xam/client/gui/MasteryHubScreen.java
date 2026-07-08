@@ -88,15 +88,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
         graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.progress").getString(), leftX + 12, leftY + 10, COLOR_BRASS, false);
 
         String activePathId = playerData != null ? playerData.getCurrentPath() : null;
-        PathInfo activePath = null;
-        if (activePathId != null) {
-            for (PathInfo p : ConfigManager.PATHS) {
-                if (p.id.equals(activePathId)) {
-                    activePath = p;
-                    break;
-                }
-            }
-        }
+        PathInfo activePath = activePathId != null ? ConfigManager.PATHS_MAP.get(activePathId) : null;
 
         if (activePath != null) {
             // Icon slot background
@@ -551,26 +543,25 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     }
 
     private net.minecraft.world.item.ItemStack getPathIcon(String pathId) {
-        for (PathInfo path : ConfigManager.PATHS) {
-            if (path.id.equals(pathId)) {
-                net.minecraft.world.item.ItemStack stack = net.minecraft.world.item.ItemStack.EMPTY;
-                if (path.icon != null) {
-                    net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(path.icon));
-                    if (item != null) {
-                        stack = new net.minecraft.world.item.ItemStack(item);
-                    }
+        PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
+        if (path != null) {
+            net.minecraft.world.item.ItemStack stack = net.minecraft.world.item.ItemStack.EMPTY;
+            if (path.icon != null) {
+                net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(path.icon));
+                if (item != null) {
+                    stack = new net.minecraft.world.item.ItemStack(item);
                 }
-                if (stack.isEmpty()) {
-                    if (pathId.equals("botania")) {
-                        stack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.POPPY);
-                    } else if (pathId.equals("mekanism")) {
-                        stack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE);
-                    } else {
-                        stack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
-                    }
-                }
-                return stack;
             }
+            if (stack.isEmpty()) {
+                if (pathId.equals("botania")) {
+                    stack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.POPPY);
+                } else if (pathId.equals("mekanism")) {
+                    stack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE);
+                } else {
+                    stack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
+                }
+            }
+            return stack;
         }
         return new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
     }
@@ -692,15 +683,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_R) {
             String activePathId = playerData != null ? playerData.getCurrentPath() : null;
-            PathInfo activePath = null;
-            if (activePathId != null) {
-                for (PathInfo p : ConfigManager.PATHS) {
-                    if (p.id.equals(activePathId)) {
-                        activePath = p;
-                        break;
-                    }
-                }
-            }
+            PathInfo activePath = activePathId != null ? ConfigManager.PATHS_MAP.get(activePathId) : null;
 
             if (activePath != null && this.minecraft != null) {
                 double mouseX = this.minecraft.mouseHandler.xpos() * (double) this.minecraft.getWindow().getGuiScaledWidth() / (double) this.minecraft.getWindow().getWidth();

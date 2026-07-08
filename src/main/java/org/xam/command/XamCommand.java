@@ -276,13 +276,7 @@ public class XamCommand {
 
     private static void masterPath(CommandSourceStack source, ServerPlayer player, String pathId, boolean mastered) {
         player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-            boolean exists = false;
-            for (PathInfo path : ConfigManager.PATHS) {
-                if (path.id.equals(pathId)) {
-                    exists = true;
-                    break;
-                }
-            }
+            boolean exists = ConfigManager.PATHS_MAP.containsKey(pathId);
             if (!exists) {
                 source.sendFailure(Component.translatable("xam.msg.path_not_exists", pathId));
                 return;

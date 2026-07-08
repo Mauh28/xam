@@ -37,12 +37,10 @@ public class MasteryService {
             String currentPath = data.getCurrentPath();
             boolean found = false;
             if (currentPath != null) {
-                for (PathInfo path : ConfigManager.PATHS) {
-                    if (path.id.equals(currentPath)) {
-                        data.setActivePathModId(path.mod_id);
-                        found = true;
-                        break;
-                    }
+                PathInfo path = ConfigManager.PATHS_MAP.get(currentPath);
+                if (path != null) {
+                    data.setActivePathModId(path.mod_id);
+                    found = true;
                 }
             }
             if (!found && currentPath != null) {
@@ -114,13 +112,7 @@ public class MasteryService {
             String currentPath = data.getCurrentPath();
             if (currentPath == null) return;
 
-            PathInfo pathInfo = null;
-            for (PathInfo path : ConfigManager.PATHS) {
-                if (path.id.equals(currentPath)) {
-                    pathInfo = path;
-                    break;
-                }
-            }
+            PathInfo pathInfo = ConfigManager.PATHS_MAP.get(currentPath);
             if (pathInfo == null) return;
 
             boolean changed = false;
