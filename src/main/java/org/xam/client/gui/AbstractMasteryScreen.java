@@ -147,7 +147,7 @@ public abstract class AbstractMasteryScreen extends Screen {
         int sr = Math.max(0, r - 20);
         int sg = Math.max(0, g - 20);
         int sb = Math.max(0, b - 20);
-        int shadowColor = (alpha << 24) | (sr << 16) | (sg << 8) | sr; // ponytail: simple dark shade border fallback
+        int shadowColor = (alpha << 24) | (sr << 16) | (sg << 8) | sb; // ponytail: simple dark shade border fallback
 
         // Fill background
         graphics.fill(x + 2, y + 2, x + w - 2, y + h - 2, finalBg);
