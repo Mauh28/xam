@@ -75,6 +75,7 @@ public class XamCommand {
                     player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                         data.setCurrentPath(null);
                         data.getMasteredPaths().clear();
+                        data.getStartedPaths().clear();
                         data.clearCompletedRequirements();
                         data.setDevMode(false);
                         MasteryService.sync(player);
