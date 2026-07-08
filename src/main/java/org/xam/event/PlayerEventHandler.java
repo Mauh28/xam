@@ -122,14 +122,8 @@ public class PlayerEventHandler {
                     // Apply active perks for mastered paths
                     for (String pathId : data.getMasteredPaths()) {
                         PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
-                        if (path != null && path.perkEffect != null && !path.perkEffect.isEmpty()) {
-                            ResourceLocation effectRl = ResourceLocation.tryParse(path.perkEffect);
-                            if (effectRl != null) {
-                                net.minecraft.world.effect.MobEffect effect = ForgeRegistries.MOB_EFFECTS.getValue(effectRl);
-                                if (effect != null) {
-                                    player.addEffect(new net.minecraft.world.effect.MobEffectInstance(effect, 300, path.perkAmplifier, true, false, false));
-                                }
-                            }
+                        if (path != null && path.perkEffectCached != null) {
+                            player.addEffect(new net.minecraft.world.effect.MobEffectInstance(path.perkEffectCached, 400, path.perkAmplifier, true, false, false));
                         }
                     }
                 }

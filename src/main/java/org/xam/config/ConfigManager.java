@@ -158,6 +158,15 @@ public class ConfigManager {
                         info.requirements.add(new Requirement("advancement", advId, simpleName, "Completa el logro " + simpleName));
                     }
                 }
+                if (info.perkEffect != null && !info.perkEffect.isEmpty()) {
+                    ResourceLocation rl = ResourceLocation.tryParse(info.perkEffect);
+                    if (rl != null) {
+                        info.perkEffectCached = net.minecraftforge.registries.ForgeRegistries.MOB_EFFECTS.getValue(rl);
+                        if (info.perkEffectCached == null) {
+                            XamConstants.LOGGER.warn("Path {} has unknown perkEffect: {}", info.id, info.perkEffect);
+                        }
+                    }
+                }
                 PATHS.add(info);
                 PATHS_MAP.put(info.id, info);
             }

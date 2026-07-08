@@ -960,7 +960,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
 
     private void addPath() {
         PathInfo p = new PathInfo();
-        p.id = "nueva_rama_" + (System.currentTimeMillis() % 1000);
+        p.id = "path_" + java.util.UUID.randomUUID().toString().substring(0, 8);
         p.name = Component.translatable("xam.editor.default.new_branch_name").getString();
         p.mod_id = "modid";
         p.icon = "minecraft:writable_book";

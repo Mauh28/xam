@@ -1,6 +1,7 @@
 package org.xam.config;
 
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.item.Item;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,4 +21,7 @@ public class PathInfo {
     public TagKey<Item> armorTag;
     public TagKey<Item> weaponsTag;
     public TagKey<Item> toolsTag;
+
+    // Cache MobEffect to avoid registry lookups in tick loops
+    public transient MobEffect perkEffectCached;
 }
