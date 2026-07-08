@@ -1,0 +1,319 @@
+package org.xam.client.gui;
+
+import org.xam.XamConstants;
+import org.xam.config.ConfigManager;
+import org.xam.config.PathInfo;
+import org.xam.config.Requirement;
+import org.xam.data.PlayerData;
+import org.xam.data.PlayerDataProvider;
+import org.xam.network.XamNetwork;
+import org.xam.network.SelectPathPacket;
+import org.xam.network.UpdateConfigPacket;
+import org.xam.progression.MasteryService;
+import org.xam.progression.RequirementFormatter;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
+public abstract class AbstractPickerScreen<T> extends AbstractMasteryScreen {
+    protected final Screen parent;
+    protected final Consumer<T> onSelect;
+    protected final List<T> allEntries = new ArrayList<>();
+    protected final List<T> filteredEntries = new ArrayList<>();
+    
+    protected EditBox searchBox;
+    protected String selectedModFilter = "Todos";
+    protected int scrollOffset = 0;
+    protected int entryHeight = 20;
+    protected int maxVisible = 7;
+    protected int lastMouseX;
+    protected int lastMouseY;
+    
+    private boolean isDraggingScrollbar = false;
+
+    public AbstractPickerScreen(Screen parent, Component title, Consumer<T> onSelect) {
+        super(title);
+        this.parent = parent;
+        this.onSelect = onSelect;
+    }
+
+    protected boolean shouldShowNamespaceFilter() {
+        return true;
+    }
+
+    protected String getNamespaceFilter() {
+        return (this.selectedModFilter == null || this.selectedModFilter.equals("Todos")) ? "" : this.selectedModFilter;
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        
+        // Dynamically adjust entry height based on container height to prevent overlaps
+        this.entryHeight = containerH < 200 ? 16 : 20;
+
+        boolean showFilter = shouldShowNamespaceFilter() && containerH >= 220;
+        int listHeight = bodyH - (showFilter ? 70 : 45);
+        this.maxVisible = Math.max(2, listHeight / entryHeight);
+
+        int panelX = containerX;
+        int searchY = bodyY + (showFilter ? 37 : 10);
+
+        // searchBox is designed borderless within drawFlatPanel
+        this.searchBox = new EditBox(this.font, panelX + 36, searchY + 4, containerW - 74, 12, Component.translatable("xam.editor.search_placeholder"));
+        this.searchBox.setBordered(false);
+        this.searchBox.setTextColor(TEXT_PRIMARY);
+        this.searchBox.setResponder(text -> {
+            this.filterEntries(text);
+            this.scrollOffset = 0;
+        });
+        this.addRenderableWidget(this.searchBox);
+
+        // Populate lists
+        if (this.allEntries.isEmpty()) {
+            this.populateEntries();
+        }
+        this.filterEntries(this.searchBox.getValue());
+    }
+
+    protected int getListStartY() {
+        boolean showFilter = shouldShowNamespaceFilter() && containerH >= 220;
+        return bodyY + (showFilter ? 62 : 35);
+    }
+
+    protected abstract void populateEntries();
+    protected abstract void filterEntries(String query);
+    protected abstract void renderEntry(GuiGraphics guiGraphics, T entry, int x, int y, int index, boolean hovered);
+    protected abstract void onClickEntry(T entry);
+
+    @Override
+    protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
+        int titleY = containerY + (headerH - 8) / 2;
+        graphics.drawString(this.font, this.title, containerX + 15, titleY, TEXT_PRIMARY, false);
+        drawBackButton(graphics, mouseX, mouseY);
+    }
+
+    @Override
+    protected void renderFooter(GuiGraphics graphics, int mouseX, int mouseY) {
+        int btnW = 100;
+        int btnH = 20;
+        int btnX = containerX + containerW - 15 - btnW;
+        int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
+
+        drawFlatButton(graphics, btnX, btnY, btnW, btnH, Component.translatable("xam.editor.cancel").getString(), mouseX, mouseY, true);
+    }
+
+    @Override
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        this.lastMouseX = mouseX;
+        this.lastMouseY = mouseY;
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
+
+        int panelX = containerX;
+
+        boolean showFilter = shouldShowNamespaceFilter() && containerH >= 220;
+        // Render Mod Filter Button if visible
+        if (showFilter) {
+            int btnX = panelX + 20;
+            int btnY = bodyY + 12;
+            int btnW = containerW - 40;
+            int btnH = 20;
+            boolean hovered = mouseX >= btnX && mouseX < btnX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
+            
+            int bg = hovered ? BUTTON_HOVER_BG : BUTTON_BACKGROUND;
+            int border = hovered ? BUTTON_HOVER_BORDER : BUTTON_BORDER;
+            
+            int bgTop = adjustColorBrightness(bg, 12);
+            int bgBottom = adjustColorBrightness(bg, -15);
+            drawGradientPanel(guiGraphics, btnX, btnY, btnW, btnH, bgTop, bgBottom, border);
+            
+            String displayFilter = selectedModFilter.equals("Todos") ? Component.translatable("xam.editor.all").getString() : selectedModFilter;
+            String btnText = Component.translatable("xam.editor.mod_filter_label", displayFilter).getString();
+            int textX = btnX + (btnW - this.font.width(btnText)) / 2;
+            int textY = btnY + (btnH - 8) / 2;
+            guiGraphics.drawString(this.font, btnText, textX, textY, hovered ? TEXT_PRIMARY : TEXT_SECONDARY, false);
+        }
+
+        // Draw search box background panel
+        int searchY = bodyY + (showFilter ? 37 : 10);
+        drawFlatPanel(guiGraphics, panelX + 20, searchY, containerW - 40, 20, INPUT_BACKGROUND, COLOR_COPPER);
+
+        // Lupa character
+        guiGraphics.drawString(this.font, "🔍", panelX + 24, searchY + 6, TEXT_MUTED, false);
+
+        // Clear button if search box is not empty
+        if (!searchBox.getValue().isEmpty()) {
+            boolean hoveredClear = mouseX >= panelX + containerW - 35 && mouseX < panelX + containerW - 22 && mouseY >= searchY + 4 && mouseY < searchY + 16;
+            guiGraphics.drawString(this.font, "✕", panelX + containerW - 33, searchY + 6, hoveredClear ? 0xFFFF5555 : TEXT_MUTED, false);
+        }
+
+        // Render virtual list entries
+        int startY = getListStartY();
+        int listWidth = containerW - 40;
+        
+        for (int i = 0; i < maxVisible; i++) {
+            int entryIndex = scrollOffset + i;
+            if (entryIndex >= filteredEntries.size()) break;
+            
+            T entry = filteredEntries.get(entryIndex);
+            int entryX = panelX + 20;
+            int entryY = startY + i * entryHeight;
+            
+            boolean hovered = mouseX >= entryX && mouseX < entryX + listWidth && mouseY >= entryY && mouseY < entryY + entryHeight;
+            
+            // Hover background
+            if (hovered) {
+                guiGraphics.fill(entryX + 1, entryY + 1, entryX + listWidth - 1, entryY + entryHeight - 1, 0x1AFFFFFF);
+            }
+            
+            renderEntry(guiGraphics, entry, entryX, entryY, entryIndex, hovered);
+        }
+
+        // Render scrollbar if needed
+        if (filteredEntries.size() > maxVisible) {
+            int scrollbarX = panelX + containerW - 15;
+            int scrollbarY = startY;
+            int scrollbarHeight = maxVisible * entryHeight;
+            
+            float fraction = (float) scrollOffset / (filteredEntries.size() - maxVisible);
+            int thumbHeight = Math.max(15, (int) (((float) maxVisible / filteredEntries.size()) * scrollbarHeight));
+            int thumbY = scrollbarY + (int) (fraction * (scrollbarHeight - thumbHeight));
+            
+            drawFlatPanel(guiGraphics, scrollbarX, scrollbarY, 4, scrollbarHeight, 0xFF140F0D, 0xFF2C221D);
+            drawFlatPanel(guiGraphics, scrollbarX, thumbY, 4, thumbHeight, COLOR_COPPER, COLOR_BRASS);
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && isBackButtonClicked(mouseX, mouseY)) {
+            playClickSound();
+            Minecraft.getInstance().setScreen(this.parent);
+            return true;
+        }
+        int panelX = containerX;
+
+        boolean showFilter = shouldShowNamespaceFilter() && containerH >= 220;
+        // Mod Filter Button click
+        if (showFilter && button == 0) {
+            int btnX = panelX + 20;
+            int btnY = bodyY + 12;
+            int btnW = containerW - 40;
+            int btnH = 20;
+            if (mouseX >= btnX && mouseX < btnX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
+                playClickSound();
+                Minecraft.getInstance().setScreen(new ModSelectionScreen(this, modId -> {
+                    this.selectedModFilter = modId;
+                    this.filterEntries(this.searchBox.getValue());
+                    this.scrollOffset = 0;
+                    Minecraft.getInstance().setScreen(this);
+                }));
+                return true;
+            }
+        }
+
+        // Clear Search Button click check
+        int searchY = bodyY + (showFilter ? 37 : 10);
+        if (button == 0 && !searchBox.getValue().isEmpty()) {
+            if (mouseX >= panelX + containerW - 35 && mouseX < panelX + containerW - 22 && mouseY >= searchY + 4 && mouseY < searchY + 16) {
+                playClickSound();
+                searchBox.setValue("");
+                searchBox.setFocused(true);
+                return true;
+            }
+        }
+
+        // Cancelar button click
+        int btnW = 100;
+        int btnH = 20;
+        int btnX = containerX + containerW - 15 - btnW;
+        int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
+        if (button == 0 && mouseX >= btnX && mouseX < btnX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
+            playClickSound();
+            Minecraft.getInstance().setScreen(this.parent);
+            return true;
+        }
+
+        // Scrollbar click/drag detection
+        int startY = getListStartY();
+        if (filteredEntries.size() > maxVisible) {
+            int scrollbarX = panelX + containerW - 15;
+            int scrollbarY = startY;
+            int scrollbarHeight = maxVisible * entryHeight;
+            int thumbHeight = Math.max(15, (int) (((float) maxVisible / filteredEntries.size()) * scrollbarHeight));
+
+            if (button == 0 && mouseX >= scrollbarX && mouseX < scrollbarX + 6 && mouseY >= scrollbarY && mouseY < scrollbarY + scrollbarHeight) {
+                this.isDraggingScrollbar = true;
+                updateScrollFromMouse(mouseY, scrollbarY, scrollbarHeight, thumbHeight);
+                return true;
+            }
+        }
+
+        if (super.mouseClicked(mouseX, mouseY, button)) return true;
+
+        // Entries click
+        int listWidth = containerW - 40;
+        for (int i = 0; i < maxVisible; i++) {
+            int entryIndex = scrollOffset + i;
+            if (entryIndex >= filteredEntries.size()) break;
+            
+            T entry = filteredEntries.get(entryIndex);
+            int entryX = panelX + 20;
+            int entryY = startY + i * entryHeight;
+            
+            if (mouseX >= entryX && mouseX < entryX + listWidth && mouseY >= entryY && mouseY < entryY + entryHeight) {
+                this.onClickEntry(entry);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 0) {
+            this.isDraggingScrollbar = false;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (this.isDraggingScrollbar && button == 0 && filteredEntries.size() > maxVisible) {
+            int startY = getListStartY();
+            int scrollbarY = startY;
+            int scrollbarHeight = maxVisible * entryHeight;
+            int thumbHeight = Math.max(15, (int) (((float) maxVisible / filteredEntries.size()) * scrollbarHeight));
+            updateScrollFromMouse(mouseY, scrollbarY, scrollbarHeight, thumbHeight);
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    private void updateScrollFromMouse(double mouseY, int scrollbarY, int scrollbarHeight, int thumbHeight) {
+        float relativeY = (float) (mouseY - scrollbarY - thumbHeight / 2.0);
+        float range = scrollbarHeight - thumbHeight;
+        float pct = range > 0 ? Math.max(0f, Math.min(1f, relativeY / range)) : 0f;
+        this.scrollOffset = Math.max(0, Math.min(filteredEntries.size() - maxVisible, Math.round(pct * (filteredEntries.size() - maxVisible))));
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (filteredEntries.size() > maxVisible) {
+            if (delta > 0) {
+                scrollOffset = Math.max(0, scrollOffset - 1);
+            } else if (delta < 0) {
+                scrollOffset = Math.min(filteredEntries.size() - maxVisible, scrollOffset + 1);
+            }
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, delta);
+    }
+}
