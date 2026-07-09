@@ -58,12 +58,9 @@ public class ItemUtils {
         ResourceLocation rl = ForgeRegistries.ITEMS.getKey(stack.getItem());
         if (rl == null) return null;
 
-        // Check if item namespace matches path.mod_id
-        for (PathInfo path : ConfigManager.PATHS) {
-            if (path.mod_id != null && path.mod_id.equals(rl.getNamespace())) {
-                return path.id;
-            }
-        }
+        // O(1) lookup by namespace
+        PathInfo byNamespace = ConfigManager.NAMESPACE_TO_PATH.get(rl.getNamespace());
+        if (byNamespace != null) return byNamespace.id;
 
         // Fallback check for legacy path tags xam:path_id/...
         for (PathInfo path : ConfigManager.PATHS) {

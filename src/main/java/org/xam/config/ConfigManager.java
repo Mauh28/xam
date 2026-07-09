@@ -24,6 +24,7 @@ public class ConfigManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     public static final List<PathInfo> PATHS = new ArrayList<>();
     public static final Map<String, PathInfo> PATHS_MAP = new HashMap<>();
+    public static final Map<String, PathInfo> NAMESPACE_TO_PATH = new HashMap<>();
     public static final Set<String> UNIVERSAL_NAMESPACES = new HashSet<>(Arrays.asList("minecraft", "tconstruct"));
     private static long configVersion = 0;
 
@@ -163,6 +164,13 @@ public class ConfigManager {
                 }
                 PATHS.add(info);
                 PATHS_MAP.put(info.id, info);
+            }
+        }
+        // ponytail: O(1) namespace→path lookup for ItemUtils.getPathFromItemTags hot path
+        NAMESPACE_TO_PATH.clear();
+        for (PathInfo info : PATHS) {
+            if (info.mod_id != null && !info.mod_id.isEmpty()) {
+                NAMESPACE_TO_PATH.put(info.mod_id, info);
             }
         }
     }
