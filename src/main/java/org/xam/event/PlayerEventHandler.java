@@ -34,6 +34,7 @@ public class PlayerEventHandler {
         MessageUtils.LAST_MAINHAND.remove(uuid);
         MessageUtils.LAST_OFFHAND.remove(uuid);
         MessageUtils.COOLDOWNS.entrySet().removeIf(e -> e.getKey().startsWith(uuid.toString()));
+        org.xam.network.PacketRateLimiter.clear(uuid);
     }
 
     @SubscribeEvent

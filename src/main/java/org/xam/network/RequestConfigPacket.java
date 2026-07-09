@@ -21,6 +21,9 @@ public class RequestConfigPacket {
         ctx.get().enqueueWork(() -> {
             ServerPlayer player = ctx.get().getSender();
             if (player != null) {
+                if (!PacketRateLimiter.canRequestConfig(player.getUUID())) {
+                    return;
+                }
                 String pathsJson = ConfigManager.getPathsJson();
                 XamNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SyncConfigPacket(pathsJson));
             }

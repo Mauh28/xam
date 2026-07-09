@@ -29,6 +29,10 @@ public class SelectPathPacket {
         ctx.get().enqueueWork(() -> {
             ServerPlayer player = ctx.get().getSender();
             if (player != null) {
+                if (!PacketRateLimiter.canSelectPath(player.getUUID())) {
+                    org.xam.XamConstants.LOGGER.warn("Player {} rate-limited on SelectPathPacket", player.getName().getString());
+                    return;
+                }
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     if (pkt.pathId != null) {
                         PathInfo targetPath = ConfigManager.PATHS_MAP.get(pkt.pathId);
