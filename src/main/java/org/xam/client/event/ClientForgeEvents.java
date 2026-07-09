@@ -155,21 +155,28 @@ public class ClientForgeEvents {
         }
     }
 
+    private static java.util.Set<net.minecraft.client.KeyMapping> ALLOWED_KEYS = null;
+
     private static boolean isInteractionKey(net.minecraft.client.KeyMapping key, net.minecraft.client.Options options) {
-        return key != options.keyUp
-                && key != options.keyDown
-                && key != options.keyLeft
-                && key != options.keyRight
-                && key != options.keyJump
-                && key != options.keyShift
-                && key != options.keySprint
-                && key != options.keyInventory
-                && key != options.keyChat
-                && key != options.keyCommand
-                && key != options.keyPlayerList
-                && key != options.keyScreenshot
-                && key != options.keySmoothCamera
-                && key != options.keyFullscreen
-                && key != options.keySpectatorOutlines;
+        if (ALLOWED_KEYS == null) {
+            ALLOWED_KEYS = java.util.Set.of(
+                options.keyUp,
+                options.keyDown,
+                options.keyLeft,
+                options.keyRight,
+                options.keyJump,
+                options.keyShift,
+                options.keySprint,
+                options.keyInventory,
+                options.keyChat,
+                options.keyCommand,
+                options.keyPlayerList,
+                options.keyScreenshot,
+                options.keySmoothCamera,
+                options.keyFullscreen,
+                options.keySpectatorOutlines
+            );
+        }
+        return !ALLOWED_KEYS.contains(key);
     }
 }
