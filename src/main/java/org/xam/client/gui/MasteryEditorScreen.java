@@ -11,6 +11,7 @@ import org.xam.network.SelectPathPacket;
 import org.xam.network.UpdateConfigPacket;
 import org.xam.progression.MasteryService;
 import org.xam.progression.RequirementFormatter;
+import org.xam.util.PathIcons;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -327,22 +328,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             String name = p.name;
             int textX = listX + 8;
 
-            net.minecraft.world.item.ItemStack iconStack = net.minecraft.world.item.ItemStack.EMPTY;
-            if (p.icon != null) {
-                net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(p.icon));
-                if (item != null) {
-                    iconStack = new net.minecraft.world.item.ItemStack(item);
-                }
-            }
-            if (iconStack.isEmpty()) {
-                if (p.id.equals("botania")) {
-                    iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.POPPY);
-                } else if (p.id.equals("mekanism")) {
-                    iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE);
-                } else {
-                    iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
-                }
-            }
+            net.minecraft.world.item.ItemStack iconStack = PathIcons.getIcon(p);
 
             if (!iconStack.isEmpty()) {
                 graphics.renderFakeItem(iconStack, listX + 2, itemY + 1);
@@ -401,22 +387,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             drawFlatPanel(graphics, iconX, iconY, iconW, iconW, iconBg, iconBorder);
 
             // Render current path icon in slot
-            net.minecraft.world.item.ItemStack branchIconStack = net.minecraft.world.item.ItemStack.EMPTY;
-            if (p.icon != null) {
-                net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(p.icon));
-                if (item != null) {
-                    branchIconStack = new net.minecraft.world.item.ItemStack(item);
-                }
-            }
-            if (branchIconStack.isEmpty()) {
-                if (p.id.equals("botania")) {
-                    branchIconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.POPPY);
-                } else if (p.id.equals("mekanism")) {
-                    branchIconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE);
-                } else {
-                    branchIconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
-                }
-            }
+            net.minecraft.world.item.ItemStack branchIconStack = PathIcons.getIcon(p);
             graphics.renderFakeItem(branchIconStack, iconX + 2, iconY + 2);
 
             // Inputs Background Panels

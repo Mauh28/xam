@@ -13,6 +13,7 @@ import net.minecraftforge.network.PacketDistributor;
 import org.xam.XamConstants;
 import org.xam.network.XamNetwork;
 import org.xam.network.NotifyConfigUpdatePacket;
+import org.xam.util.PathIcons;
 
 import java.io.File;
 import java.io.IOException;
@@ -103,14 +104,7 @@ public class ConfigManager {
                 if (pObj.has("icon")) {
                     info.icon = pObj.get("icon").getAsString();
                 } else {
-                    // Compatibility fallbacks:
-                    if (info.id.equals("botania")) {
-                        info.icon = "minecraft:poppy";
-                    } else if (info.id.equals("mekanism")) {
-                        info.icon = "minecraft:redstone";
-                    } else {
-                        info.icon = "minecraft:writable_book";
-                    }
+                    info.icon = PathIcons.getDefaultIconId(info.id);
                 }
                 info.dependencies = new ArrayList<>();
                 if (pObj.has("dependencies")) {

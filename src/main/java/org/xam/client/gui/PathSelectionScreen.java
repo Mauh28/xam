@@ -11,6 +11,7 @@ import org.xam.network.SelectPathPacket;
 import org.xam.network.UpdateConfigPacket;
 import org.xam.progression.MasteryService;
 import org.xam.progression.RequirementFormatter;
+import org.xam.util.PathIcons;
 
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.Minecraft;
@@ -399,18 +400,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
     }
 
     private ItemStack getIconForPath(PathInfo path) {
-        if (path.icon != null) {
-            net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(path.icon));
-            if (item != null) {
-                return new ItemStack(item);
-            }
-        }
-        if (path.id.equals("botania")) {
-            return new ItemStack(Items.POPPY);
-        } else if (path.id.equals("mekanism")) {
-            return new ItemStack(Items.REDSTONE);
-        }
-        return new ItemStack(Items.WRITABLE_BOOK);
+        return PathIcons.getIcon(path);
     }
 
     private String formatRequirement(Requirement req) {

@@ -18,6 +18,7 @@ import org.xam.config.PathInfo;
 import org.xam.data.PlayerDataProvider;
 import org.xam.network.RequestConfigPacket;
 import org.xam.network.XamNetwork;
+import org.xam.util.PathIcons;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,25 +79,13 @@ public class ClientPacketHandler {
                         if (!oldMastered.contains(pathId)) {
                             // Find the name and icon of the mastered path
                             String pathName = pathId;
-                            ItemStack iconStack = ItemStack.EMPTY;
                             PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
+                            ItemStack iconStack;
                             if (path != null) {
                                 pathName = path.name;
-                                if (path.icon != null) {
-                                    Item item = ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse(path.icon));
-                                    if (item != null) {
-                                        iconStack = new ItemStack(item);
-                                    }
-                                }
-                            }
-                            if (iconStack.isEmpty()) {
-                                if (pathId.equals("botania")) {
-                                    iconStack = new ItemStack(Items.POPPY);
-                                } else if (pathId.equals("mekanism")) {
-                                    iconStack = new ItemStack(Items.REDSTONE);
-                                } else {
-                                    iconStack = new ItemStack(Items.WRITABLE_BOOK);
-                                }
+                                iconStack = PathIcons.getIcon(path);
+                            } else {
+                                iconStack = PathIcons.getDefaultIcon(pathId);
                             }
                             // Show custom premium toast notification
                             mc.getToasts().addToast(new MasteryCompletionToast(
