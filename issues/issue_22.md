@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `d9c9c86`.
+
 #### Resumen
 `ConfigManager` muta `PATHS/PATHS_MAP/UNIVERSAL_NAMESPACES` directamente y broadcastea reload bumpando `configVersion`, dependiendo de `MasteryService.checkAndRefreshPlayerData` para reconciliar state por-jugador en el siguiente tick. Esto deja una ventana de 1 tick donde `PlayerData.activePathModId` está stale.
 
