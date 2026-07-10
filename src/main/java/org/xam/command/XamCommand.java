@@ -253,6 +253,25 @@ public class XamCommand {
             )
         );
 
+        // deletepath subcommand
+        xamCommand.then(Commands.literal("deletepath")
+            .requires(source -> source.hasPermission(2))
+            .then(Commands.argument("path_id", ResourceLocationArgument.id())
+                .suggests((context, builder) -> {
+                    for (PathInfo path : ConfigManager.PATHS) {
+                        builder.suggest(path.getId());
+                    }
+                    return builder.buildFuture();
+                })
+                .executes(context -> {
+                    ResourceLocation rl = ResourceLocationArgument.getId(context, "path_id");
+                    String pathId = rl.getPath();
+                    deletePath(context.getSource(), pathId);
+                    return 1;
+                })
+            )
+        );
+
         // help subcommand
         xamCommand.then(Commands.literal("help")
             .executes(context -> {
@@ -267,6 +286,7 @@ public class XamCommand {
                     source.sendSuccess(() -> Component.translatable("xam.cmd.help_dev"), false);
                     source.sendSuccess(() -> Component.translatable("xam.cmd.help_select"), false);
                     source.sendSuccess(() -> Component.translatable("xam.cmd.help_master"), false);
+                    source.sendSuccess(() -> Component.translatable("xam.cmd.help_deletepath"), false);
                     source.sendSuccess(() -> Component.translatable("xam.cmd.help_complete_req"), false);
                     source.sendSuccess(() -> Component.translatable("xam.cmd.help_reset"), false);
                     source.sendSuccess(() -> Component.translatable("xam.cmd.help_reload"), false);
@@ -370,6 +390,39 @@ public class XamCommand {
                 source.sendSuccess(() -> Component.literal("- " + displayName + " (" + pathId + ")"), false);
             }
         });
+    }
+
+    private static void deletePath(CommandSourceStack source, String pathId) {
+        PathInfo target = ConfigManager.PATHS_MAP.get(pathId);
+        if (target == null) {
+            source.sendFailure(Component.translatable("xam.msg.path_not_exists", pathId));
+            return;
+        }
+
+        java.util.List<PathInfo> updatedPaths = new java.util.ArrayList<>(ConfigManager.PATHS);
+        updatedPaths.removeIf(p -> p.getId().equals(pathId));
+
+        String json = ConfigManager.serializePaths(updatedPaths);
+        ConfigManager.saveConfigFromServer(source.getServer(), json);
+
+        for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
+            player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                if (pathId.equals(data.getCurrentPath())) {
+                    data.setCurrentPath(null);
+                    data.clearCompletedRequirements();
+                }
+                if (data.getMasteredPaths().contains(pathId)) {
+                    data.removeMasteredPath(pathId);
+                }
+                if (data.getStartedPaths().contains(pathId)) {
+                    data.removeStartedPath(pathId);
+                }
+                MasteryService.sync(player);
+                MasteryService.updateArmorModifiers(player);
+            });
+        }
+
+        source.sendSuccess(() -> Component.translatable("xam.msg.path_deleted_success", pathId), true);
     }
 
     private static void completeRequirement(CommandSourceStack source, ServerPlayer player, String reqKey) {

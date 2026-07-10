@@ -61,9 +61,6 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         this.addRenderableWidget(this.pathDepsEdit);
 
         updateEditors();
-        if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
-            updateModIdFromRequirements(model.getSelectedPath());
-        }
     }
 
     void updateEditors() {
@@ -99,6 +96,9 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     }
 
     private void updateModIdFromRequirements(PathInfo p) {
+        if (p.getModId() != null && !p.getModId().isEmpty() && !p.getModId().equals("modid")) {
+            return;
+        }
         if (p.getRequirements().isEmpty()) return;
         for (Requirement r : p.getRequirements()) {
             if (r.getId() != null && r.getId().contains(":")) {

@@ -64,6 +64,10 @@ public class PlayerData {
         startedPaths.clear();
     }
 
+    public boolean removeStartedPath(String path) {
+        return startedPaths.remove(path);
+    }
+
     public List<String> getMasteredPaths() {
         return java.util.Collections.unmodifiableList(masteredPaths);
     }
