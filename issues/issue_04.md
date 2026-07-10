@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `9589a9a`.
+
 #### Resumen
 Una llamada a `e.printStackTrace()` bypassa el framework de logging del mod (SLF4J via `XamConstants.LOGGER`), escribiendo a stderr sin nivel ni contexto.
 

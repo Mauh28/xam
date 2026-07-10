@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `115f883`.
+
 #### Resumen
 `MasteryService` importa `net.minecraft.client.Minecraft` pero nunca lo referencia. Es un landmine para quien refactorice los límites sided-proxy.
 

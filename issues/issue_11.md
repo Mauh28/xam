@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `5d83885`.
+
 #### Resumen
 `PlayerEventHandler.onPlayerTick` hace `ForgeRegistries.MOB_EFFECTS.getValue(effectRl)` cada 20 ticks por cada path mastered del jugador. El `MobEffect` solo cambia en config reload.
 

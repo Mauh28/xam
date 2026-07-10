@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `f09cae1`.
+
 #### Resumen
 La lógica de fallback de íconos para paths (botania → poppy, mekanism → redstone, default → writable_book) está duplicada en 4 lugares.
 

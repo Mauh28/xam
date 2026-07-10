@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `bfb221e`.
+
 #### Resumen
 El patrón `get capability → mustSelectPath → isItemValid → cancel + warn` se repite literalmente en 5 event handlers. Cualquier cambio de comportamiento requiere editar 5 archivos.
 

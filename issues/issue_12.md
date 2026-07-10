@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `c576682`.
+
 #### Resumen
 `ItemUtils.getPathFromItemTags` hace DOS linear scans sobre `PATHS` en el hottest path del mod (cada evento de item: tick, click, craft, equip, tooltip). Un map `namespaceToPath` resolvería el primer scan en O(1).
 

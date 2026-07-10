@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `7277e1b`.
+
 #### Resumen
 El comando `/xam reset` limpia `currentPath`, `masteredPaths` y `completedRequirements`, pero NO limpia `startedPaths`. Después de un "reset", el jugador sigue pudiendo usar items de cualquier path que haya iniciado previamente, derrotando el propósito del reset.
 

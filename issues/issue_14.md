@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `bcf8d6c`.
+
 #### Resumen
 `ClientForgeEvents.isInteractionKey` usa una blacklist de 13 teclas, pero `keySwapOffhand` (tecla F) no está en la lista. Un jugador con item inválido en mano principal puede presionar F para swappearlo a la offhand, dejando la mano principal libre.
 

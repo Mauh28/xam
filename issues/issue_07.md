@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `b56ae5e`.
+
 #### Resumen
 `xam.mixins.json` declara `compatibilityLevel: JAVA_8` pero el toolchain del proyecto es Java 17 (`build.gradle:28`). Esto confunde a la toolchain de MixinGradle.
 

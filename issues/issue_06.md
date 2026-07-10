@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `b56ae5e`.
+
 #### Resumen
 `ConfigManager.PATHS_MAP` (HashMap) existe para lookup O(1) por id, pero el código itera la lista `PATHS` en 6+ lugares. Algunos de esos lugares corren cada frame de render.
 

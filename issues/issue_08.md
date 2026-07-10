@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `5d83885`.
+
 #### Resumen
 El generador de IDs para nuevas paths usa `System.currentTimeMillis() % 1000`, que cicla cada segundo. Dos OPs creando paths dentro de la misma ventana de 1 segundo colisionan y `PATHS_MAP.put` sobreescribe silenciosamente.
 

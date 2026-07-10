@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `dfc2335`.
+
 #### Resumen
 Dos packets cliente→servidor no tienen rate limiting y son vulnerables a amplificación:
 - `SelectPathPacket`: 1 byte request → full player NBT response (serialización + broadcast)

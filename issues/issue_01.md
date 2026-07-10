@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `2f16d98`.
+
 #### Resumen
 El método `drawFlatPanel` en `AbstractMasteryScreen` usa `sr` (canal red) en lugar de `sb` (canal blue) al calcular el color de la sombra, produciendo bordes rojizos barrosos en vez de neutros en todos los paneles del mod.
 

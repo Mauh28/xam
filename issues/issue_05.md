@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `9589a9a`.
+
 #### Resumen
 `ClientForgeEvents.addWidgetToScreen` usa reflexión para invocar `Screen.addRenderableWidget`, pero en Forge 1.20.1 ese método es público. Las ~30 líneas de reflexión + el `printStackTrace` del issue #4 son innecesarias.
 
