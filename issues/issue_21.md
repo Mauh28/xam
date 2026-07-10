@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `235b451`.
+
 #### Resumen
 `PlayerData.getStartedPaths/getMasteredPaths/getCompletedRequirements` devuelven el `ArrayList` interno directamente. Callers hacen `data.getMasteredPaths().remove(pathId)` (mutación externa de estado interno). Encapsulación rota.
 
