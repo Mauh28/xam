@@ -104,7 +104,7 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
         // Fuentes: todas las ramas conocidas excepto la que se está editando.
         // Recorre ConfigManager.PATHS (no localPaths) para usar los metadatos estables de nombre/icono.
         for (PathInfo p : ConfigManager.PATHS) {
-            if (excludeId != null && p.id.equals(excludeId)) continue;
+            if (excludeId != null && p.getId().equals(excludeId)) continue;
             this.allEntries.add(p);
         }
     }
@@ -114,7 +114,7 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
         this.filteredEntries.clear();
         String q = query.toLowerCase();
         for (PathInfo p : this.allEntries) {
-            if (p.name.toLowerCase().contains(q) || p.id.toLowerCase().contains(q)) {
+            if (p.getName().toLowerCase().contains(q) || p.getId().toLowerCase().contains(q)) {
                 this.filteredEntries.add(p);
             }
         }
@@ -156,7 +156,7 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
                 int entryY = startY + i * entryHeight;
 
                 boolean hovered = mouseX >= entryX && mouseX < entryX + colWidth && mouseY >= entryY && mouseY < entryY + cardH;
-                boolean selected = amountIndex.containsKey(p.id);
+                boolean selected = amountIndex.containsKey(p.getId());
 
                 // Draw card background
                 int bg = selected ? 0xFF2A201A : (hovered ? BUTTON_HOVER_BG : PANEL_INNER_BG);
@@ -173,8 +173,8 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
 
                 // Render Branch Icon
                 ItemStack icon = ItemStack.EMPTY;
-                if (p.icon != null) {
-                    net.minecraft.world.item.Item item = ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse(p.icon));
+                if (p.getIcon() != null) {
+                    net.minecraft.world.item.Item item = ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse(p.getIcon()));
                     if (item != null) icon = new ItemStack(item);
                 }
                 if (icon.isEmpty()) icon = new ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
@@ -187,7 +187,7 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
                 
                 // If selected, we draw the cycle chip on the right
                 if (selected) {
-                    String chip = getAmountLabel(amountIndex.get(p.id)) + " ▸";
+                    String chip = getAmountLabel(amountIndex.get(p.getId())) + " ▸";
                     int chipW = this.font.width(chip) + 12;
                     int chipX = entryX + colWidth - chipW - 4;
                     int chipY = entryY + (cardH - 18) / 2;
@@ -202,7 +202,7 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
                     labelW -= (chipW + 6);
                 }
 
-                String label = Component.translatable("xam.screen.dependency_selection.reqs_count", p.name, p.requirements.size()).getString();
+                String label = Component.translatable("xam.screen.dependency_selection.reqs_count", p.getName(), p.getRequirements().size()).getString();
                 if (this.font.width(label) > labelW) {
                     label = this.font.plainSubstrByWidth(label, labelW - 8) + "...";
                 }
@@ -325,23 +325,23 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
                     if (mouseX >= entryX && mouseX < entryX + colWidth && mouseY >= entryY && mouseY < entryY + cardH) {
                         playClickSound();
                         
-                        boolean selected = amountIndex.containsKey(p.id);
+                        boolean selected = amountIndex.containsKey(p.getId());
                         if (selected) {
                             // Check if clicked specifically on the cycle chip
-                            String chip = getAmountLabel(amountIndex.get(p.id)) + " ▸";
+                            String chip = getAmountLabel(amountIndex.get(p.getId())) + " ▸";
                             int chipW = this.font.width(chip) + 12;
                             int chipX = entryX + colWidth - chipW - 4;
                             int chipY = entryY + (cardH - 18) / 2;
                             if (mouseX >= chipX && mouseX < chipX + chipW && mouseY >= chipY && mouseY < chipY + 18) {
-                                int currentIdx = amountIndex.get(p.id);
-                                amountIndex.put(p.id, (currentIdx + 1) % AMOUNT_SUFFIX.length);
+                                int currentIdx = amountIndex.get(p.getId());
+                                amountIndex.put(p.getId(), (currentIdx + 1) % AMOUNT_SUFFIX.length);
                                 return true;
                             }
                             // Otherwise, clicking the card deselects it
-                            amountIndex.remove(p.id);
+                            amountIndex.remove(p.getId());
                         } else {
                             // Click card selects it with default "Dominar" (index 0)
-                            amountIndex.put(p.id, 0);
+                            amountIndex.put(p.getId(), 0);
                         }
                         return true;
                     }
@@ -389,9 +389,9 @@ public class DependencySelectionScreen extends AbstractPickerScreen<PathInfo> {
         List<String> out = new ArrayList<>();
         // Orden estable: respeta el orden de allEntries (orden de aparición en PATHS), no el del map.
         for (PathInfo p : allEntries) {
-            Integer idx = amountIndex.get(p.id);
+            Integer idx = amountIndex.get(p.getId());
             if (idx == null) continue;
-            out.add(p.id + AMOUNT_SUFFIX[idx]);
+            out.add(p.getId() + AMOUNT_SUFFIX[idx]);
         }
         return out;
     }

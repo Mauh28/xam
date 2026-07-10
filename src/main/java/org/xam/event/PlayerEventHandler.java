@@ -95,11 +95,11 @@ public class PlayerEventHandler {
                     if (data.getCurrentPath() != null) {
                         PathInfo path = ConfigManager.PATHS_MAP.get(data.getCurrentPath());
                         if (path != null) {
-                            for (Requirement req : path.requirements) {
-                                if (req.type.equals("collect")) {
-                                    ResourceLocation reqRl = ResourceLocation.tryParse(req.id);
+                            for (Requirement req : path.getRequirements()) {
+                                if (req.getType().equals("collect")) {
+                                    ResourceLocation reqRl = ResourceLocation.tryParse(req.getId());
                                     if (reqRl != null && MasteryService.hasItem(player, reqRl)) {
-                                        MasteryService.checkAndProgressRequirement((ServerPlayer) player, "collect", req.id);
+                                        MasteryService.checkAndProgressRequirement((ServerPlayer) player, "collect", req.getId());
                                     }
                                 }
                             }
@@ -123,8 +123,8 @@ public class PlayerEventHandler {
                     // Apply active perks for mastered paths
                     for (String pathId : data.getMasteredPaths()) {
                         PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
-                        if (path != null && path.perkEffectCached != null) {
-                            player.addEffect(new net.minecraft.world.effect.MobEffectInstance(path.perkEffectCached, 400, path.perkAmplifier, true, false, false));
+                        if (path != null && path.getPerkEffectCached() != null) {
+                            player.addEffect(new net.minecraft.world.effect.MobEffectInstance(path.getPerkEffectCached(), 400, path.getPerkAmplifier(), true, false, false));
                         }
                     }
                 }

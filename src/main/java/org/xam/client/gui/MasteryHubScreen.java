@@ -32,7 +32,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     private boolean hasPlayerMasteredAllBranches() {
         if (playerData == null || ConfigManager.PATHS.isEmpty()) return false;
         for (PathInfo p : ConfigManager.PATHS) {
-            if (!p.requirements.isEmpty() && !playerData.getMasteredPaths().contains(p.id)) {
+            if (!p.getRequirements().isEmpty() && !playerData.getMasteredPaths().contains(p.getId())) {
                 return false;
             }
         }
@@ -103,16 +103,16 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             graphics.renderFakeItem(branchIconStack, iconX + 2, iconY + 2);
 
             // Active Path Name and Mod Namespace
-            String pathName = activePath.name;
+            String pathName = activePath.getName();
             int maxNameW = leftW - 45;
             if (this.font.width(pathName) > maxNameW) {
                 pathName = this.font.plainSubstrByWidth(pathName, maxNameW - 10) + "...";
             }
             graphics.drawString(this.font, pathName, leftX + 38, leftY + 25, TEXT_PRIMARY, false);
-            graphics.drawString(this.font, activePath.mod_id, leftX + 38, leftY + 35, TEXT_MUTED, false);
+            graphics.drawString(this.font, activePath.getModId(), leftX + 38, leftY + 35, TEXT_MUTED, false);
 
             // Calculate progress
-            int totalReqs = activePath.requirements.size();
+            int totalReqs = activePath.getRequirements().size();
             int completedReqs = 0;
             if (this.minecraft.player != null) {
                 completedReqs = MasteryService.getCompletedRequirementsCount(this.minecraft.player, playerData, activePath);
@@ -275,7 +275,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 
                 PathInfo path = ConfigManager.PATHS_MAP.get(flippedPathId);
                 if (path != null) {
-                    String pName = Component.translatable(path.name).getString();
+                    String pName = Component.translatable(path.getName()).getString();
                     if (this.font.width(pName) > popW - 10) {
                         pName = this.font.plainSubstrByWidth(pName, popW - 15) + "...";
                     }
@@ -283,10 +283,10 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                     graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.completed").getString(), popX + 6, popY + 18, 0xFF4ADE80, false);
                     
                     String perkText = Component.translatable("xam.screen.mastery_hub.perk_none").getString();
-                    if (path.perkEffect != null && !path.perkEffect.isEmpty()) {
-                        String name = path.perkEffect;
+                    if (path.getPerkEffect() != null && !path.getPerkEffect().isEmpty()) {
+                        String name = path.getPerkEffect();
                         if (name.contains(":")) name = name.split(":")[1];
-                        perkText = Character.toUpperCase(name.charAt(0)) + name.substring(1) + " " + (path.perkAmplifier + 1);
+                        perkText = Character.toUpperCase(name.charAt(0)) + name.substring(1) + " " + (path.getPerkAmplifier() + 1);
                     }
                     graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.perk_label", perkText).getString(), popX + 6, popY + 32, COLOR_BRASS, false);
                 }
@@ -308,7 +308,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
 
             int cardH = 38;
             int gap = 6;
-            int totalReqsH = activePath.requirements.size() * (cardH + gap);
+            int totalReqsH = activePath.getRequirements().size() * (cardH + gap);
 
             // Smooth Lerp scroll
             scrollY = scrollY + (targetScrollY - scrollY) * 0.15;
@@ -332,8 +332,8 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
 
             com.mojang.blaze3d.systems.RenderSystem.enableScissor(scissorX, scissorY, scissorW, scissorH);
 
-            for (int i = 0; i < activePath.requirements.size(); i++) {
-                Requirement req = activePath.requirements.get(i);
+            for (int i = 0; i < activePath.getRequirements().size(); i++) {
+                Requirement req = activePath.getRequirements().get(i);
                 int cardY = listY + i * (cardH + gap) - (int) scrollY;
 
                 // Optimization: Skip rendering cards that are completely out of view bounds
@@ -348,7 +348,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 }
 
                 // Draw task card background based on completed status & hover
-                boolean isCompleted = MasteryService.isRequirementCompleted(this.minecraft.player, playerData, activePath.id, req);
+                boolean isCompleted = MasteryService.isRequirementCompleted(this.minecraft.player, playerData, activePath.getId(), req);
                 int cardBg;
                 int cardBorder;
                 if (isCompleted) {
@@ -369,7 +369,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 }
 
                 // Task Name
-                String reqNameText = req.name.isEmpty() ? req.id : req.name;
+                String reqNameText = req.getName().isEmpty() ? req.getId() : req.getName();
                 int reqNameMaxW = listW - 120;
                 if (this.font.width(reqNameText) > reqNameMaxW) {
                     reqNameText = this.font.plainSubstrByWidth(reqNameText, reqNameMaxW - 10) + "...";
@@ -377,15 +377,15 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 graphics.drawString(this.font, reqNameText, listX + 25, cardY + 6, isCompleted ? 0xFF8AA893 : TEXT_PRIMARY, false);
 
                 // Task Description
-                String reqDescText = req.description;
-                if (reqDescText.isEmpty()) reqDescText = req.id;
+                String reqDescText = req.getDescription();
+                if (reqDescText.isEmpty()) reqDescText = req.getId();
                 if (this.font.width(reqDescText) > reqNameMaxW) {
                     reqDescText = this.font.plainSubstrByWidth(reqDescText, reqNameMaxW - 10) + "...";
                 }
                 graphics.drawString(this.font, reqDescText, listX + 25, cardY + 20, isCompleted ? 0xFF657E6D : TEXT_SECONDARY, false);
 
                 // Task Type badge on the right
-                String badge = Component.translatable("xam.req_type.badge." + req.type.toLowerCase()).getString();
+                String badge = Component.translatable("xam.req_type.badge." + req.getType().toLowerCase()).getString();
                 int badgeW = this.font.width(badge) + 10;
                 int badgeX = listX + listW - badgeW - 10;
                 int badgeY = cardY + (cardH - 12) / 2;
@@ -393,8 +393,8 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 graphics.drawCenteredString(this.font, badge, badgeX + badgeW / 2, badgeY + 2, COLOR_BRASS);
 
                 // Draw availability badge
-                if (req.type.equals("craft") || req.type.equals("collect")) {
-                    net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(req.id));
+                if (req.getType().equals("craft") || req.getType().equals("collect")) {
+                    net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(req.getId()));
                     if (item != null && item != net.minecraft.world.item.Items.AIR) {
                         net.minecraft.world.item.ItemStack dummyStack = new net.minecraft.world.item.ItemStack(item);
                         boolean isAvailable = MasteryService.isItemValid(dummyStack, playerData);
@@ -446,8 +446,8 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
 
             // 1. Draw large item icon
             net.minecraft.world.item.ItemStack dummyStack = net.minecraft.world.item.ItemStack.EMPTY;
-            if (hoveredRequirement.type.equals("craft") || hoveredRequirement.type.equals("collect")) {
-                net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(hoveredRequirement.id));
+            if (hoveredRequirement.getType().equals("craft") || hoveredRequirement.getType().equals("collect")) {
+                net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(hoveredRequirement.getId()));
                 if (item != null && item != net.minecraft.world.item.Items.AIR) {
                     dummyStack = new net.minecraft.world.item.ItemStack(item);
                 }
@@ -463,7 +463,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             graphics.pose().popPose();
 
             // 2. Draw Type Badge
-            String typeBadge = hoveredRequirement.type.toLowerCase();
+            String typeBadge = hoveredRequirement.getType().toLowerCase();
             String displayBadge = Component.translatable("xam.req_type.badge." + typeBadge).getString();
             int badgeCol = 0xFFDF9E3F;
             if (typeBadge.equals("craft")) badgeCol = 0xFF5DADE2;
@@ -478,9 +478,9 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             int depCol = 0xFF55FF55;
             if (playerData != null && activePath != null) {
                 boolean isUnlocked = true;
-                if (hoveredRequirement.dependencies != null) {
-                    for (String depId : hoveredRequirement.dependencies) {
-                        if (!MasteryService.isRequirementCompleted(this.minecraft.player, playerData, activePath.id, findRequirementById(activePath, depId))) {
+                if (hoveredRequirement.getDependencies() != null) {
+                    for (String depId : hoveredRequirement.getDependencies()) {
+                        if (!MasteryService.isRequirementCompleted(this.minecraft.player, playerData, activePath.getId(), findRequirementById(activePath, depId))) {
                             isUnlocked = false;
                             break;
                         }
@@ -499,7 +499,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             graphics.drawString(this.font, depText, ttX + 38, ttY + 20, depCol, false);
 
             // 4. Draw Description
-            String helpText = hoveredRequirement.description.isEmpty() ? hoveredRequirement.id : Component.translatable(hoveredRequirement.description).getString();
+            String helpText = hoveredRequirement.getDescription().isEmpty() ? hoveredRequirement.getId() : Component.translatable(hoveredRequirement.getDescription()).getString();
             if (this.font.width(helpText) > ttW - 16) {
                 helpText = this.font.plainSubstrByWidth(helpText, ttW - 22) + "...";
             }
@@ -513,7 +513,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             if (path != null) {
                 int ttX = mouseX + 12;
                 int ttY = mouseY - 12;
-                String translatedName = Component.translatable(path.name).getString();
+                String translatedName = Component.translatable(path.getName()).getString();
                 int ttW = Math.max(100, this.font.width(translatedName) + 16);
                 int ttH = 20;
 
@@ -552,7 +552,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 int listH = rightH - 35;
                 int cardH = 38;
                 int gap = 6;
-                int totalReqsH = activePath.requirements.size() * (cardH + gap);
+                int totalReqsH = activePath.getRequirements().size() * (cardH + gap);
                 if (totalReqsH > listH) {
                     targetScrollY = Math.max(0, Math.min(totalReqsH - listH, targetScrollY - delta * 18));
                     return true;
@@ -685,15 +685,15 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                     int cardIndex = (int) (clickedY / (cardH + gap));
                     double relativeY = clickedY % (cardH + gap);
 
-                    if (cardIndex >= 0 && cardIndex < activePath.requirements.size() && relativeY <= cardH) {
-                        Requirement req = activePath.requirements.get(cardIndex);
-                        if (req.type.equals("craft") || req.type.equals("collect")) {
+                    if (cardIndex >= 0 && cardIndex < activePath.getRequirements().size() && relativeY <= cardH) {
+                        Requirement req = activePath.getRequirements().get(cardIndex);
+                        if (req.getType().equals("craft") || req.getType().equals("collect")) {
                             if (net.minecraftforge.fml.ModList.get().isLoaded("jei")) {
                                 playClickSound();
                                 try {
                                     Class.forName("org.xam.compat.JeiIntegrationHelper")
                                          .getMethod("showRecipe", String.class)
-                                         .invoke(null, req.id);
+                                         .invoke(null, req.getId());
                                 } catch (Exception e) {
                                     XamConstants.LOGGER.error("Failed to show recipe via JEI", e);
                                 }
@@ -709,8 +709,8 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
 
     private Requirement findRequirementById(PathInfo path, String reqId) {
         if (path != null && reqId != null) {
-            for (Requirement r : path.requirements) {
-                if (r.id.equals(reqId)) return r;
+            for (Requirement r : path.getRequirements()) {
+                if (r.getId().equals(reqId)) return r;
             }
         }
         return null;

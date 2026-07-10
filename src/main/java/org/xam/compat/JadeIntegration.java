@@ -50,8 +50,8 @@ public class JadeIntegration implements IWailaPlugin {
                         if (rl != null) {
                             String namespace = rl.getNamespace();
                             for (PathInfo path : ConfigManager.PATHS) {
-                                if (path.mod_id != null && path.mod_id.equals(namespace)) {
-                                    reqPathName = path.name;
+                                if (path.getModId() != null && path.getModId().equals(namespace)) {
+                                    reqPathName = path.getName();
                                     break;
                                 }
                             }
@@ -90,8 +90,8 @@ public class JadeIntegration implements IWailaPlugin {
                         if (rl != null) {
                             String namespace = rl.getNamespace();
                             for (PathInfo path : ConfigManager.PATHS) {
-                                if (path.mod_id != null && path.mod_id.equals(namespace)) {
-                                    reqPathName = path.name;
+                                if (path.getModId() != null && path.getModId().equals(namespace)) {
+                                    reqPathName = path.getName();
                                     break;
                                 }
                             }
@@ -115,23 +115,23 @@ public class JadeIntegration implements IWailaPlugin {
                         
                         // Check if entity namespace is a registered path and if it's restricted
                         for (PathInfo path : ConfigManager.PATHS) {
-                            if (path.mod_id != null && path.mod_id.equals(namespace)) {
+                            if (path.getModId() != null && path.getModId().equals(namespace)) {
                                 if (MasteryService.mustSelectPath(player, data)) {
                                     tooltip.add(Component.translatable("xam.msg.locked_choose_mastery").withStyle(ChatFormatting.RED));
                                     return;
                                 }
                                 
                                 boolean hasPathActiveOrMastered = false;
-                                if (data.getCurrentPath() != null && data.getCurrentPath().equals(path.id)) {
+                                if (data.getCurrentPath() != null && data.getCurrentPath().equals(path.getId())) {
                                     hasPathActiveOrMastered = true;
-                                } else if (data.getMasteredPaths().contains(path.id)) {
+                                } else if (data.getMasteredPaths().contains(path.getId())) {
                                     hasPathActiveOrMastered = true;
-                                } else if (data.getStartedPaths().contains(path.id)) {
+                                } else if (data.getStartedPaths().contains(path.getId())) {
                                     hasPathActiveOrMastered = true;
                                 }
                                 
                                 if (!hasPathActiveOrMastered && !data.isDevMode()) {
-                                    tooltip.add(Component.translatable("xam.msg.jade_requires_mastery", Component.translatable(path.name)).withStyle(ChatFormatting.RED));
+                                    tooltip.add(Component.translatable("xam.msg.jade_requires_mastery", Component.translatable(path.getName())).withStyle(ChatFormatting.RED));
                                 }
                                 break;
                             }

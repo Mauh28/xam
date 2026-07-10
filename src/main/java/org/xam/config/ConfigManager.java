@@ -96,45 +96,45 @@ public class ConfigManager {
             for (int i = 0; i < pathsArray.size(); i++) {
                 JsonObject pObj = pathsArray.get(i).getAsJsonObject();
                 PathInfo info = new PathInfo();
-                info.id = pObj.get("id").getAsString();
-                info.name = pObj.get("name").getAsString();
-                info.mod_id = pObj.has("mod_id") ? pObj.get("mod_id").getAsString() : info.id;
-                info.min_to_switch = pObj.has("min_to_switch") ? pObj.get("min_to_switch").getAsInt() : 0;
-                info.perkEffect = pObj.has("perk_effect") ? pObj.get("perk_effect").getAsString() : "";
-                info.perkAmplifier = pObj.has("perk_amplifier") ? pObj.get("perk_amplifier").getAsInt() : 0;
+                info.setId(pObj.get("id").getAsString());
+                info.setName(pObj.get("name").getAsString());
+                info.setModId(pObj.has("mod_id") ? pObj.get("mod_id").getAsString() : info.getId());
+                info.setMinToSwitch(pObj.has("min_to_switch") ? pObj.get("min_to_switch").getAsInt() : 0);
+                info.setPerkEffect(pObj.has("perk_effect") ? pObj.get("perk_effect").getAsString() : "");
+                info.setPerkAmplifier(pObj.has("perk_amplifier") ? pObj.get("perk_amplifier").getAsInt() : 0);
                 if (pObj.has("icon")) {
-                    info.icon = pObj.get("icon").getAsString();
+                    info.setIcon(pObj.get("icon").getAsString());
                 } else {
-                    info.icon = PathIcons.getDefaultIconId(info.id);
+                    info.setIcon(PathIcons.getDefaultIconId(info.getId()));
                 }
-                info.dependencies = new ArrayList<>();
+                info.setDependencies(new ArrayList<>());
                 if (pObj.has("dependencies")) {
                     JsonArray deps = pObj.getAsJsonArray("dependencies");
                     for (int j = 0; j < deps.size(); j++) {
-                        info.dependencies.add(deps.get(j).getAsString());
+                        info.addDependency(deps.get(j).getAsString());
                     }
                 }
-                info.armorTag = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(XamConstants.MODID, info.id + "/armor"));
-                info.weaponsTag = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(XamConstants.MODID, info.id + "/weapons"));
-                info.toolsTag = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(XamConstants.MODID, info.id + "/tools"));
-                info.requirements = new ArrayList<>();
+                info.setArmorTag(TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(XamConstants.MODID, info.getId() + "/armor")));
+                info.setWeaponsTag(TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(XamConstants.MODID, info.getId() + "/weapons")));
+                info.setToolsTag(TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(XamConstants.MODID, info.getId() + "/tools")));
+                info.setRequirements(new ArrayList<>());
                 if (pObj.has("requirements")) {
                     JsonArray reqs = pObj.getAsJsonArray("requirements");
                     for (int j = 0; j < reqs.size(); j++) {
                         JsonObject rObj = reqs.get(j).getAsJsonObject();
                         Requirement req = new Requirement();
-                        req.type = rObj.get("type").getAsString();
-                        req.id = rObj.get("id").getAsString();
-                        req.name = rObj.has("name") ? rObj.get("name").getAsString() : "";
-                        req.description = rObj.has("description") ? rObj.get("description").getAsString() : "";
-                        req.dependencies = new ArrayList<>();
+                        req.setType(rObj.get("type").getAsString());
+                        req.setId(rObj.get("id").getAsString());
+                        req.setName(rObj.has("name") ? rObj.get("name").getAsString() : "");
+                        req.setDescription(rObj.has("description") ? rObj.get("description").getAsString() : "");
+                        req.setDependencies(new ArrayList<>());
                         if (rObj.has("dependencies")) {
                             JsonArray reqDeps = rObj.getAsJsonArray("dependencies");
                             for (int k = 0; k < reqDeps.size(); k++) {
-                                req.dependencies.add(reqDeps.get(k).getAsString());
+                                req.addDependency(reqDeps.get(k).getAsString());
                             }
                         }
-                        info.requirements.add(req);
+                        info.addRequirement(req);
                     }
                 } else if (pObj.has("mastery_advancements")) {
                     JsonArray advs = pObj.getAsJsonArray("mastery_advancements");
@@ -150,27 +150,27 @@ public class ConfigManager {
                         if (!simpleName.isEmpty()) {
                             simpleName = Character.toUpperCase(simpleName.charAt(0)) + simpleName.substring(1);
                         }
-                        info.requirements.add(new Requirement("advancement", advId, simpleName, net.minecraft.network.chat.Component.translatable("xam.req_type.advancement", simpleName).getString()));
+                        info.addRequirement(new Requirement("advancement", advId, simpleName, net.minecraft.network.chat.Component.translatable("xam.req_type.advancement", simpleName).getString()));
                     }
                 }
-                if (info.perkEffect != null && !info.perkEffect.isEmpty()) {
-                    ResourceLocation rl = ResourceLocation.tryParse(info.perkEffect);
+                if (info.getPerkEffect() != null && !info.getPerkEffect().isEmpty()) {
+                    ResourceLocation rl = ResourceLocation.tryParse(info.getPerkEffect());
                     if (rl != null) {
-                        info.perkEffectCached = net.minecraftforge.registries.ForgeRegistries.MOB_EFFECTS.getValue(rl);
-                        if (info.perkEffectCached == null) {
-                            XamConstants.LOGGER.warn("Path {} has unknown perkEffect: {}", info.id, info.perkEffect);
+                        info.setPerkEffectCached(net.minecraftforge.registries.ForgeRegistries.MOB_EFFECTS.getValue(rl));
+                        if (info.getPerkEffectCached() == null) {
+                            XamConstants.LOGGER.warn("Path {} has unknown perkEffect: {}", info.getId(), info.getPerkEffect());
                         }
                     }
                 }
                 PATHS.add(info);
-                PATHS_MAP.put(info.id, info);
+                PATHS_MAP.put(info.getId(), info);
             }
         }
         // ponytail: O(1) namespace→path lookup for ItemUtils.getPathFromItemTags hot path
         NAMESPACE_TO_PATH.clear();
         for (PathInfo info : PATHS) {
-            if (info.mod_id != null && !info.mod_id.isEmpty()) {
-                NAMESPACE_TO_PATH.put(info.mod_id, info);
+            if (info.getModId() != null && !info.getModId().isEmpty()) {
+                NAMESPACE_TO_PATH.put(info.getModId(), info);
             }
         }
     }
@@ -187,28 +187,28 @@ public class ConfigManager {
         JsonArray pathsArray = new JsonArray();
         for (PathInfo path : pathsList) {
             JsonObject pObj = new JsonObject();
-            pObj.addProperty("id", path.id);
-            pObj.addProperty("name", path.name);
-            pObj.addProperty("mod_id", path.mod_id);
-            pObj.addProperty("icon", path.icon != null ? path.icon : "minecraft:writable_book");
-            pObj.addProperty("min_to_switch", path.min_to_switch);
-            pObj.addProperty("perk_effect", path.perkEffect != null ? path.perkEffect : "");
-            pObj.addProperty("perk_amplifier", path.perkAmplifier);
+            pObj.addProperty("id", path.getId());
+            pObj.addProperty("name", path.getName());
+            pObj.addProperty("mod_id", path.getModId());
+            pObj.addProperty("icon", path.getIcon() != null ? path.getIcon() : "minecraft:writable_book");
+            pObj.addProperty("min_to_switch", path.getMinToSwitch());
+            pObj.addProperty("perk_effect", path.getPerkEffect() != null ? path.getPerkEffect() : "");
+            pObj.addProperty("perk_amplifier", path.getPerkAmplifier());
             JsonArray depsArray = new JsonArray();
-            for (String dep : path.dependencies) {
+            for (String dep : path.getDependencies()) {
                 depsArray.add(dep);
             }
             pObj.add("dependencies", depsArray);
             JsonArray reqsArray = new JsonArray();
-            for (Requirement req : path.requirements) {
+            for (Requirement req : path.getRequirements()) {
                 JsonObject rObj = new JsonObject();
-                rObj.addProperty("type", req.type);
-                rObj.addProperty("id", req.id);
-                rObj.addProperty("name", req.name);
-                rObj.addProperty("description", req.description);
+                rObj.addProperty("type", req.getType());
+                rObj.addProperty("id", req.getId());
+                rObj.addProperty("name", req.getName());
+                rObj.addProperty("description", req.getDescription());
                 JsonArray reqDeps = new JsonArray();
-                if (req.dependencies != null) {
-                    for (String dep : req.dependencies) {
+                if (req.getDependencies() != null) {
+                    for (String dep : req.getDependencies()) {
                         reqDeps.add(dep);
                     }
                 }
@@ -265,7 +265,7 @@ public class ConfigManager {
 
             JsonObject botania = new JsonObject();
             botania.addProperty("id", "botania");
-            botania.addProperty("name", "xam.default.botania.name");
+            botania.addProperty("name", "xam.default.botania.getName()");
             botania.addProperty("mod_id", "botania");
             JsonArray botaniaReqs = new JsonArray();
 
@@ -287,7 +287,7 @@ public class ConfigManager {
 
             JsonObject mekanism = new JsonObject();
             mekanism.addProperty("id", "mekanism");
-            mekanism.addProperty("name", "xam.default.mekanism.name");
+            mekanism.addProperty("name", "xam.default.mekanism.getName()");
             mekanism.addProperty("mod_id", "mekanism");
             JsonArray mekanismReqs = new JsonArray();
 

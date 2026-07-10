@@ -60,15 +60,15 @@ public class ItemUtils {
 
         // O(1) lookup by namespace
         PathInfo byNamespace = ConfigManager.NAMESPACE_TO_PATH.get(rl.getNamespace());
-        if (byNamespace != null) return byNamespace.id;
+        if (byNamespace != null) return byNamespace.getId();
 
         // Fallback check for legacy path tags xam:path_id/...
         for (PathInfo path : ConfigManager.PATHS) {
-            if (path.armorTag != null) {
-                if (stack.is(path.armorTag)
-                        || stack.is(path.weaponsTag)
-                        || stack.is(path.toolsTag)) {
-                    return path.id;
+            if (path.getArmorTag() != null) {
+                if (stack.is(path.getArmorTag())
+                        || stack.is(path.getWeaponsTag())
+                        || stack.is(path.getToolsTag())) {
+                    return path.getId();
                 }
             }
         }

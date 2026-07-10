@@ -49,7 +49,7 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
         super(Component.literal("CONFIGURAR PERKS DE LA RAMA"));
         this.parent = parent;
         this.path = path;
-        this.perkAmplifier = path.perkAmplifier;
+        this.perkAmplifier = path.getPerkAmplifier();
 
         // Populate presets
         presets.add(new PerkPreset("Velocidad", "minecraft:speed"));
@@ -85,14 +85,14 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
         this.effectIdEdit = new EditBox(this.font, fieldX + 4, fieldY + 5, fieldW - 8, 12, Component.literal("ID del Efecto"));
         this.effectIdEdit.setBordered(false);
         this.effectIdEdit.setTextColor(TEXT_PRIMARY);
-        this.effectIdEdit.setValue(path.perkEffect != null ? path.perkEffect : "");
+        this.effectIdEdit.setValue(path.getPerkEffect() != null ? path.getPerkEffect() : "");
         this.addRenderableWidget(this.effectIdEdit);
     }
 
     @Override
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
-        graphics.drawString(this.font, Component.translatable("xam.screen.perks_config.title", Component.translatable(path.name).getString().toUpperCase()).getString(), containerX + 15, titleY, COLOR_BRASS, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.perks_config.title", Component.translatable(path.getName()).getString().toUpperCase()).getString(), containerX + 15, titleY, COLOR_BRASS, false);
         drawBackButton(graphics, mouseX, mouseY);
     }
 
@@ -315,8 +315,8 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
             int saveX = startX + btnW + 10;
             if (mouseX >= saveX && mouseX < saveX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
                 playClickSound();
-                path.perkEffect = effectIdEdit.getValue().trim();
-                path.perkAmplifier = perkAmplifier;
+                path.setPerkEffect(effectIdEdit.getValue().trim());
+                path.setPerkAmplifier(perkAmplifier);
                 Minecraft.getInstance().setScreen(this.parent);
                 return true;
             }

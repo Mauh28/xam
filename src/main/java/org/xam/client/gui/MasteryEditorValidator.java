@@ -35,28 +35,28 @@ public final class MasteryEditorValidator {
     }
 
     public ValidationResult validate(PathInfo p, int branchNumber) {
-        if (p.name.trim().isEmpty()) {
+        if (p.getName().trim().isEmpty()) {
             return ValidationResult.error(Component.translatable("xam.screen.mastery_editor.err_branch_no_name", branchNumber).getString());
         }
-        if (p.mod_id.trim().isEmpty() || p.mod_id.equals("modid")) {
-            return ValidationResult.error(Component.translatable("xam.screen.mastery_editor.err_need_mod_id", p.name).getString());
+        if (p.getModId().trim().isEmpty() || p.getModId().equals("modid")) {
+            return ValidationResult.error(Component.translatable("xam.screen.mastery_editor.err_need_mod_id", p.getName()).getString());
         }
-        for (int j = 0; j < p.requirements.size(); j++) {
-            Requirement req = p.requirements.get(j);
-            ValidationResult r = validate(req, j + 1, p.name);
+        for (int j = 0; j < p.getRequirements().size(); j++) {
+            Requirement req = p.getRequirements().get(j);
+            ValidationResult r = validate(req, j + 1, p.getName());
             if (!r.ok) return r;
         }
         return ValidationResult.ok();
     }
 
     public ValidationResult validate(Requirement req, int reqNumber, String branchName) {
-        if (req.id.trim().isEmpty()) {
+        if (req.getId().trim().isEmpty()) {
             return ValidationResult.error(Component.translatable("xam.screen.mastery_editor.err_task_no_id", reqNumber, branchName).getString());
         }
-        if (req.name.trim().isEmpty()) {
+        if (req.getName().trim().isEmpty()) {
             return ValidationResult.error(Component.translatable("xam.screen.mastery_editor.err_task_no_name", reqNumber, branchName).getString());
         }
-        if (req.description.trim().isEmpty()) {
+        if (req.getDescription().trim().isEmpty()) {
             return ValidationResult.error(Component.translatable("xam.screen.mastery_editor.err_task_no_desc", reqNumber, branchName).getString());
         }
         return ValidationResult.ok();

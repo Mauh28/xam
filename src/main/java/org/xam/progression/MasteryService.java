@@ -30,7 +30,7 @@ public class MasteryService {
             if (currentPath != null) {
                 PathInfo path = ConfigManager.PATHS_MAP.get(currentPath);
                 if (path != null) {
-                    data.setActivePathModId(path.mod_id);
+                    data.setActivePathModId(path.getModId());
                     found = true;
                 }
             }
@@ -71,30 +71,30 @@ public class MasteryService {
 
     public static boolean isRequirementCompleted(Player player, PlayerData data, String pathId, Requirement req) {
         if (req == null) return false;
-        if (req.type.equals("advancement")) {
-            return isAdvancementCompleted(player, req.id);
+        if (req.getType().equals("advancement")) {
+            return isAdvancementCompleted(player, req.getId());
         } else {
-            String reqKey = pathId + ":" + req.type + ":" + req.id;
+            String reqKey = pathId + ":" + req.getType() + ":" + req.getId();
             return data.getCompletedRequirements().contains(reqKey);
         }
     }
 
     public static void checkPathCompletion(ServerPlayer player, PlayerData data, PathInfo pathInfo) {
         boolean completedAll = true;
-        for (Requirement req : pathInfo.requirements) {
-            if (!isRequirementCompleted(player, data, pathInfo.id, req)) {
+        for (Requirement req : pathInfo.getRequirements()) {
+            if (!isRequirementCompleted(player, data, pathInfo.getId(), req)) {
                 completedAll = false;
                 break;
             }
         }
 
         if (completedAll) {
-            data.addMasteredPath(pathInfo.id);
+            data.addMasteredPath(pathInfo.getId());
             data.setCurrentPath(null);
-            data.removeCompletedRequirementsIf(k -> k.startsWith(pathInfo.id + ":"));
+            data.removeCompletedRequirementsIf(k -> k.startsWith(pathInfo.getId() + ":"));
             sync(player);
             updateArmorModifiers(player);
-            player.sendSystemMessage(Component.translatable("xam.msg.mastered_announcement", pathInfo.name));
+            player.sendSystemMessage(Component.translatable("xam.msg.mastered_announcement", pathInfo.getName()));
         }
     }
 
@@ -107,8 +107,8 @@ public class MasteryService {
             if (pathInfo == null) return;
 
             boolean changed = false;
-            for (Requirement req : pathInfo.requirements) {
-                if (req.type.equals(type) && req.id.equals(targetId)) {
+            for (Requirement req : pathInfo.getRequirements()) {
+                if (req.getType().equals(type) && req.getId().equals(targetId)) {
                     // ponytail: skip if this requirement's own dependencies aren't satisfied yet
                     if (!areRequirementDependenciesMet(player, data, req)) continue;
                     String reqKey = currentPath + ":" + type + ":" + targetId;
@@ -130,8 +130,8 @@ public class MasteryService {
     public static int getCompletedRequirementsCount(Player player, PlayerData data, PathInfo path) {
         if (path == null) return 0;
         int count = 0;
-        for (Requirement req : path.requirements) {
-            if (isRequirementCompleted(player, data, path.id, req)) {
+        for (Requirement req : path.getRequirements()) {
+            if (isRequirementCompleted(player, data, path.getId(), req)) {
                 count++;
             }
         }
@@ -152,7 +152,7 @@ public class MasteryService {
         PathInfo path = ConfigManager.PATHS_MAP.get(current);
         if (path == null) return true;
 
-        int threshold = path.min_to_switch;
+        int threshold = path.getMinToSwitch();
         if (threshold < 0) {
             return data.getMasteredPaths().contains(current);
         }

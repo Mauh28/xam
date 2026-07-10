@@ -36,7 +36,7 @@ public class SelectPathPacket {
                 player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                     if (pkt.pathId != null) {
                         PathInfo targetPath = ConfigManager.PATHS_MAP.get(pkt.pathId);
-                        if (targetPath == null || targetPath.requirements.isEmpty() || data.getMasteredPaths().contains(pkt.pathId) || !MasteryService.areDependenciesMastered(player, data, targetPath)) {
+                        if (targetPath == null || targetPath.getRequirements().isEmpty() || data.getMasteredPaths().contains(pkt.pathId) || !MasteryService.areDependenciesMastered(player, data, targetPath)) {
                             MasteryService.sync(player);
                             return;
                         }

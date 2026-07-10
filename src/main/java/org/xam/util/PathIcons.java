@@ -12,16 +12,16 @@ import org.xam.config.PathInfo;
 public final class PathIcons {
     private PathIcons() {}
 
-    /** Resolve icon for a PathInfo: tries path.icon from registry, then fallback by id. */
+    /** Resolve icon for a PathInfo: tries path.getIcon() from registry, then fallback by id. */
     public static ItemStack getIcon(PathInfo path) {
-        if (path.icon != null) {
-            var item = ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse(path.icon));
+        if (path.getIcon() != null) {
+            var item = ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse(path.getIcon()));
             if (item != null) {
                 ItemStack stack = new ItemStack(item);
                 if (!stack.isEmpty()) return stack;
             }
         }
-        return getDefaultIcon(path.id);
+        return getDefaultIcon(path.getId());
     }
 
     /** Hardcoded fallback icons for known path ids. */

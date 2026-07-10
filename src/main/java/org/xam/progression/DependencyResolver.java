@@ -30,8 +30,8 @@ public final class DependencyResolver {
 
         int requiredCount = 0;
         if (spec.kind == DependencySpec.Kind.PERCENT) {
-            if (!depPath.requirements.isEmpty()) {
-                requiredCount = (int) Math.ceil((spec.value / 100.0) * depPath.requirements.size());
+            if (!depPath.getRequirements().isEmpty()) {
+                requiredCount = (int) Math.ceil((spec.value / 100.0) * depPath.getRequirements().size());
             }
         } else {
             requiredCount = spec.value;
@@ -42,8 +42,8 @@ public final class DependencyResolver {
     }
 
     public static boolean areDependenciesMastered(Player player, PlayerData data, PathInfo path) {
-        if (path.dependencies == null || path.dependencies.isEmpty()) return true;
-        for (String dep : path.dependencies) {
+        if (path.getDependencies() == null || path.getDependencies().isEmpty()) return true;
+        for (String dep : path.getDependencies()) {
             if (!isDependencyMet(player, data, dep)) {
                 return false;
             }
@@ -52,22 +52,22 @@ public final class DependencyResolver {
     }
 
     public static boolean areRequirementDependenciesMet(Player player, PlayerData data, Requirement req) {
-        if (req.dependencies == null || req.dependencies.isEmpty()) return true;
+        if (req.getDependencies() == null || req.getDependencies().isEmpty()) return true;
         String currentPath = data.getCurrentPath();
         if (currentPath == null) return false;
         PathInfo path = ConfigManager.PATHS_MAP.get(currentPath);
         if (path == null) return false;
 
-        for (String depId : req.dependencies) {
+        for (String depId : req.getDependencies()) {
             Requirement depReq = null;
-            for (Requirement r : path.requirements) {
-                if (r.id.equals(depId)) {
+            for (Requirement r : path.getRequirements()) {
+                if (r.getId().equals(depId)) {
                     depReq = r;
                     break;
                 }
             }
             if (depReq != null) {
-                if (!MasteryService.isRequirementCompleted(player, data, path.id, depReq)) {
+                if (!MasteryService.isRequirementCompleted(player, data, path.getId(), depReq)) {
                     return false;
                 }
             }

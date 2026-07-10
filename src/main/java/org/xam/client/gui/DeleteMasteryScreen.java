@@ -43,7 +43,7 @@ public class DeleteMasteryScreen extends AbstractPickerScreen<PathInfo> {
         this.filteredEntries.clear();
         String q = query.toLowerCase();
         for (PathInfo p : this.allEntries) {
-            if (p.name.toLowerCase().contains(q) || p.id.toLowerCase().contains(q)) {
+            if (p.getName().toLowerCase().contains(q) || p.getId().toLowerCase().contains(q)) {
                 this.filteredEntries.add(p);
             }
         }
@@ -85,7 +85,7 @@ public class DeleteMasteryScreen extends AbstractPickerScreen<PathInfo> {
                 int entryY = startY + i * entryHeight;
 
                 boolean hovered = mouseX >= entryX && mouseX < entryX + colWidth && mouseY >= entryY && mouseY < entryY + cardH;
-                boolean selected = selectedIds.contains(p.id);
+                boolean selected = selectedIds.contains(p.getId());
 
                 // Draw card background
                 int bg = selected ? 0xFF2A1515 : (hovered ? BUTTON_HOVER_BG : PANEL_INNER_BG);
@@ -102,8 +102,8 @@ public class DeleteMasteryScreen extends AbstractPickerScreen<PathInfo> {
 
                 // Render Icon
                 net.minecraft.world.item.ItemStack iconStack = net.minecraft.world.item.ItemStack.EMPTY;
-                if (p.icon != null) {
-                    net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(p.icon));
+                if (p.getIcon() != null) {
+                    net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(p.getIcon()));
                     if (item != null) iconStack = new net.minecraft.world.item.ItemStack(item);
                 }
                 if (iconStack.isEmpty()) iconStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WRITABLE_BOOK);
@@ -113,7 +113,7 @@ public class DeleteMasteryScreen extends AbstractPickerScreen<PathInfo> {
                 int textX = entryX + 46;
                 int textY = entryY + (cardH - 8) / 2;
                 int labelW = colWidth - 46 - 10;
-                String label = p.name + " (" + p.id + ")";
+                String label = p.getName() + " (" + p.getId() + ")";
                 if (this.font.width(label) > labelW) {
                     label = this.font.plainSubstrByWidth(label, labelW - 8) + "...";
                 }
@@ -209,7 +209,7 @@ public class DeleteMasteryScreen extends AbstractPickerScreen<PathInfo> {
                 playClickSound();
                 String targetsLabel = selectedIds.size() == 1 ? selectedIds.get(0) : selectedIds.size() + " maestrías";
                 Minecraft.getInstance().setScreen(new ConfirmDeleteScreen(this, () -> {
-                    editor.model.getPaths().removeIf(p -> selectedIds.contains(p.id));
+                    editor.model.getPaths().removeIf(p -> selectedIds.contains(p.getId()));
                     if (editor.model.getSelectedPathIndex() >= editor.model.getPaths().size()) {
                         editor.model.setSelectedPathIndex(editor.model.getPaths().isEmpty() ? -1 : 0);
                     }
@@ -241,10 +241,10 @@ public class DeleteMasteryScreen extends AbstractPickerScreen<PathInfo> {
                     if (mouseX >= entryX && mouseX < entryX + colWidth && mouseY >= entryY && mouseY < entryY + cardH) {
                         playClickSound();
                         
-                        if (selectedIds.contains(p.id)) {
-                            selectedIds.remove(p.id);
+                        if (selectedIds.contains(p.getId())) {
+                            selectedIds.remove(p.getId());
                         } else {
-                            selectedIds.add(p.id);
+                            selectedIds.add(p.getId());
                         }
                         return true;
                     }

@@ -140,12 +140,12 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             PathInfo path = availablePaths.get(startIndex + i);
             int cardX = containerX + 60 + gap + i * (cardW + gap);
 
-            boolean hasTasks = !path.requirements.isEmpty();
+            boolean hasTasks = !path.getRequirements().isEmpty();
             boolean isUnlocked = hasTasks && MasteryService.areDependenciesMastered(net.minecraft.client.Minecraft.getInstance().player, playerData, path);
-            boolean isActivePath = playerData != null && path.id.equals(playerData.getCurrentPath());
+            boolean isActivePath = playerData != null && path.getId().equals(playerData.getCurrentPath());
             boolean hasActivePath = playerData != null && playerData.getCurrentPath() != null;
             boolean canSwitch = MasteryService.canSwitchFromCurrentPath(net.minecraft.client.Minecraft.getInstance().player, playerData);
-            boolean isMastered = playerData != null && playerData.getMasteredPaths().contains(path.id);
+            boolean isMastered = playerData != null && playerData.getMasteredPaths().contains(path.getId());
             boolean isSelectable = isUnlocked && !isMastered && (!hasActivePath || isActivePath || canSwitch);
 
             boolean cardHovered = mouseX >= cardX && mouseX < cardX + cardW && mouseY >= cardY && mouseY < cardY + cardH;
@@ -183,14 +183,14 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             ItemStack icon = getIconForPath(path);
             graphics.renderFakeItem(icon, sqX + (sqSize - 16) / 2, sqY + (sqSize - 16) / 2);
 
-            String nameText = Component.translatable(path.name).getString();
+            String nameText = Component.translatable(path.getName()).getString();
             int nameMaxW = cardW - sqSize - 22;
             if (this.font.width(nameText) > nameMaxW) {
                 nameText = this.font.plainSubstrByWidth(nameText, nameMaxW - 10) + "...";
             }
             graphics.drawString(this.font, nameText, cardX + sqSize + 14, cardY + (cabH - 18) / 2, COLOR_BRASS, false);
 
-            String modText = path.mod_id;
+            String modText = path.getModId();
             int labelW = Math.min(this.font.width(modText) + 8, nameMaxW);
             drawFlatPanel(graphics, cardX + sqSize + 14, cardY + cabH - 14, labelW, 11, 0xFF2A201C, currentBorderStd);
             String dispMod = modText;
@@ -214,8 +214,8 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
                     int reqY = cardY + cabH + 25;
                     String activeId = playerData.getCurrentPath();
                     PathInfo activePath = ConfigManager.PATHS_MAP.get(activeId);
-                    String activeName = activePath != null ? activePath.name : activeId;
-                    int min = activePath != null ? activePath.min_to_switch : 0;
+                    String activeName = activePath != null ? activePath.getName() : activeId;
+                    int min = activePath != null ? activePath.getMinToSwitch() : 0;
                     
                     String line1 = Component.translatable("xam.screen.path_selection.complete_mastery").getString();
                     String line2 = Component.translatable("xam.screen.path_selection.or_reach_reqs", min).getString();
@@ -240,7 +240,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
                     RenderSystem.enableScissor(scissorX, scissorY, scissorW, scissorH);
 
                     int reqY = cardY + cabH + 20;
-                    for (Requirement req : path.requirements) {
+                    for (Requirement req : path.getRequirements()) {
                         String label = formatRequirement(req);
                         if (this.font.width(label) > cardW - 26) {
                             label = this.font.plainSubstrByWidth(label, cardW - 36) + "...";
@@ -270,14 +270,14 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
 
                     int reqY = cardY + cabH + 20;
                     List<String> missingNames = new ArrayList<>();
-                    for (String dep : path.dependencies) {
+                    for (String dep : path.getDependencies()) {
                         if (!MasteryService.isDependencyMet(Minecraft.getInstance().player, playerData, dep)) {
                             String[] parts = dep.split(":");
                             String depId = parts[0];
                             String amt = parts.length > 1 ? parts[1] : "mastered";
 
                             PathInfo depPath = ConfigManager.PATHS_MAP.get(depId);
-                            String name = depPath != null ? depPath.name : depId;
+                            String name = depPath != null ? depPath.getName() : depId;
                             if (amt.equalsIgnoreCase("mastered") || amt.equalsIgnoreCase("all")) {
                                 missingNames.add(Component.translatable("xam.screen.path_selection.master_path", name).getString());
                             } else {
@@ -314,7 +314,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
                 btnText = Component.translatable("xam.screen.path_selection.btn.mastered").getString();
                 btnEnabled = false;
             } else if (isSelectable) {
-                boolean hasBeenStarted = playerData != null && playerData.getStartedPaths().contains(path.id);
+                boolean hasBeenStarted = playerData != null && playerData.getStartedPaths().contains(path.getId());
                 btnText = hasBeenStarted 
                     ? Component.translatable("xam.screen.path_selection.btn.continue").getString() 
                     : Component.translatable("xam.screen.path_selection.btn.choose_path").getString();
@@ -374,12 +374,12 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
 
             for (int i = 0; i < (endIndex - startIndex); i++) {
                 PathInfo path = availablePaths.get(startIndex + i);
-                boolean hasTasks = !path.requirements.isEmpty();
+                boolean hasTasks = !path.getRequirements().isEmpty();
                 boolean isUnlocked = hasTasks && MasteryService.areDependenciesMastered(Minecraft.getInstance().player, playerData, path);
-                boolean isActivePath = playerData != null && path.id.equals(playerData.getCurrentPath());
+                boolean isActivePath = playerData != null && path.getId().equals(playerData.getCurrentPath());
                 boolean hasActivePath = playerData != null && playerData.getCurrentPath() != null;
                 boolean canSwitch = MasteryService.canSwitchFromCurrentPath(Minecraft.getInstance().player, playerData);
-                boolean isMastered = playerData != null && playerData.getMasteredPaths().contains(path.id);
+                boolean isMastered = playerData != null && playerData.getMasteredPaths().contains(path.getId());
                 boolean isSelectable = isUnlocked && !isMastered && (!hasActivePath || isActivePath || canSwitch);
 
                 int cardX = containerX + 60 + gap + i * (cardW + gap);
@@ -390,7 +390,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
 
                 if (isSelectable && !isActivePath && mouseX >= btnX && mouseX < btnX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
                     playClickSound();
-                    XamNetwork.CHANNEL.sendToServer(new SelectPathPacket(path.id));
+                    XamNetwork.CHANNEL.sendToServer(new SelectPathPacket(path.getId()));
                     this.onClose();
                     return true;
                 }
@@ -404,10 +404,10 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
     }
 
     private String formatRequirement(Requirement req) {
-        if (req.name != null && !req.name.isEmpty()) {
-            return req.name;
+        if (req.getName() != null && !req.getName().isEmpty()) {
+            return req.getName();
         }
-        String name = req.id;
+        String name = req.getId();
         if (name.contains(":")) {
             name = name.split(":")[1];
         }
@@ -426,7 +426,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
         if (playerData == null) return true;
         if (playerData.getCurrentPath() != null) return true;
         for (PathInfo path : ConfigManager.PATHS) {
-            if (!playerData.getMasteredPaths().contains(path.id) && MasteryService.areDependenciesMastered(Minecraft.getInstance().player, playerData, path)) {
+            if (!playerData.getMasteredPaths().contains(path.getId()) && MasteryService.areDependenciesMastered(Minecraft.getInstance().player, playerData, path)) {
                 return false;
             }
         }

@@ -136,8 +136,8 @@ public class ClientForgeEvents {
                     if (rl != null) {
                         String namespace = rl.getNamespace();
                         for (PathInfo path : ConfigManager.PATHS) {
-                            if (path.mod_id != null && path.mod_id.equals(namespace)) {
-                                reqPathName = path.name;
+                            if (path.getModId() != null && path.getModId().equals(namespace)) {
+                                reqPathName = path.getName();
                                 break;
                             }
                         }

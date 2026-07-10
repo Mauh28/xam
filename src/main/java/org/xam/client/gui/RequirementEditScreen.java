@@ -108,47 +108,47 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         this.nameEdit = new EditBox(this.font, nameX + 4, nameY + 5, nameW - 8, 12, Component.literal("Nombre"));
         this.nameEdit.setBordered(false);
         this.nameEdit.setTextColor(TEXT_PRIMARY);
-        this.nameEdit.setValue(requirement.name);
+        this.nameEdit.setValue(requirement.getName());
         this.addRenderableWidget(this.nameEdit);
 
         // Descripción Input Box
         this.descEdit = new EditBox(this.font, nameX + 4, descY + 5, nameW - 8, 12, Component.literal("Descripción"));
         this.descEdit.setBordered(false);
         this.descEdit.setTextColor(TEXT_PRIMARY);
-        this.descEdit.setValue(requirement.description);
+        this.descEdit.setValue(requirement.getDescription());
         this.addRenderableWidget(this.descEdit);
 
         // ID/Objetivo Input Box (Editable!)
         this.idEdit = new EditBox(this.font, idX + 4, idY + 5, idW - 8, 12, Component.literal("ID"));
         this.idEdit.setBordered(false);
         this.idEdit.setTextColor(TEXT_PRIMARY);
-        this.idEdit.setValue(requirement.id);
+        this.idEdit.setValue(requirement.getId());
         this.addRenderableWidget(this.idEdit);
 
         // Dependencias Input Box
         this.dependenciesEdit = new EditBox(this.font, depsX + 4, depsY + 5, depsEditW - 8, 12, Component.literal("Dependencias"));
         this.dependenciesEdit.setBordered(false);
         this.dependenciesEdit.setTextColor(TEXT_PRIMARY);
-        this.dependenciesEdit.setValue(String.join(", ", requirement.dependencies));
+        this.dependenciesEdit.setValue(String.join(", ", requirement.getDependencies()));
         this.addRenderableWidget(this.dependenciesEdit);
     }
 
     private void saveFields() {
         if (this.nameEdit != null) {
-            this.requirement.name = this.nameEdit.getValue();
+            this.requirement.setName(this.nameEdit.getValue());
         }
         if (this.descEdit != null) {
-            this.requirement.description = this.descEdit.getValue();
+            this.requirement.setDescription(this.descEdit.getValue());
         }
         if (this.idEdit != null) {
-            this.requirement.id = this.idEdit.getValue();
+            this.requirement.setId(this.idEdit.getValue());
         }
         if (this.dependenciesEdit != null) {
-            this.requirement.dependencies.clear();
+            this.requirement.clearDependencies();
             String val = this.dependenciesEdit.getValue();
             if (!val.trim().isEmpty()) {
                 for (String dep : val.split(",")) {
-                    this.requirement.dependencies.add(dep.trim());
+                    this.requirement.addDependency(dep.trim());
                 }
             }
         }
@@ -202,7 +202,7 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         graphics.drawString(this.font, Component.translatable("xam.screen.requirement_edit.target_id").getString(), idX, idY - 11, TEXT_MUTED, false);
 
         // Draw Tipo Button
-        String typeLabel = Component.translatable("xam.screen.requirement_edit.type_format", requirement.type.toUpperCase()).getString();
+        String typeLabel = Component.translatable("xam.screen.requirement_edit.type_format", requirement.getType().toUpperCase()).getString();
         drawFlatButton(graphics, typeX, typeY, typeW, 20, typeLabel, mouseX, mouseY, true);
 
         // Draw ID Panel — highlight red if empty
@@ -254,9 +254,9 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
                 saveFields();
                 Minecraft.getInstance().setScreen(new DependencySelectionScreen(
                         this, parentPathId, ConfigManager.PATHS,
-                        new ArrayList<>(requirement.dependencies), deps -> {
-                    requirement.dependencies.clear();
-                    requirement.dependencies.addAll(deps);
+                        new ArrayList<>(requirement.getDependencies()), deps -> {
+                    requirement.clearDependencies();
+                    requirement.getDependencies().addAll(deps);
                     if (dependenciesEdit != null) dependenciesEdit.setValue(String.join(", ", deps));
                     Minecraft.getInstance().setScreen(this);
                 }));
@@ -281,9 +281,9 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
                 playClickSound();
                 saveFields();
                 // ponytail: inline validation — cheapest thing that blocks bad data
-                boolean nameOk = !requirement.name.trim().isEmpty();
-                boolean descOk = !requirement.description.trim().isEmpty();
-                boolean idOk = !requirement.id.trim().isEmpty();
+                boolean nameOk = !requirement.getName().trim().isEmpty();
+                boolean descOk = !requirement.getDescription().trim().isEmpty();
+                boolean idOk = !requirement.getId().trim().isEmpty();
                 if (!nameOk || !descOk || !idOk) {
                     errorMsg = Component.translatable("xam.screen.requirement_edit.error_empty_fields").getString();
                     return true;
@@ -299,41 +299,41 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
     }
 
     private void cycleRequirementType(Requirement req) {
-        String currentId = req.id;
-        String currentName = req.name;
+        String currentId = req.getId();
+        String currentName = req.getName();
 
-        if (req.type.equals("craft")) {
-            req.type = "collect";
+        if (req.getType().equals("craft")) {
+            req.setType("collect");
             if (isItem(currentId)) {
-                req.description = Component.translatable("xam.editor.desc.collect", currentName).getString();
+                req.setDescription(Component.translatable("xam.editor.desc.collect", currentName).getString());
             } else {
-                req.id = "minecraft:dirt";
-                req.name = Component.translatable("xam.editor.default.collect_dirt_name").getString();
-                req.description = Component.translatable("xam.editor.default.collect_dirt_desc").getString();
+                req.setId("minecraft:dirt");
+                req.setName(Component.translatable("xam.editor.default.collect_dirt_name").getString());
+                req.setDescription(Component.translatable("xam.editor.default.collect_dirt_desc").getString());
             }
-        } else if (req.type.equals("collect")) {
-            req.type = "kill";
-            req.id = "minecraft:zombie";
-            req.name = "Zombie";
-            req.description = Component.translatable("xam.editor.desc.kill", req.name).getString();
-        } else if (req.type.equals("kill")) {
-            req.type = "advancement";
-            req.id = "minecraft:story/root";
-            req.name = "Minecraft";
-            req.description = Component.translatable("xam.editor.desc.advancement", req.name).getString();
+        } else if (req.getType().equals("collect")) {
+            req.setType("kill");
+            req.setId("minecraft:zombie");
+            req.setName("Zombie");
+            req.setDescription(Component.translatable("xam.editor.desc.kill", req.getName()).getString());
+        } else if (req.getType().equals("kill")) {
+            req.setType("advancement");
+            req.setId("minecraft:story/root");
+            req.setName("Minecraft");
+            req.setDescription(Component.translatable("xam.editor.desc.advancement", req.getName()).getString());
         } else {
-            req.type = "craft";
+            req.setType("craft");
             if (isItem(currentId)) {
-                req.description = Component.translatable("xam.editor.desc.craft", currentName).getString();
+                req.setDescription(Component.translatable("xam.editor.desc.craft", currentName).getString());
             } else {
-                req.id = "minecraft:dirt";
-                req.name = Component.translatable("xam.editor.default.craft_dirt_name").getString();
-                req.description = Component.translatable("xam.editor.default.craft_dirt_desc").getString();
+                req.setId("minecraft:dirt");
+                req.setName(Component.translatable("xam.editor.default.craft_dirt_name").getString());
+                req.setDescription(Component.translatable("xam.editor.default.craft_dirt_desc").getString());
             }
         }
-        if (idEdit != null) idEdit.setValue(req.id);
-        if (nameEdit != null) nameEdit.setValue(req.name);
-        if (descEdit != null) descEdit.setValue(req.description);
+        if (idEdit != null) idEdit.setValue(req.getId());
+        if (nameEdit != null) nameEdit.setValue(req.getName());
+        if (descEdit != null) descEdit.setValue(req.getDescription());
     }
 
     private boolean isItem(String id) {
@@ -343,9 +343,9 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
 
     private void openSelectorForRequirement(Requirement req) {
         Minecraft mc = Minecraft.getInstance();
-        if (req.type.equals("advancement")) {
+        if (req.getType().equals("advancement")) {
             mc.setScreen(new AdvancementSelectionScreen(this, adv -> {
-                req.id = adv.getId().toString();
+                req.setId(adv.getId().toString());
                 String titleText = adv.getDisplay() != null ? adv.getDisplay().getTitle().getString() : adv.getId().getPath();
                 if (titleText.contains("/")) {
                     String[] split = titleText.split("/");
@@ -355,33 +355,33 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
                 if (!titleText.isEmpty()) {
                     titleText = Character.toUpperCase(titleText.charAt(0)) + titleText.substring(1);
                 }
-                req.name = titleText;
-                req.description = adv.getDisplay() != null ? adv.getDisplay().getDescription().getString() : Component.translatable("xam.editor.desc.advancement", titleText).getString();
+                req.setName(titleText);
+                req.setDescription(adv.getDisplay() != null ? adv.getDisplay().getDescription().getString() : Component.translatable("xam.editor.desc.advancement", titleText).getString());
                 mc.setScreen(this);
             }));
-        } else if (req.type.equals("craft") || req.type.equals("collect")) {
+        } else if (req.getType().equals("craft") || req.getType().equals("collect")) {
             mc.setScreen(new ItemSelectionScreen(this, item -> {
                 net.minecraft.resources.ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(item);
                 if (rl != null) {
-                    req.id = rl.toString();
+                    req.setId(rl.toString());
                     String friendlyName = item.getDescription().getString();
-                    req.name = friendlyName;
-                    if (req.type.equals("craft")) {
-                        req.description = Component.translatable("xam.editor.desc.craft", friendlyName).getString();
+                    req.setName(friendlyName);
+                    if (req.getType().equals("craft")) {
+                        req.setDescription(Component.translatable("xam.editor.desc.craft", friendlyName).getString());
                     } else {
-                        req.description = Component.translatable("xam.editor.desc.collect", friendlyName).getString();
+                        req.setDescription(Component.translatable("xam.editor.desc.collect", friendlyName).getString());
                     }
                 }
                 mc.setScreen(this);
             }));
-        } else if (req.type.equals("kill")) {
+        } else if (req.getType().equals("kill")) {
             mc.setScreen(new EntitySelectionScreen(this, type -> {
                 net.minecraft.resources.ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(type);
                 if (rl != null) {
-                    req.id = rl.toString();
+                    req.setId(rl.toString());
                     String friendlyName = type.getDescription().getString();
-                    req.name = friendlyName;
-                    req.description = Component.translatable("xam.editor.desc.kill", friendlyName).getString();
+                    req.setName(friendlyName);
+                    req.setDescription(Component.translatable("xam.editor.desc.kill", friendlyName).getString());
                 }
                 mc.setScreen(this);
             }));

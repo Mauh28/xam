@@ -15,7 +15,7 @@ public final class ItemValidityService {
         if (data != null && data.isDevMode()) return false;
         if (data.getCurrentPath() != null) return false;
         for (PathInfo path : ConfigManager.PATHS) {
-            if (!data.getMasteredPaths().contains(path.id) && DependencyResolver.areDependenciesMastered(player, data, path)) {
+            if (!data.getMasteredPaths().contains(path.getId()) && DependencyResolver.areDependenciesMastered(player, data, path)) {
                 return true;
             }
         }
@@ -43,10 +43,10 @@ public final class ItemValidityService {
         String activePathId = data.getCurrentPath();
         if (activePathId != null) {
             PathInfo activePath = ConfigManager.PATHS_MAP.get(activePathId);
-            if (activePath != null && activePath.armorTag != null) {
-                if (stack.is(activePath.armorTag)
-                        || stack.is(activePath.weaponsTag)
-                        || stack.is(activePath.toolsTag)) {
+            if (activePath != null && activePath.getArmorTag() != null) {
+                if (stack.is(activePath.getArmorTag())
+                        || stack.is(activePath.getWeaponsTag())
+                        || stack.is(activePath.getToolsTag())) {
                     return true;
                 }
             }
@@ -56,13 +56,13 @@ public final class ItemValidityService {
         for (String pathId : data.getMasteredPaths()) {
             PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
             if (path != null) {
-                if (namespace.equals(path.mod_id)) {
+                if (namespace.equals(path.getModId())) {
                     return true;
                 }
-                if (path.armorTag != null) {
-                    if (stack.is(path.armorTag)
-                            || stack.is(path.weaponsTag)
-                            || stack.is(path.toolsTag)) {
+                if (path.getArmorTag() != null) {
+                    if (stack.is(path.getArmorTag())
+                            || stack.is(path.getWeaponsTag())
+                            || stack.is(path.getToolsTag())) {
                         return true;
                     }
                 }
@@ -73,13 +73,13 @@ public final class ItemValidityService {
         for (String pathId : data.getStartedPaths()) {
             PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
             if (path != null) {
-                if (namespace.equals(path.mod_id)) {
+                if (namespace.equals(path.getModId())) {
                     return true;
                 }
-                if (path.armorTag != null) {
-                    if (stack.is(path.armorTag)
-                            || stack.is(path.weaponsTag)
-                            || stack.is(path.toolsTag)) {
+                if (path.getArmorTag() != null) {
+                    if (stack.is(path.getArmorTag())
+                            || stack.is(path.getWeaponsTag())
+                            || stack.is(path.getToolsTag())) {
                         return true;
                     }
                 }

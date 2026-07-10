@@ -75,23 +75,23 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         if (pathSelected) {
             PathInfo p = model.getSelectedPath();
             pathNameEdit.setResponder(null);
-            pathNameEdit.setValue(p.name);
+            pathNameEdit.setValue(p.getName());
             pathNameEdit.setResponder(val -> {
-                p.name = val;
-                p.id = val.toLowerCase().replaceAll("[^a-z0-9_]", "_");
+                p.setName(val);
+                p.setId(val.toLowerCase().replaceAll("[^a-z0-9_]", "_"));
             });
 
             pathModIdEdit.setResponder(null);
-            pathModIdEdit.setValue(p.mod_id);
-            pathModIdEdit.setResponder(val -> p.mod_id = val);
+            pathModIdEdit.setValue(p.getModId());
+            pathModIdEdit.setResponder(val -> p.setModId(val));
 
             pathDepsEdit.setResponder(null);
-            pathDepsEdit.setValue(String.join(", ", p.dependencies));
+            pathDepsEdit.setValue(String.join(", ", p.getDependencies()));
             pathDepsEdit.setResponder(val -> {
-                p.dependencies.clear();
+                p.clearDependencies();
                 if (!val.trim().isEmpty()) {
                     for (String dep : val.split(",")) {
-                        p.dependencies.add(dep.trim());
+                        p.addDependency(dep.trim());
                     }
                 }
             });
@@ -99,12 +99,12 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     }
 
     private void updateModIdFromRequirements(PathInfo p) {
-        if (p.requirements.isEmpty()) return;
-        for (Requirement r : p.requirements) {
-            if (r.id != null && r.id.contains(":")) {
-                String ns = r.id.split(":")[0];
+        if (p.getRequirements().isEmpty()) return;
+        for (Requirement r : p.getRequirements()) {
+            if (r.getId() != null && r.getId().contains(":")) {
+                String ns = r.getId().split(":")[0];
                 if (!ns.equals("minecraft")) {
-                    p.mod_id = ns;
+                    p.setModId(ns);
                     if (pathModIdEdit != null) {
                         pathModIdEdit.setValue(ns);
                     }
@@ -112,10 +112,10 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 }
             }
         }
-        String firstId = p.requirements.get(0).id;
+        String firstId = p.getRequirements().get(0).getId();
         if (firstId != null && firstId.contains(":")) {
             String ns = firstId.split(":")[0];
-            p.mod_id = ns;
+            p.setModId(ns);
             if (pathModIdEdit != null) {
                 pathModIdEdit.setValue(ns);
             }
@@ -194,7 +194,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
 
             drawFlatPanel(graphics, listX, itemY, itemW, itemH, bg, border);
 
-            String name = p.name;
+            String name = p.getName();
             int textX = listX + 8;
 
             net.minecraft.world.item.ItemStack iconStack = PathIcons.getIcon(p);
@@ -270,12 +270,12 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             drawFlatPanel(graphics, layout.minX, layout.minY, layout.minW, 20, ruleBg, ruleBorder);
 
             String ruleText = "";
-            if (p.min_to_switch < 0) {
+            if (p.getMinToSwitch() < 0) {
                 ruleText = Component.translatable("xam.editor.rule.master").getString();
-            } else if (p.min_to_switch == 0) {
+            } else if (p.getMinToSwitch() == 0) {
                 ruleText = Component.translatable("xam.editor.rule.free").getString();
             } else {
-                ruleText = Component.translatable("xam.editor.rule.tasks_format", p.min_to_switch).getString();
+                ruleText = Component.translatable("xam.editor.rule.tasks_format", p.getMinToSwitch()).getString();
             }
             graphics.drawCenteredString(this.font, ruleText, layout.minX + layout.minW / 2, layout.minY + 6, TEXT_PRIMARY);
 
@@ -335,8 +335,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int cardW = editorW - 40;
             int cardH = 40;
 
-            for (int j = 0; j < p.requirements.size(); j++) {
-                Requirement req = p.requirements.get(j);
+            for (int j = 0; j < p.getRequirements().size(); j++) {
+                Requirement req = p.getRequirements().get(j);
                 int cardX = editorX + 20;
                 int cardY = startCardY + (j * 46) - (int) model.getScrollY();
 
@@ -350,26 +350,26 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 int typeBg = 0xFF2C221A;
                 int typeBorder = COLOR_COPPER;
                 int typeFg = 0xFFFFAA00;
-                String typeLabel = Component.translatable("xam.req_type.badge." + req.type.toLowerCase()).getString();
+                String typeLabel = Component.translatable("xam.req_type.badge." + req.getType().toLowerCase()).getString();
 
-                if (req.type.equals("craft")) {
+                if (req.getType().equals("craft")) {
                     typeBg = 0xFF2C221A;
                     typeBorder = COLOR_COPPER;
                     typeFg = 0xFFFFAA00;
-                    net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(req.id));
+                    net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(req.getId()));
                     if (item != null) renderStack = new net.minecraft.world.item.ItemStack(item);
-                } else if (req.type.equals("collect")) {
+                } else if (req.getType().equals("collect")) {
                     typeBg = 0xFF152615;
                     typeBorder = 0xFF3F8F3F;
                     typeFg = 0xFF55FF55;
-                    net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(req.id));
+                    net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(req.getId()));
                     if (item != null) renderStack = new net.minecraft.world.item.ItemStack(item);
-                } else if (req.type.equals("kill")) {
+                } else if (req.getType().equals("kill")) {
                     typeBg = 0xFF2A1515;
                     typeBorder = 0xFF9E2A2A;
                     typeFg = 0xFFFF5555;
                     renderStack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_SWORD);
-                } else if (req.type.equals("advancement")) {
+                } else if (req.getType().equals("advancement")) {
                     typeBg = 0xFF152A2A;
                     typeBorder = 0xFF2A9E9E;
                     typeFg = 0xFF55FFFF;
@@ -387,8 +387,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 }
 
                 // 2. Info (Flex width)
-                String nameText = req.name;
-                if (nameText.isEmpty()) nameText = req.id;
+                String nameText = req.getName();
+                if (nameText.isEmpty()) nameText = req.getId();
                 int infoX = cardX + 4 + typeBoxW + 8;
                 int infoMaxW = cardW - 52 - typeBoxW;
                 if (this.font.width(nameText) > infoMaxW) {
@@ -396,8 +396,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 }
                 graphics.drawString(this.font, nameText, infoX, cardY + 8, COLOR_BRASS, false);
 
-                String descText = req.description;
-                if (descText.isEmpty()) descText = req.id;
+                String descText = req.getDescription();
+                if (descText.isEmpty()) descText = req.getId();
                 if (this.font.width(descText) > infoMaxW) {
                     descText = this.font.plainSubstrByWidth(descText, infoMaxW - 10) + "...";
                 }
@@ -414,7 +414,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             RenderSystem.disableScissor();
 
             // Render scrollbar if visible cards overflow with Cobre style
-            int totalReqsH = p.requirements.size() * 46;
+            int totalReqsH = p.getRequirements().size() * 46;
             if (totalReqsH > reqListH) {
                 int scrollbarX = editorX + editorW - 15;
                 int scrollbarY = startCardY;
@@ -461,7 +461,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size() && mouseX >= editorX + 20) {
             PathInfo p = model.getSelectedPath();
             int reqListH = editorH - (layout.reqTitleY - bodyY + 16) - 10;
-            int totalReqsH = p.requirements.size() * 46;
+            int totalReqsH = p.getRequirements().size() * 46;
             int maxScroll = Math.max(0, totalReqsH - reqListH);
 
             if (maxScroll > 0) {
@@ -553,7 +553,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                                 model.setSelectedPathIndex(model.getPaths().isEmpty() ? -1 : 0);
                             }
                             updateEditors();
-                        }, target.name));
+                        }, target.getName()));
                     }, true));
                     model.openContextMenu(i, true, (int) mouseX, (int) mouseY, options);
                     return true;
@@ -572,30 +572,30 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     int cardIndex = (int) (clickedY / 46);
                     double relativeY = clickedY % 46;
 
-                    if (cardIndex >= 0 && cardIndex < p.requirements.size() && relativeY <= cardH) {
+                    if (cardIndex >= 0 && cardIndex < p.getRequirements().size() && relativeY <= cardH) {
                         playClickSound();
                         List<MasteryEditorModel.MenuOption> options = new ArrayList<>();
                         options.add(new MasteryEditorModel.MenuOption("Editar", () -> {
-                            Requirement req = p.requirements.get(cardIndex);
-                            Minecraft.getInstance().setScreen(new RequirementEditScreen(this, p.id, req));
+                            Requirement req = p.getRequirements().get(cardIndex);
+                            Minecraft.getInstance().setScreen(new RequirementEditScreen(this, p.getId(), req));
                         }));
 
                         if (cardIndex > 0) {
                             options.add(new MasteryEditorModel.MenuOption("▲", () -> {
-                                Requirement req1 = p.requirements.get(cardIndex);
-                                Requirement req2 = p.requirements.get(cardIndex - 1);
-                                p.requirements.set(cardIndex - 1, req1);
-                                p.requirements.set(cardIndex, req2);
+                                Requirement req1 = p.getRequirements().get(cardIndex);
+                                Requirement req2 = p.getRequirements().get(cardIndex - 1);
+                                p.getRequirements().set(cardIndex - 1, req1);
+                                p.getRequirements().set(cardIndex, req2);
                                 updateEditors();
                             }));
                         }
 
-                        if (cardIndex < p.requirements.size() - 1) {
+                        if (cardIndex < p.getRequirements().size() - 1) {
                             options.add(new MasteryEditorModel.MenuOption("▼", () -> {
-                                Requirement req1 = p.requirements.get(cardIndex);
-                                Requirement req2 = p.requirements.get(cardIndex + 1);
-                                p.requirements.set(cardIndex + 1, req1);
-                                p.requirements.set(cardIndex, req2);
+                                Requirement req1 = p.getRequirements().get(cardIndex);
+                                Requirement req2 = p.getRequirements().get(cardIndex + 1);
+                                p.getRequirements().set(cardIndex + 1, req1);
+                                p.getRequirements().set(cardIndex, req2);
                                 updateEditors();
                             }));
                         }
@@ -618,7 +618,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     Minecraft.getInstance().setScreen(new IconSelectionScreen(this, item -> {
                         net.minecraft.resources.ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(item);
                         if (rl != null) {
-                            p.icon = rl.toString();
+                            p.setIcon(rl.toString());
                         }
                         Minecraft.getInstance().setScreen(this);
                     }));
@@ -630,7 +630,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     playClickSound();
                     Minecraft.getInstance().setScreen(new ModSelectionScreen(this, modId -> {
                         this.pathModIdEdit.setValue(modId);
-                        p.mod_id = modId;
+                        p.setModId(modId);
                         Minecraft.getInstance().setScreen(this);
                     }));
                     return true;
@@ -641,14 +641,14 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     playClickSound();
                     this.pathDepsEdit.setResponder(null);
                     Minecraft.getInstance().setScreen(new DependencySelectionScreen(
-                            this, p.id, model.getPaths(), new ArrayList<>(p.dependencies), deps -> {
-                        p.dependencies.clear();
-                        p.dependencies.addAll(deps);
+                            this, p.getId(), model.getPaths(), new ArrayList<>(p.getDependencies()), deps -> {
+                        p.clearDependencies();
+                        p.getDependencies().addAll(deps);
                         pathDepsEdit.setValue(String.join(", ", deps));
                         pathDepsEdit.setResponder(val -> {
-                            p.dependencies.clear();
+                            p.clearDependencies();
                             if (!val.trim().isEmpty()) {
-                                for (String dep : val.split(",")) p.dependencies.add(dep.trim());
+                                for (String dep : val.split(",")) p.addDependency(dep.trim());
                             }
                         });
                         Minecraft.getInstance().setScreen(this);
@@ -754,8 +754,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     int cardIndex = (int) (clickedY / 46);
                     double relativeY = clickedY % 46;
 
-                    if (cardIndex >= 0 && cardIndex < p.requirements.size() && relativeY <= cardH) {
-                        Requirement req = p.requirements.get(cardIndex);
+                    if (cardIndex >= 0 && cardIndex < p.getRequirements().size() && relativeY <= cardH) {
+                        Requirement req = p.getRequirements().get(cardIndex);
                         int cardX = editorX + 20;
 
                         if (mouseX >= cardX && mouseX < cardX + 80) {
@@ -770,12 +770,12 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                         }
                         if (mouseX >= cardX + cardW - 40 && mouseX < cardX + cardW) {
                             playClickSound();
-                            String taskName = req.name.isEmpty() ? req.id : req.name;
+                            String taskName = req.getName().isEmpty() ? req.getId() : req.getName();
                             Minecraft.getInstance().setScreen(new ConfirmDeleteScreen(this, () -> {
-                                p.requirements.remove(cardIndex);
+                                p.removeRequirementAtIndex(cardIndex);
                                 updateModIdFromRequirements(p);
                                 updateEditors();
-                                int totalReqsH1 = p.requirements.size() * 46;
+                                int totalReqsH1 = p.getRequirements().size() * 46;
                                 int maxScroll1 = Math.max(0, totalReqsH1 - reqListH);
                                 model.setScrollY(Math.max(0, Math.min(maxScroll1, model.getScrollY())));
                             }, taskName));
@@ -790,11 +790,11 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
 
     private void addPath() {
         PathInfo p = new PathInfo();
-        p.id = "path_" + java.util.UUID.randomUUID().toString().substring(0, 8);
-        p.name = Component.translatable("xam.editor.default.new_branch_name").getString();
-        p.mod_id = "modid";
-        p.icon = "minecraft:writable_book";
-        p.requirements = new ArrayList<>();
+        p.setId("path_" + java.util.UUID.randomUUID().toString().substring(0, 8));
+        p.setName(Component.translatable("xam.editor.default.new_branch_name").getString());
+        p.setModId("modid");
+        p.setIcon("minecraft:writable_book");
+        p.setRequirements(new ArrayList<>());
         model.addPath(p);
         model.setScrollY(0);
         updateEditors();
@@ -805,50 +805,50 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             PathInfo p = model.getSelectedPath();
             Requirement req = new Requirement("craft", "", "", "");
             // ponytail: don't add to list yet — RequirementEditScreen will add on commit
-            Minecraft.getInstance().setScreen(new RequirementEditScreen(this, p.id, req, () -> {
-                p.requirements.add(req);
+            Minecraft.getInstance().setScreen(new RequirementEditScreen(this, p.getId(), req, () -> {
+                p.addRequirement(req);
                 updateModIdFromRequirements(p);
                 updateEditors();
                 // Scroll to show newly added item
                 int editorH = bodyH;
                 int reqListH = editorH - (layout.reqTitleY - bodyY + 16) - 10;
-                int totalReqsH = p.requirements.size() * 46;
+                int totalReqsH = p.getRequirements().size() * 46;
                 model.setScrollY(Math.max(0, totalReqsH - reqListH));
             }));
         }
     }
 
     private void cycleRequirementType(Requirement req) {
-        String currentId = req.id;
-        String currentName = req.name;
+        String currentId = req.getId();
+        String currentName = req.getName();
 
-        if (req.type.equals("craft")) {
-            req.type = "collect";
+        if (req.getType().equals("craft")) {
+            req.setType("collect");
             if (isItem(currentId)) {
-                req.description = "Recoge " + currentName;
+                req.setDescription("Recoge " + currentName);
             } else {
-                req.id = "minecraft:dirt";
-                req.name = "Recoger Tierra";
-                req.description = "Recoge un bloque de tierra";
+                req.setId("minecraft:dirt");
+                req.setName("Recoger Tierra");
+                req.setDescription("Recoge un bloque de tierra");
             }
-        } else if (req.type.equals("collect")) {
-            req.type = "kill";
-            req.id = "minecraft:zombie";
-            req.name = "Zombie";
-            req.description = "Derrota a Zombie";
-        } else if (req.type.equals("kill")) {
-            req.type = "advancement";
-            req.id = "minecraft:story/root";
-            req.name = "Minecraft";
-            req.description = "Completa el logro Minecraft";
+        } else if (req.getType().equals("collect")) {
+            req.setType("kill");
+            req.setId("minecraft:zombie");
+            req.setName("Zombie");
+            req.setDescription("Derrota a Zombie");
+        } else if (req.getType().equals("kill")) {
+            req.setType("advancement");
+            req.setId("minecraft:story/root");
+            req.setName("Minecraft");
+            req.setDescription("Completa el logro Minecraft");
         } else {
-            req.type = "craft";
+            req.setType("craft");
             if (isItem(currentId)) {
-                req.description = "Craftea " + currentName;
+                req.setDescription("Craftea " + currentName);
             } else {
-                req.id = "minecraft:dirt";
-                req.name = "Craftear Tierra";
-                req.description = "Craftea un bloque de tierra";
+                req.setId("minecraft:dirt");
+                req.setName("Craftear Tierra");
+                req.setDescription("Craftea un bloque de tierra");
             }
         }
         if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
@@ -862,21 +862,21 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     }
 
     private void cycleMinToSwitch(PathInfo p) {
-        int max = p.requirements.size();
-        if (p.min_to_switch < 0) {
-            p.min_to_switch = 0;
-        } else if (p.min_to_switch >= max) {
-            p.min_to_switch = -1;
+        int max = p.getRequirements().size();
+        if (p.getMinToSwitch() < 0) {
+            p.setMinToSwitch(0);
+        } else if (p.getMinToSwitch() >= max) {
+            p.setMinToSwitch(-1);
         } else {
-            p.min_to_switch++;
+            p.setMinToSwitch(p.getMinToSwitch() + 1);
         }
     }
 
     private void openSelectorForRequirement(Requirement req) {
         Minecraft mc = Minecraft.getInstance();
-        if (req.type.equals("advancement")) {
+        if (req.getType().equals("advancement")) {
             mc.setScreen(new AdvancementSelectionScreen(this, adv -> {
-                req.id = adv.getId().toString();
+                req.setId(adv.getId().toString());
                 String titleText = adv.getDisplay() != null ? adv.getDisplay().getTitle().getString() : adv.getId().getPath();
                 if (titleText.contains("/")) {
                     String[] split = titleText.split("/");
@@ -886,24 +886,24 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 if (!titleText.isEmpty()) {
                     titleText = Character.toUpperCase(titleText.charAt(0)) + titleText.substring(1);
                 }
-                req.name = titleText;
-                req.description = adv.getDisplay() != null ? adv.getDisplay().getDescription().getString() : Component.translatable("xam.editor.desc.advancement", titleText).getString();
+                req.setName(titleText);
+                req.setDescription(adv.getDisplay() != null ? adv.getDisplay().getDescription().getString() : Component.translatable("xam.editor.desc.advancement", titleText).getString());
                 if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
                     updateModIdFromRequirements(model.getSelectedPath());
                 }
                 mc.setScreen(this);
             }));
-        } else if (req.type.equals("craft") || req.type.equals("collect")) {
+        } else if (req.getType().equals("craft") || req.getType().equals("collect")) {
             mc.setScreen(new ItemSelectionScreen(this, item -> {
                 net.minecraft.resources.ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(item);
                 if (rl != null) {
-                    req.id = rl.toString();
+                    req.setId(rl.toString());
                     String friendlyName = item.getDescription().getString();
-                    req.name = friendlyName;
-                    if (req.type.equals("craft")) {
-                        req.description = Component.translatable("xam.editor.desc.craft", friendlyName).getString();
+                    req.setName(friendlyName);
+                    if (req.getType().equals("craft")) {
+                        req.setDescription(Component.translatable("xam.editor.desc.craft", friendlyName).getString());
                     } else {
-                        req.description = Component.translatable("xam.editor.desc.collect", friendlyName).getString();
+                        req.setDescription(Component.translatable("xam.editor.desc.collect", friendlyName).getString());
                     }
                 }
                 if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
@@ -911,14 +911,14 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 }
                 mc.setScreen(this);
             }));
-        } else if (req.type.equals("kill")) {
+        } else if (req.getType().equals("kill")) {
             mc.setScreen(new EntitySelectionScreen(this, type -> {
                 net.minecraft.resources.ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(type);
                 if (rl != null) {
-                    req.id = rl.toString();
+                    req.setId(rl.toString());
                     String friendlyName = type.getDescription().getString();
-                    req.name = friendlyName;
-                    req.description = Component.translatable("xam.editor.desc.kill", friendlyName).getString();
+                    req.setName(friendlyName);
+                    req.setDescription(Component.translatable("xam.editor.desc.kill", friendlyName).getString());
                 }
                 if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
                     updateModIdFromRequirements(model.getSelectedPath());

@@ -82,7 +82,7 @@ public class ClientPacketHandler {
                             PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
                             ItemStack iconStack;
                             if (path != null) {
-                                pathName = path.name;
+                                pathName = path.getName();
                                 iconStack = PathIcons.getIcon(path);
                             } else {
                                 iconStack = PathIcons.getDefaultIcon(pathId);
@@ -101,7 +101,7 @@ public class ClientPacketHandler {
                     if (data.getCurrentPath() == null) {
                         boolean hasAvailablePaths = false;
                         for (PathInfo path : ConfigManager.PATHS) {
-                            if (!data.getMasteredPaths().contains(path.id)) {
+                            if (!data.getMasteredPaths().contains(path.getId())) {
                                 hasAvailablePaths = true;
                                 break;
                             }

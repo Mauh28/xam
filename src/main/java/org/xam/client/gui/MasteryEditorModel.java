@@ -48,23 +48,23 @@ public final class MasteryEditorModel {
     public MasteryEditorModel() {
         for (PathInfo path : ConfigManager.PATHS) {
             PathInfo p = new PathInfo();
-            p.id = path.id;
-            p.name = path.name;
-            p.mod_id = path.mod_id;
-            p.icon = path.icon;
-            p.min_to_switch = path.min_to_switch;
-            p.perkEffect = path.perkEffect != null ? path.perkEffect : "";
-            p.perkAmplifier = path.perkAmplifier;
-            p.dependencies = new ArrayList<>(path.dependencies);
-            p.requirements = new ArrayList<>();
-            for (Requirement req : path.requirements) {
+            p.setId(path.getId());
+            p.setName(path.getName());
+            p.setModId(path.getModId());
+            p.setIcon(path.getIcon());
+            p.setMinToSwitch(path.getMinToSwitch());
+            p.setPerkEffect(path.getPerkEffect() != null ? path.getPerkEffect() : "");
+            p.setPerkAmplifier(path.getPerkAmplifier());
+            p.setDependencies(new ArrayList<>(path.getDependencies()));
+            p.setRequirements(new ArrayList<>());
+            for (Requirement req : path.getRequirements()) {
                 Requirement r = new Requirement();
-                r.type = req.type;
-                r.id = req.id;
-                r.name = req.name;
-                r.description = req.description;
-                r.dependencies = new ArrayList<>(req.dependencies);
-                p.requirements.add(r);
+                r.setType(req.getType());
+                r.setId(req.getId());
+                r.setName(req.getName());
+                r.setDescription(req.getDescription());
+                r.setDependencies(new ArrayList<>(req.getDependencies()));
+                p.addRequirement(r);
             }
             this.localPaths.add(p);
         }

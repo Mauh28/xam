@@ -91,7 +91,7 @@ public class XamCommand {
             .then(Commands.argument("path_id", ResourceLocationArgument.id())
                 .suggests((context, builder) -> {
                     for (PathInfo path : ConfigManager.PATHS) {
-                        builder.suggest(path.id);
+                        builder.suggest(path.getId());
                     }
                     return builder.buildFuture();
                 })
@@ -140,7 +140,7 @@ public class XamCommand {
             .then(Commands.argument("path_id", ResourceLocationArgument.id())
                 .suggests((context, builder) -> {
                     for (PathInfo path : ConfigManager.PATHS) {
-                        builder.suggest(path.id);
+                        builder.suggest(path.getId());
                     }
                     return builder.buildFuture();
                 })
@@ -210,8 +210,8 @@ public class XamCommand {
                             if (currentPath != null) {
                                 PathInfo path = ConfigManager.PATHS_MAP.get(currentPath);
                                 if (path != null) {
-                                    for (Requirement req : path.requirements) {
-                                        builder.suggest(req.type + ":" + req.id);
+                                    for (Requirement req : path.getRequirements()) {
+                                        builder.suggest(req.getType() + ":" + req.getId());
                                     }
                                 }
                             }
@@ -327,12 +327,12 @@ public class XamCommand {
                 source.sendSuccess(() -> Component.translatable("xam.msg.invalid_active_mastery", player.getGameProfile().getName()), false);
                 return;
             }
-            source.sendSuccess(() -> Component.translatable("xam.msg.progress_header", player.getGameProfile().getName(), pathInfo.name), false);
-            for (Requirement req : pathInfo.requirements) {
-                boolean done = MasteryService.isRequirementCompleted(player, data, pathInfo.id, req);
+            source.sendSuccess(() -> Component.translatable("xam.msg.progress_header", player.getGameProfile().getName(), pathInfo.getName()), false);
+            for (Requirement req : pathInfo.getRequirements()) {
+                boolean done = MasteryService.isRequirementCompleted(player, data, pathInfo.getId(), req);
                 String symbol = done ? "§a[✔]§r" : "§c[✘]§r";
                 String reqDesc = RequirementFormatter.formatRequirementDescription(req);
-                source.sendSuccess(() -> Component.literal(symbol + " " + reqDesc + " (" + req.type + ":" + req.id + ")"), false);
+                source.sendSuccess(() -> Component.literal(symbol + " " + reqDesc + " (" + req.getType() + ":" + req.getId() + ")"), false);
             }
         });
     }
@@ -357,8 +357,8 @@ public class XamCommand {
                 type = reqKey.substring(0, firstColon);
                 targetId = reqKey.substring(firstColon + 1);
             }
-            for (Requirement req : pathInfo.requirements) {
-                if (req.type.equals(type) && req.id.equals(targetId)) {
+            for (Requirement req : pathInfo.getRequirements()) {
+                if (req.getType().equals(type) && req.getId().equals(targetId)) {
                     exists = true;
                     break;
                 }
@@ -381,7 +381,7 @@ public class XamCommand {
                     }
                 }
             } else {
-                String fullKey = pathInfo.id + ":" + reqKey;
+                String fullKey = pathInfo.getId() + ":" + reqKey;
                 if (!data.getCompletedRequirements().contains(fullKey)) {
                     data.addCompletedRequirement(fullKey);
                     MasteryService.sync(player);
