@@ -1,16 +1,10 @@
 package org.xam.client.gui;
 
-import org.xam.XamConstants;
 import org.xam.config.ConfigManager;
 import org.xam.config.PathInfo;
 import org.xam.config.Requirement;
-import org.xam.data.PlayerData;
-import org.xam.data.PlayerDataProvider;
 import org.xam.network.XamNetwork;
-import org.xam.network.SelectPathPacket;
 import org.xam.network.UpdateConfigPacket;
-import org.xam.progression.MasteryService;
-import org.xam.progression.RequirementFormatter;
 import org.xam.util.PathIcons;
 
 import net.minecraft.client.Minecraft;
