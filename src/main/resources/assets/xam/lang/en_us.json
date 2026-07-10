@@ -51,6 +51,9 @@
   "xam.msg.locked_requires_mastery": "✖ Locked - Requires path: %s",
   "xam.msg.locked_incompatible": "✖ Locked - Incompatible with your path",
   "xam.msg.jade_requires_mastery": "✖ Requires path: %s",
+  "xam.hub.unlocked": "Unlocked",
+  "xam.hub.locked_dependencies": "Locked by dependencies",
+  "xam.screen.mastery_hub.completed": "Completed",
 
   "xam.toast.mastery_completed": "Mastery Completed!",
   "xam.toast.mastered_format": "You have mastered: %s",

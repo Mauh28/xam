@@ -51,6 +51,9 @@
   "xam.msg.locked_requires_mastery": "✖ Bloqueado - Requiere maestría: %s",
   "xam.msg.locked_incompatible": "✖ Bloqueado - Incompatible con tu maestría",
   "xam.msg.jade_requires_mastery": "✖ Requiere maestría: %s",
+  "xam.hub.unlocked": "Desbloqueado",
+  "xam.hub.locked_dependencies": "Bloqueado por dependencias",
+  "xam.screen.mastery_hub.completed": "Completada",
 
   "xam.toast.mastery_completed": "¡Maestría Completada!",
   "xam.toast.mastered_format": "Has dominado: %s",

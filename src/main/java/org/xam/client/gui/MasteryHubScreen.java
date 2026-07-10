@@ -23,6 +23,8 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     private double targetScrollY = 0;
     private String flippedPathId = null;
     private long lastFlipTime = 0;
+    private String flippingBackPathId = null;
+    private long lastFlipBackTime = 0;
 
     public MasteryHubScreen(PlayerData playerData) {
         super(Component.translatable("xam.screen.mastery_hub.title"));
@@ -210,11 +212,23 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
 
                 // Animation calculations
                 boolean isFlipped = id.equals(flippedPathId);
+                boolean isFlippingBack = id.equals(flippingBackPathId);
                 float scaleX = 1.0F;
+                boolean flipStateBack = isFlipped;
+
                 if (isFlipped && lastFlipTime > 0) {
                     float elapsed = (System.currentTimeMillis() - lastFlipTime) / 300.0F;
                     if (elapsed < 1.0F) {
                         scaleX = Math.abs(1.0F - 2.0F * elapsed);
+                        flipStateBack = (elapsed >= 0.5F);
+                    }
+                } else if (isFlippingBack && lastFlipBackTime > 0) {
+                    float elapsed = (System.currentTimeMillis() - lastFlipBackTime) / 300.0F;
+                    if (elapsed < 1.0F) {
+                        scaleX = Math.abs(1.0F - 2.0F * elapsed);
+                        flipStateBack = (elapsed < 0.5F);
+                    } else {
+                        flippingBackPathId = null;
                     }
                 }
                 
@@ -222,12 +236,6 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 graphics.pose().translate(mx + medalSize / 2.0F, my + medalSize / 2.0F, 0);
                 graphics.pose().scale(scaleX, 1.0F, 1.0F);
                 graphics.pose().translate(-medalSize / 2.0F, -medalSize / 2.0F, 0);
-                
-                boolean flipStateBack = isFlipped;
-                if (isFlipped && lastFlipTime > 0) {
-                    float elapsed = (System.currentTimeMillis() - lastFlipTime) / 300.0F;
-                    if (elapsed < 0.5F) flipStateBack = false;
-                }
                 
                 boolean hovered = mouseX >= mx && mouseX < mx + medalSize && mouseY >= my && mouseY < my + medalSize;
                 
@@ -565,6 +573,10 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
         if (button == 0) {
             String prevFlippedPathId = flippedPathId;
             flippedPathId = null;
+            if (prevFlippedPathId != null) {
+                flippingBackPathId = prevFlippedPathId;
+                lastFlipBackTime = System.currentTimeMillis();
+            }
 
             // Header Close Button
             if (isCloseButtonClicked(mouseX, mouseY)) {
