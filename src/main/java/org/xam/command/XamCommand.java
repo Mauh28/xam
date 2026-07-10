@@ -198,6 +198,23 @@ public class XamCommand {
             )
         );
 
+        // started subcommand
+        xamCommand.then(Commands.literal("started")
+            .executes(context -> {
+                ServerPlayer player = context.getSource().getPlayerOrException();
+                showStartedPaths(context.getSource(), player);
+                return 1;
+            })
+            .then(Commands.argument("player", EntityArgument.player())
+                .requires(source -> source.hasPermission(2))
+                .executes(context -> {
+                    ServerPlayer player = EntityArgument.getPlayer(context, "player");
+                    showStartedPaths(context.getSource(), player);
+                    return 1;
+                })
+            )
+        );
+
         // complete_req subcommand
         xamCommand.then(Commands.literal("complete_req")
             .requires(source -> source.hasPermission(2))
@@ -244,6 +261,7 @@ public class XamCommand {
                 source.sendSuccess(() -> Component.translatable("xam.cmd.help_header"), false);
                 source.sendSuccess(() -> Component.translatable("xam.cmd.help_info"), false);
                 source.sendSuccess(() -> Component.translatable("xam.cmd.help_progress"), false);
+                source.sendSuccess(() -> Component.translatable("xam.cmd.help_started"), false);
                 source.sendSuccess(() -> Component.translatable("xam.cmd.help_help"), false);
                 if (isOp) {
                     source.sendSuccess(() -> Component.translatable("xam.cmd.help_dev"), false);
@@ -333,6 +351,23 @@ public class XamCommand {
                 String symbol = done ? "§a[✔]§r" : "§c[✘]§r";
                 String reqDesc = RequirementFormatter.formatRequirementDescription(req);
                 source.sendSuccess(() -> Component.literal(symbol + " " + reqDesc + " (" + req.getType() + ":" + req.getId() + ")"), false);
+            }
+        });
+    }
+
+    private static void showStartedPaths(CommandSourceStack source, ServerPlayer player) {
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            java.util.List<String> started = new java.util.ArrayList<>(data.getStartedPaths());
+            started.removeAll(data.getMasteredPaths());
+            if (started.isEmpty()) {
+                source.sendSuccess(() -> Component.translatable("xam.msg.no_started_paths", player.getGameProfile().getName()), false);
+                return;
+            }
+            source.sendSuccess(() -> Component.translatable("xam.msg.started_paths_header", player.getGameProfile().getName()), false);
+            for (String pathId : started) {
+                PathInfo pathInfo = ConfigManager.PATHS_MAP.get(pathId);
+                String displayName = pathInfo != null ? pathInfo.getName() : pathId;
+                source.sendSuccess(() -> Component.literal("- " + displayName + " (" + pathId + ")"), false);
             }
         });
     }

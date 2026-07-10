@@ -26,6 +26,7 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
 
     private EditBox effectIdEdit;
     private int perkAmplifier;
+    private String perkEffect;
 
     // Preset options
     private static class PerkPreset {
@@ -50,6 +51,7 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
         this.parent = parent;
         this.path = path;
         this.perkAmplifier = path.getPerkAmplifier();
+        this.perkEffect = path.getPerkEffect() != null ? path.getPerkEffect() : "";
 
         // Populate presets
         presets.add(new PerkPreset("Velocidad", "minecraft:speed"));
@@ -85,7 +87,8 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
         this.effectIdEdit = new EditBox(this.font, fieldX + 4, fieldY + 5, fieldW - 8, 12, Component.literal("ID del Efecto"));
         this.effectIdEdit.setBordered(false);
         this.effectIdEdit.setTextColor(TEXT_PRIMARY);
-        this.effectIdEdit.setValue(path.getPerkEffect() != null ? path.getPerkEffect() : "");
+        this.effectIdEdit.setValue(this.perkEffect);
+        this.effectIdEdit.setResponder(val -> this.perkEffect = val);
         this.addRenderableWidget(this.effectIdEdit);
     }
 
@@ -251,7 +254,7 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
                 Minecraft.getInstance().setScreen(new EffectSelectionScreen(this, (effect) -> {
                     net.minecraft.resources.ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.MOB_EFFECTS.getKey(effect);
                     if (rl != null) {
-                        this.effectIdEdit.setValue(rl.toString());
+                        this.perkEffect = rl.toString();
                     }
                 }));
                 return true;
@@ -271,6 +274,7 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
                 }
                 if (mouseX >= px && mouseX < px + btnSize && mouseY >= presetY && mouseY < presetY + btnSize) {
                     playClickSound();
+                    this.perkEffect = preset.effectId;
                     effectIdEdit.setValue(preset.effectId);
                     return true;
                 }
@@ -315,7 +319,7 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
             int saveX = startX + btnW + 10;
             if (mouseX >= saveX && mouseX < saveX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
                 playClickSound();
-                path.setPerkEffect(effectIdEdit.getValue().trim());
+                path.setPerkEffect(this.perkEffect.trim());
                 path.setPerkAmplifier(perkAmplifier);
                 Minecraft.getInstance().setScreen(this.parent);
                 return true;
