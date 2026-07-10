@@ -33,6 +33,7 @@ public final class MasteryEditorModel {
     private final List<PathInfo> localPaths = new ArrayList<>();
     private int selectedPathIndex = -1;
     private double scrollY = 0;
+    private double pathScrollY = 0;
 
     // Context menu state
     private int contextMenuIndex = -1;
@@ -108,6 +109,14 @@ public final class MasteryEditorModel {
 
     public void addScrollY(double delta) {
         this.scrollY += delta;
+    }
+
+    public double getPathScrollY() {
+        return pathScrollY;
+    }
+
+    public void setPathScrollY(double v) {
+        this.pathScrollY = v;
     }
 
     // === Context menu ===

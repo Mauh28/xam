@@ -182,11 +182,22 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int itemW = sidebarW - 20;
         int itemH = 18;
 
+        int addPathBtnY = sidebarY + sidebarH - 25;
+        int listH = addPathBtnY - listY - 5;
+
+        double sidebarScale = Minecraft.getInstance().getWindow().getGuiScale();
+        int sidebarScissorX = (int) (listX * sidebarScale);
+        int sidebarScissorY = (int) ((this.height - (listY + listH)) * sidebarScale);
+        int sidebarScissorW = (int) (itemW * sidebarScale);
+        int sidebarScissorH = (int) (listH * sidebarScale);
+
+        RenderSystem.enableScissor(sidebarScissorX, sidebarScissorY, sidebarScissorW, sidebarScissorH);
+
         for (int i = 0; i < model.getPaths().size(); i++) {
             PathInfo p = model.getPaths().get(i);
-            int itemY = listY + i * 20;
+            int itemY = listY + i * 20 - (int) model.getPathScrollY();
 
-            boolean itemHovered = mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + itemH;
+            boolean itemHovered = mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + itemH && mouseY >= listY && mouseY < listY + listH;
             boolean isActive = (i == model.getSelectedPathIndex());
 
             int bg = isActive ? 0xFF2C221D : (itemHovered ? 0xFF1C1613 : 0xFF14100E);
@@ -209,6 +220,21 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 name = this.font.plainSubstrByWidth(name, textMaxW - 8) + "..";
             }
             graphics.drawString(this.font, name, textX, itemY + 5, isActive ? COLOR_BRASS : (itemHovered ? TEXT_PRIMARY : TEXT_SECONDARY), false);
+        }
+
+        RenderSystem.disableScissor();
+
+        // Render scrollbar if visible paths overflow
+        int totalPathsH = model.getPaths().size() * 20;
+        if (totalPathsH > listH) {
+            int scrollbarX = sidebarX + sidebarW - 6;
+            int scrollbarY = listY;
+            graphics.fill(scrollbarX, scrollbarY, scrollbarX + 4, scrollbarY + listH, 0xFF2A201C);
+
+            float fraction = (float) model.getPathScrollY() / (totalPathsH - listH);
+            int thumbH = Math.max(10, (int) (((float) listH / totalPathsH) * listH));
+            int thumbY = scrollbarY + (int) (fraction * (listH - thumbH));
+            graphics.fill(scrollbarX, thumbY, scrollbarX + 4, thumbY + thumbH, COLOR_COPPER);
         }
 
         // Sidebar Add and Delete Buttons (split itemW horizontally)
@@ -458,7 +484,17 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int editorW = layout.editorW;
         int editorH = bodyH;
 
-        if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size() && mouseX >= editorX + 20) {
+        if (mouseX < containerX + sidebarW) {
+            int listY = bodyY + 25;
+            int addPathBtnY = bodyY + bodyH - 25;
+            int listH = addPathBtnY - listY - 5;
+            int totalPathsH = model.getPaths().size() * 20;
+            int maxScroll = Math.max(0, totalPathsH - listH);
+            if (maxScroll > 0) {
+                model.setPathScrollY(Math.max(0, Math.min(maxScroll, model.getPathScrollY() - delta * 15)));
+                return true;
+            }
+        } else if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size() && mouseX >= editorX + 20) {
             PathInfo p = model.getSelectedPath();
             int reqListH = editorH - (layout.reqTitleY - bodyY + 16) - 10;
             int totalReqsH = p.getRequirements().size() * 46;
@@ -519,9 +555,11 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int listY = bodyY + 25;
             int itemW = sidebarW - 20;
             int itemH = 18;
+            int addPathBtnY = bodyY + bodyH - 25;
+            int listH = addPathBtnY - listY - 5;
             for (int i = 0; i < model.getPaths().size(); i++) {
-                int itemY = listY + i * 20;
-                if (mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + itemH) {
+                int itemY = listY + i * 20 - (int) model.getPathScrollY();
+                if (mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + itemH && mouseY >= listY && mouseY < listY + listH) {
                     playClickSound();
                     List<MasteryEditorModel.MenuOption> options = new ArrayList<>();
                     int finalI = i;
@@ -707,9 +745,10 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             }
 
             // Sidebar: select branch
+            int listH = addPathBtnY - listY - 5;
             for (int i = 0; i < model.getPaths().size(); i++) {
-                int itemY = listY + i * 20;
-                if (mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + 18) {
+                int itemY = listY + i * 20 - (int) model.getPathScrollY();
+                if (mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + 18 && mouseY >= listY && mouseY < listY + listH) {
                     playClickSound();
                     model.setSelectedPathIndex(i);
                     model.setScrollY(0);
