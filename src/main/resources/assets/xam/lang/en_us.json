@@ -81,6 +81,13 @@
   "xam.msg.invalid_mastery": "Player's mastery is invalid.",
   "xam.msg.req_not_in_path": "Requirement '%s' does not belong to active mastery '%s'.",
   "xam.msg.req_completed_success": "Requirement '%s' marked as completed for %s",
+  "xam.msg.config_invalid_json": "Invalid configuration JSON format.",
+  "xam.msg.config_no_paths": "Configuration JSON is missing 'paths' array.",
+  "xam.msg.config_invalid_id": "Invalid path ID: '%s' (must be a valid ResourceLocation identifier).",
+  "xam.msg.config_missing_field": "Configuration path is missing required field(s) 'name' or 'mod_id'.",
+  "xam.msg.config_unknown_effect": "Unknown potion/perk effect: '%s'.",
+  "xam.msg.config_unknown_req_type": "Unknown requirement type: '%s'.",
+  "xam.msg.config_bad_dependency": "Invalid dependency format: '%s' (expected format 'path_id:count', 'path_id:%', or 'path_id:mastered').",
 
   "xam.req_type.craft": "Craft %s",
   "xam.req_type.collect": "Collect %s",

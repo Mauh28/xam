@@ -81,6 +81,13 @@
   "xam.msg.invalid_mastery": "La maestría del jugador es inválida.",
   "xam.msg.req_not_in_path": "El requisito '%s' no pertenece a la maestría activa '%s'.",
   "xam.msg.req_completed_success": "Requisito '%s' marcado como completado para %s",
+  "xam.msg.config_invalid_json": "Formato JSON de configuración inválido.",
+  "xam.msg.config_no_paths": "Falta la sección 'paths' en el JSON de configuración.",
+  "xam.msg.config_invalid_id": "ID de rama inválido: '%s' (debe ser un identificador ResourceLocation válido).",
+  "xam.msg.config_missing_field": "Faltan campos obligatorios ('name' o 'mod_id') en la rama de configuración.",
+  "xam.msg.config_unknown_effect": "Efecto/perk desconocido: '%s'.",
+  "xam.msg.config_unknown_req_type": "Tipo de requisito desconocido: '%s'.",
+  "xam.msg.config_bad_dependency": "Formato de dependencia inválido: '%s' (se esperaba 'path_id:count', 'path_id:%' o 'path_id:mastered').",
 
   "xam.req_type.craft": "Craftear %s",
   "xam.req_type.collect": "Recolectar %s",
