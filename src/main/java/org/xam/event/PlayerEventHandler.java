@@ -15,6 +15,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import org.xam.XamConstants;
 import org.xam.compat.CuriosCompat;
 import org.xam.config.ConfigManager;
+import org.xam.config.ConfigReloadedEvent;
 import org.xam.config.PathInfo;
 import org.xam.config.Requirement;
 import org.xam.data.PlayerDataProvider;
@@ -58,10 +59,25 @@ public class PlayerEventHandler {
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                MasteryService.checkAndRefreshPlayerData(player, data);
+            });
             MasteryService.sync(player);
             MasteryService.updateArmorModifiers(player);
             String pathsJson = ConfigManager.getPathsJson();
             XamNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SyncConfigPacket(pathsJson));
+        }
+    }
+
+    @SubscribeEvent
+    public static void onConfigReloaded(ConfigReloadedEvent event) {
+        net.minecraft.server.MinecraftServer server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+        if (server == null) return;
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                MasteryService.checkAndRefreshPlayerData(player, data);
+                MasteryService.sync(player);
+            });
         }
     }
 
@@ -88,8 +104,6 @@ public class PlayerEventHandler {
             UUID uuid = player.getUUID();
 
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                MasteryService.checkAndRefreshPlayerData(player, data);
-
                 // ponytail: lazy inventory scanning and armor warning checks every 1 second
                 if (player.tickCount % 20 == 0) {
                     if (data.getCurrentPath() != null) {

@@ -173,6 +173,7 @@ public class ConfigManager {
                 NAMESPACE_TO_PATH.put(info.getModId(), info);
             }
         }
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new ConfigReloadedEvent(configVersion));
     }
 
     public static String serializePaths(List<PathInfo> pathsList) {
