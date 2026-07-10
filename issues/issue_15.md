@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `c3b9a72`.
+
 #### Resumen
 El mod envía `en_us.json`, `es_es.json` y `es_mx.json`, pero una cantidad significativa de strings están hardcoded en español y se muestran así en cualquier locale.
 
