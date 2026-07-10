@@ -1,3 +1,6 @@
+> **ESTADO:** ✅ Resuelto en commits `5a89d1c`..`f7c7f31`.
+> Ver `REFACTOR_SMOKE_TESTS.md` para el checklist de regresión.
+
 #### Resumen
 `MasteryEditorScreen` es una god class que mezcla layout, rendering, input dispatch, context menus, list management, validación, serialización JSON y navegación de pantallas. El método `init()` maneja 12+ instance fields de coordenadas pixel. Una nested class `ConfirmDeleteScreen` debería ser su propio archivo.
 
