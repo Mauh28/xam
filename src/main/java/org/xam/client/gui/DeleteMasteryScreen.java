@@ -35,7 +35,7 @@ public class DeleteMasteryScreen extends AbstractPickerScreen<PathInfo> {
 
     @Override
     protected void populateEntries() {
-        this.allEntries.addAll(editor.localPaths);
+        this.allEntries.addAll(editor.model.getPaths());
     }
 
     @Override
@@ -209,9 +209,9 @@ public class DeleteMasteryScreen extends AbstractPickerScreen<PathInfo> {
                 playClickSound();
                 String targetsLabel = selectedIds.size() == 1 ? selectedIds.get(0) : selectedIds.size() + " maestrías";
                 Minecraft.getInstance().setScreen(new ConfirmDeleteScreen(this, () -> {
-                    editor.localPaths.removeIf(p -> selectedIds.contains(p.id));
-                    if (editor.selectedPathIndex >= editor.localPaths.size()) {
-                        editor.selectedPathIndex = editor.localPaths.isEmpty() ? -1 : 0;
+                    editor.model.getPaths().removeIf(p -> selectedIds.contains(p.id));
+                    if (editor.model.getSelectedPathIndex() >= editor.model.getPaths().size()) {
+                        editor.model.setSelectedPathIndex(editor.model.getPaths().isEmpty() ? -1 : 0);
                     }
                     editor.updateEditors();
                 }, targetsLabel, editor));

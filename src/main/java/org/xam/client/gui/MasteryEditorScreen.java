@@ -25,34 +25,7 @@ import java.util.List;
 
 public class MasteryEditorScreen extends AbstractMasteryScreen {
     private final Screen parent;
-    final List<PathInfo> localPaths = new ArrayList<>();
-    int selectedPathIndex = -1;
-
-    // Scroll state for requirements list
-    private double scrollY = 0;
-
-    // Unified Context menu state
-    private int contextMenuIndex = -1;
-    private boolean contextMenuIsBranch = false;
-    private int contextMenuX = 0;
-    private int contextMenuY = 0;
-
-    private static class MenuOption {
-        final String label;
-        final Runnable action;
-        final boolean isDanger;
-
-        MenuOption(String label, Runnable action) {
-            this(label, action, false);
-        }
-
-        MenuOption(String label, Runnable action, boolean isDanger) {
-            this.label = label;
-            this.action = action;
-            this.isDanger = isDanger;
-        }
-    }
-    private final List<MenuOption> activeMenuOptions = new ArrayList<>();
+    final MasteryEditorModel model = new MasteryEditorModel();
 
     // Custom text input boxes
     private EditBox pathNameEdit;
@@ -63,40 +36,9 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     private MasteryEditorLayout layout;
     private final MasteryEditorValidator validator = new MasteryEditorValidator();
 
-    // Notification state
-    private long saveNotificationTime = 0;
-    private String saveNotificationMsg = "";
-
     public MasteryEditorScreen(Screen parent) {
         super(Component.literal("EDITOR DE MAESTRÍAS"));
         this.parent = parent;
-
-        for (PathInfo path : ConfigManager.PATHS) {
-            PathInfo p = new PathInfo();
-            p.id = path.id;
-            p.name = path.name;
-            p.mod_id = path.mod_id;
-            p.icon = path.icon;
-            p.min_to_switch = path.min_to_switch;
-            p.perkEffect = path.perkEffect != null ? path.perkEffect : "";
-            p.perkAmplifier = path.perkAmplifier;
-            p.dependencies = new ArrayList<>(path.dependencies);
-            p.requirements = new ArrayList<>();
-            for (Requirement req : path.requirements) {
-                Requirement r = new Requirement();
-                r.type = req.type;
-                r.id = req.id;
-                r.name = req.name;
-                r.description = req.description;
-                r.dependencies = new ArrayList<>(req.dependencies);
-                p.requirements.add(r);
-            }
-            this.localPaths.add(p);
-        }
-
-        if (!this.localPaths.isEmpty()) {
-            this.selectedPathIndex = 0;
-        }
     }
 
     @Override
@@ -125,19 +67,19 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         this.addRenderableWidget(this.pathDepsEdit);
 
         updateEditors();
-        if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
-            updateModIdFromRequirements(localPaths.get(selectedPathIndex));
+        if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
+            updateModIdFromRequirements(model.getSelectedPath());
         }
     }
 
     void updateEditors() {
-        boolean pathSelected = selectedPathIndex >= 0 && selectedPathIndex < localPaths.size();
+        boolean pathSelected = model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size();
         pathNameEdit.visible = pathSelected;
         pathModIdEdit.visible = pathSelected;
         pathDepsEdit.visible = pathSelected;
 
         if (pathSelected) {
-            PathInfo p = localPaths.get(selectedPathIndex);
+            PathInfo p = model.getSelectedPath();
             pathNameEdit.setResponder(null);
             pathNameEdit.setValue(p.name);
             pathNameEdit.setResponder(val -> {
@@ -201,10 +143,10 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int btnY = containerY + containerH - footerH + (footerH - btnH) / 2;
 
         // Render Save Notification if active
-        if (System.currentTimeMillis() - saveNotificationTime < 3000) {
+        if (System.currentTimeMillis() - model.getSaveNotificationTime() < 3000) {
             int msgY = containerY + containerH - footerH + (footerH - 8) / 2;
-            int notifColor = saveNotificationMsg.startsWith("✕") ? 0xFFFF5555 : 0xFF55FF55;
-            graphics.drawString(this.font, saveNotificationMsg, containerX + 15, msgY, notifColor, false);
+            int notifColor = model.getSaveNotificationMsg().startsWith("✕") ? 0xFFFF5555 : 0xFF55FF55;
+            graphics.drawString(this.font, model.getSaveNotificationMsg(), containerX + 15, msgY, notifColor, false);
         }
 
         // Custom Discard button (dark red/grey)
@@ -246,12 +188,12 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int itemW = sidebarW - 20;
         int itemH = 18;
 
-        for (int i = 0; i < localPaths.size(); i++) {
-            PathInfo p = localPaths.get(i);
+        for (int i = 0; i < model.getPaths().size(); i++) {
+            PathInfo p = model.getPaths().get(i);
             int itemY = listY + i * 20;
 
             boolean itemHovered = mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + itemH;
-            boolean isActive = (i == selectedPathIndex);
+            boolean isActive = (i == model.getSelectedPathIndex());
 
             int bg = isActive ? 0xFF2C221D : (itemHovered ? 0xFF1C1613 : 0xFF14100E);
             int border = isActive ? COLOR_BRASS : (itemHovered ? COLOR_COPPER : 0xFF332D29);
@@ -299,8 +241,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int editorW = layout.editorW;
         int editorH = bodyH;
 
-        if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
-            PathInfo p = localPaths.get(selectedPathIndex);
+        if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
+            PathInfo p = model.getSelectedPath();
 
             // Enclosing metadata frame
             drawFlatPanel(graphics, editorX + 10, bodyY + 5, editorW - 20, layout.metadataFrameH, PANEL_INNER_BG, 0xFF2A201C);
@@ -402,7 +344,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             for (int j = 0; j < p.requirements.size(); j++) {
                 Requirement req = p.requirements.get(j);
                 int cardX = editorX + 20;
-                int cardY = startCardY + (j * 46) - (int) scrollY;
+                int cardY = startCardY + (j * 46) - (int) model.getScrollY();
 
                 // Render requirement card
                 boolean delHovered = mouseX >= cardX + cardW - 40 && mouseX < cardX + cardW && mouseY >= cardY && mouseY < cardY + cardH;
@@ -484,32 +426,32 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 int scrollbarY = startCardY;
                 graphics.fill(scrollbarX, scrollbarY, scrollbarX + 4, scrollbarY + reqListH, 0xFF2A201C);
 
-                float fraction = (float) scrollY / (totalReqsH - reqListH);
+                float fraction = (float) model.getScrollY() / (totalReqsH - reqListH);
                 int thumbH = Math.max(12, (int) (((float) reqListH / totalReqsH) * reqListH));
                 int thumbY = scrollbarY + (int) (fraction * (reqListH - thumbH));
                 graphics.fill(scrollbarX, thumbY, scrollbarX + 4, thumbY + thumbH, COLOR_COPPER);
             }
 
             // Render unified context menu if active
-            if (contextMenuIndex != -1 && !activeMenuOptions.isEmpty()) {
+            if (model.isContextMenuOpen() && !model.getActiveMenuOptions().isEmpty()) {
                 int menuW = 80;
                 int optionH = 16;
-                int menuH = activeMenuOptions.size() * optionH + 4; // 2px padding top/bottom
+                int menuH = model.getActiveMenuOptions().size() * optionH + 4; // 2px padding top/bottom
 
-                drawFlatPanel(graphics, contextMenuX, contextMenuY, menuW, menuH, WIDGET_BACKGROUND, BORDER_INNER);
+                drawFlatPanel(graphics, model.getContextMenuX(), model.getContextMenuY(), menuW, menuH, WIDGET_BACKGROUND, BORDER_INNER);
 
-                for (int o = 0; o < activeMenuOptions.size(); o++) {
-                    MenuOption opt = activeMenuOptions.get(o);
-                    int optY = contextMenuY + 2 + o * optionH;
-                    boolean optHovered = mouseX >= contextMenuX && mouseX < contextMenuX + menuW && mouseY >= optY && mouseY < optY + optionH;
+                for (int o = 0; o < model.getActiveMenuOptions().size(); o++) {
+                    MasteryEditorModel.MenuOption opt = model.getActiveMenuOptions().get(o);
+                    int optY = model.getContextMenuY() + 2 + o * optionH;
+                    boolean optHovered = mouseX >= model.getContextMenuX() && mouseX < model.getContextMenuX() + menuW && mouseY >= optY && mouseY < optY + optionH;
 
                     if (optHovered) {
                         int hoverBg = opt.isDanger ? 0xFF3A1111 : BUTTON_HOVER_BG;
-                        graphics.fill(contextMenuX + 2, optY, contextMenuX + menuW - 2, optY + optionH, hoverBg);
+                        graphics.fill(model.getContextMenuX() + 2, optY, model.getContextMenuX() + menuW - 2, optY + optionH, hoverBg);
                     }
 
                     int textCol = optHovered ? (opt.isDanger ? 0xFFFF5555 : TEXT_PRIMARY) : TEXT_SECONDARY;
-                    graphics.drawCenteredString(this.font, opt.label, contextMenuX + menuW / 2, optY + (optionH - 8) / 2, textCol);
+                    graphics.drawCenteredString(this.font, opt.label, model.getContextMenuX() + menuW / 2, optY + (optionH - 8) / 2, textCol);
                 }
             }
         }
@@ -522,14 +464,14 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int editorW = layout.editorW;
         int editorH = bodyH;
 
-        if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size() && mouseX >= editorX + 20) {
-            PathInfo p = localPaths.get(selectedPathIndex);
+        if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size() && mouseX >= editorX + 20) {
+            PathInfo p = model.getSelectedPath();
             int reqListH = editorH - (layout.reqTitleY - bodyY + 16) - 10;
             int totalReqsH = p.requirements.size() * 46;
             int maxScroll = Math.max(0, totalReqsH - reqListH);
 
             if (maxScroll > 0) {
-                scrollY = Math.max(0, Math.min(maxScroll, scrollY - delta * 15));
+                model.setScrollY(Math.max(0, Math.min(maxScroll, model.getScrollY() - delta * 15)));
                 return true;
             }
         }
@@ -553,25 +495,23 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int editorH = bodyH;
 
         // 1. Handle Unified Context Menu left click / dismiss
-        if (contextMenuIndex != -1) {
+        if (model.isContextMenuOpen()) {
             if (button == 0) {
                 int menuW = 80;
                 int optionH = 16;
-                int menuH = activeMenuOptions.size() * optionH + 4;
-                if (mouseX >= contextMenuX && mouseX < contextMenuX + menuW && mouseY >= contextMenuY && mouseY < contextMenuY + menuH) {
-                    int clickedOptIndex = (int) ((mouseY - contextMenuY - 2) / optionH);
-                    if (clickedOptIndex >= 0 && clickedOptIndex < activeMenuOptions.size()) {
+                int menuH = model.getActiveMenuOptions().size() * optionH + 4;
+                if (mouseX >= model.getContextMenuX() && mouseX < model.getContextMenuX() + menuW && mouseY >= model.getContextMenuY() && mouseY < model.getContextMenuY() + menuH) {
+                    int clickedOptIndex = (int) ((mouseY - model.getContextMenuY() - 2) / optionH);
+                    if (clickedOptIndex >= 0 && clickedOptIndex < model.getActiveMenuOptions().size()) {
                         playClickSound();
-                        MenuOption opt = activeMenuOptions.get(clickedOptIndex);
-                        contextMenuIndex = -1;
-                        activeMenuOptions.clear();
+                        MasteryEditorModel.MenuOption opt = model.getActiveMenuOptions().get(clickedOptIndex);
+                        model.closeContextMenu();
                         opt.action.run();
                         return true;
                     }
                 }
             }
-            contextMenuIndex = -1;
-            activeMenuOptions.clear();
+            model.closeContextMenu();
             if (button != 0) {
                 return true; // Consume other click types when dismissing
             }
@@ -585,78 +525,69 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             int listY = bodyY + 25;
             int itemW = sidebarW - 20;
             int itemH = 18;
-            for (int i = 0; i < localPaths.size(); i++) {
+            for (int i = 0; i < model.getPaths().size(); i++) {
                 int itemY = listY + i * 20;
                 if (mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + itemH) {
                     playClickSound();
-                    contextMenuIndex = i;
-                    contextMenuIsBranch = true;
-                    contextMenuX = (int) mouseX;
-                    contextMenuY = (int) mouseY;
-
-                    activeMenuOptions.clear();
+                    List<MasteryEditorModel.MenuOption> options = new ArrayList<>();
                     int finalI = i;
                     if (i > 0) {
-                        activeMenuOptions.add(new MenuOption("▲", () -> {
-                            PathInfo path1 = localPaths.get(finalI);
-                            PathInfo path2 = localPaths.get(finalI - 1);
-                            localPaths.set(finalI - 1, path1);
-                            localPaths.set(finalI, path2);
-                            selectedPathIndex = finalI - 1;
+                        options.add(new MasteryEditorModel.MenuOption("▲", () -> {
+                            PathInfo path1 = model.getPaths().get(finalI);
+                            PathInfo path2 = model.getPaths().get(finalI - 1);
+                            model.getPaths().set(finalI - 1, path1);
+                            model.getPaths().set(finalI, path2);
+                            model.setSelectedPathIndex(finalI - 1);
                             updateEditors();
                         }));
                     }
-                    if (i < localPaths.size() - 1) {
-                        activeMenuOptions.add(new MenuOption("▼", () -> {
-                            PathInfo path1 = localPaths.get(finalI);
-                            PathInfo path2 = localPaths.get(finalI + 1);
-                            localPaths.set(finalI + 1, path1);
-                            localPaths.set(finalI, path2);
-                            selectedPathIndex = finalI + 1;
+                    if (i < model.getPaths().size() - 1) {
+                        options.add(new MasteryEditorModel.MenuOption("▼", () -> {
+                            PathInfo path1 = model.getPaths().get(finalI);
+                            PathInfo path2 = model.getPaths().get(finalI + 1);
+                            model.getPaths().set(finalI + 1, path1);
+                            model.getPaths().set(finalI, path2);
+                            model.setSelectedPathIndex(finalI + 1);
                             updateEditors();
                         }));
                     }
-                    activeMenuOptions.add(new MenuOption("Borrar", () -> {
-                        PathInfo target = localPaths.get(finalI);
+                    options.add(new MasteryEditorModel.MenuOption("Borrar", () -> {
+                        PathInfo target = model.getPaths().get(finalI);
                         Minecraft.getInstance().setScreen(new ConfirmDeleteScreen(this, () -> {
-                            localPaths.remove(finalI);
-                            if (selectedPathIndex >= finalI) {
-                                selectedPathIndex = localPaths.isEmpty() ? -1 : 0;
+                            model.getPaths().remove(finalI);
+                            if (model.getSelectedPathIndex() >= finalI) {
+                                model.setSelectedPathIndex(model.getPaths().isEmpty() ? -1 : 0);
                             }
                             updateEditors();
                         }, target.name));
                     }, true));
+                    model.openContextMenu(i, true, (int) mouseX, (int) mouseY, options);
                     return true;
                 }
             }
 
-            if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
-                PathInfo p = localPaths.get(selectedPathIndex);
+            if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
+                PathInfo p = model.getSelectedPath();
                 int startCardY = layout.reqTitleY + 16;
                 int reqListH = editorH - (layout.reqTitleY - bodyY + 16) - 10;
                 int cardW = editorW - 40;
                 int cardH = 40;
 
                 if (mouseX >= editorX + 20 && mouseX < editorX + editorW - 20 && mouseY >= startCardY && mouseY < startCardY + reqListH) {
-                    double clickedY = mouseY + scrollY - startCardY;
+                    double clickedY = mouseY + model.getScrollY() - startCardY;
                     int cardIndex = (int) (clickedY / 46);
                     double relativeY = clickedY % 46;
 
                     if (cardIndex >= 0 && cardIndex < p.requirements.size() && relativeY <= cardH) {
                         playClickSound();
-                        contextMenuIndex = cardIndex;
-                        contextMenuIsBranch = false;
-                        contextMenuX = (int) mouseX;
-                        contextMenuY = (int) mouseY;
-
-                        activeMenuOptions.clear();
-                        activeMenuOptions.add(new MenuOption("Editar", () -> {
+                        List<MasteryEditorModel.MenuOption> options = new ArrayList<>();
+                        options.add(new MasteryEditorModel.MenuOption("Editar", () -> {
                             Requirement req = p.requirements.get(cardIndex);
                             Minecraft.getInstance().setScreen(new RequirementEditScreen(this, p.id, req));
                         }));
 
                         if (cardIndex > 0) {
-                            activeMenuOptions.add(new MenuOption("▲", () -> {
+                            options.add(new MasteryEditorModel.MenuOption("▲", () -> {
                                 Requirement req1 = p.requirements.get(cardIndex);
                                 Requirement req2 = p.requirements.get(cardIndex - 1);
                                 p.requirements.set(cardIndex - 1, req1);
@@ -666,7 +597,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                         }
 
                         if (cardIndex < p.requirements.size() - 1) {
-                            activeMenuOptions.add(new MenuOption("▼", () -> {
+                            options.add(new MasteryEditorModel.MenuOption("▼", () -> {
                                 Requirement req1 = p.requirements.get(cardIndex);
                                 Requirement req2 = p.requirements.get(cardIndex + 1);
                                 p.requirements.set(cardIndex + 1, req1);
@@ -674,6 +605,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                                 updateEditors();
                             }));
                         }
+                        model.openContextMenu(cardIndex, false, (int) mouseX, (int) mouseY, options);
                         return true;
                     }
                 }
@@ -682,8 +614,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         }
 
         if (button == 0) {
-            if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
-                PathInfo p = localPaths.get(selectedPathIndex);
+            if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
+                PathInfo p = model.getSelectedPath();
                 
                 // Icon button click
                 int iconW = 20;
@@ -715,7 +647,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     playClickSound();
                     this.pathDepsEdit.setResponder(null);
                     Minecraft.getInstance().setScreen(new DependencySelectionScreen(
-                            this, p.id, localPaths, new ArrayList<>(p.dependencies), deps -> {
+                            this, p.id, model.getPaths(), new ArrayList<>(p.dependencies), deps -> {
                         p.dependencies.clear();
                         p.dependencies.addAll(deps);
                         pathDepsEdit.setValue(String.join(", ", deps));
@@ -781,20 +713,20 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
             }
 
             // Sidebar: select branch
-            for (int i = 0; i < localPaths.size(); i++) {
+            for (int i = 0; i < model.getPaths().size(); i++) {
                 int itemY = listY + i * 20;
                 if (mouseX >= listX && mouseX < listX + itemW && mouseY >= itemY && mouseY < itemY + 18) {
                     playClickSound();
-                    selectedPathIndex = i;
-                    scrollY = 0;
+                    model.setSelectedPathIndex(i);
+                    model.setScrollY(0);
                     updateEditors();
                     return true;
                 }
             }
 
             // Right side editor clicks
-            if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
-                PathInfo p = localPaths.get(selectedPathIndex);
+            if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
+                PathInfo p = model.getSelectedPath();
 
                 // Perks Button Click
                 int perksBtnX = editorX + editorW - 215;
@@ -824,7 +756,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 int cardH = 40;
 
                 if (mouseX >= editorX + 20 && mouseX < editorX + editorW - 20 && mouseY >= startCardY && mouseY < startCardY + reqListH) {
-                    double clickedY = mouseY + scrollY - startCardY;
+                    double clickedY = mouseY + model.getScrollY() - startCardY;
                     int cardIndex = (int) (clickedY / 46);
                     double relativeY = clickedY % 46;
 
@@ -851,7 +783,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                                 updateEditors();
                                 int totalReqsH1 = p.requirements.size() * 46;
                                 int maxScroll1 = Math.max(0, totalReqsH1 - reqListH);
-                                scrollY = Math.max(0, Math.min(maxScroll1, scrollY));
+                                model.setScrollY(Math.max(0, Math.min(maxScroll1, model.getScrollY())));
                             }, taskName));
                             return true;
                         }
@@ -869,15 +801,14 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         p.mod_id = "modid";
         p.icon = "minecraft:writable_book";
         p.requirements = new ArrayList<>();
-        localPaths.add(p);
-        selectedPathIndex = localPaths.size() - 1;
-        scrollY = 0;
+        model.addPath(p);
+        model.setScrollY(0);
         updateEditors();
     }
 
     private void addRequirement() {
-        if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
-            PathInfo p = localPaths.get(selectedPathIndex);
+        if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
+            PathInfo p = model.getSelectedPath();
             Requirement req = new Requirement("craft", "", "", "");
             // ponytail: don't add to list yet — RequirementEditScreen will add on commit
             Minecraft.getInstance().setScreen(new RequirementEditScreen(this, p.id, req, () -> {
@@ -888,7 +819,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 int editorH = bodyH;
                 int reqListH = editorH - (layout.reqTitleY - bodyY + 16) - 10;
                 int totalReqsH = p.requirements.size() * 46;
-                scrollY = Math.max(0, totalReqsH - reqListH);
+                model.setScrollY(Math.max(0, totalReqsH - reqListH));
             }));
         }
     }
@@ -926,8 +857,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 req.description = "Craftea un bloque de tierra";
             }
         }
-        if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
-            updateModIdFromRequirements(localPaths.get(selectedPathIndex));
+        if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
+            updateModIdFromRequirements(model.getSelectedPath());
         }
     }
 
@@ -963,8 +894,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                 }
                 req.name = titleText;
                 req.description = adv.getDisplay() != null ? adv.getDisplay().getDescription().getString() : Component.translatable("xam.editor.desc.advancement", titleText).getString();
-                if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
-                    updateModIdFromRequirements(localPaths.get(selectedPathIndex));
+                if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
+                    updateModIdFromRequirements(model.getSelectedPath());
                 }
                 mc.setScreen(this);
             }));
@@ -981,8 +912,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                         req.description = Component.translatable("xam.editor.desc.collect", friendlyName).getString();
                     }
                 }
-                if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
-                    updateModIdFromRequirements(localPaths.get(selectedPathIndex));
+                if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
+                    updateModIdFromRequirements(model.getSelectedPath());
                 }
                 mc.setScreen(this);
             }));
@@ -995,8 +926,8 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     req.name = friendlyName;
                     req.description = Component.translatable("xam.editor.desc.kill", friendlyName).getString();
                 }
-                if (selectedPathIndex >= 0 && selectedPathIndex < localPaths.size()) {
-                    updateModIdFromRequirements(localPaths.get(selectedPathIndex));
+                if (model.getSelectedPathIndex() >= 0 && model.getSelectedPathIndex() < model.getPaths().size()) {
+                    updateModIdFromRequirements(model.getSelectedPath());
                 }
                 mc.setScreen(this);
             }));
@@ -1004,22 +935,20 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     }
 
     private void saveConfig() {
-        MasteryEditorValidator.ValidationResult result = validator.validateAll(localPaths);
+        MasteryEditorValidator.ValidationResult result = validator.validateAll(model.getPaths());
         if (!result.ok) {
             showError(result.errorMessage);
             return;
         }
 
-        String json = ConfigManager.serializePaths(localPaths);
+        String json = ConfigManager.serializePaths(model.getPaths());
         XamNetwork.CHANNEL.sendToServer(new UpdateConfigPacket(json));
 
-        this.saveNotificationMsg = "✔ " + Component.translatable("xam.screen.mastery_editor.save_success").getString();
-        this.saveNotificationTime = System.currentTimeMillis();
+        model.showNotification(Component.translatable("xam.screen.mastery_editor.save_success").getString(), false);
     }
 
     private void showError(String msg) {
-        this.saveNotificationMsg = "✕ " + msg;
-        this.saveNotificationTime = System.currentTimeMillis();
+        model.showNotification(msg, true);
     }
 
 
