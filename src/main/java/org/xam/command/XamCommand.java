@@ -75,11 +75,7 @@ public class XamCommand {
                 .executes(context -> {
                     ServerPlayer player = EntityArgument.getPlayer(context, "player");
                     player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                        data.setCurrentPath(null);
-                        data.getMasteredPaths().clear();
-                        data.getStartedPaths().clear();
-                        data.clearCompletedRequirements();
-                        data.setDevMode(false);
+                        data.clearAll();
                         MasteryService.sync(player);
                         MasteryService.updateArmorModifiers(player);
                         context.getSource().sendSuccess(() -> Component.translatable("xam.msg.reset_announcement", player.getGameProfile().getName()), true);
@@ -293,7 +289,7 @@ public class XamCommand {
                 MasteryService.updateArmorModifiers(player);
                 source.sendSuccess(() -> Component.translatable("xam.msg.path_mastered_success", pathId, player.getGameProfile().getName()), true);
             } else {
-                data.getMasteredPaths().remove(pathId);
+                data.removeMasteredPath(pathId);
                 MasteryService.sync(player);
                 MasteryService.updateArmorModifiers(player);
                 source.sendSuccess(() -> Component.translatable("xam.msg.path_unmastered_success", pathId, player.getGameProfile().getName()), true);
@@ -310,7 +306,7 @@ public class XamCommand {
             }
             String oldPath = data.getCurrentPath();
             if (oldPath != null) {
-                data.getCompletedRequirements().removeIf(k -> k.startsWith(oldPath + ":"));
+                data.removeCompletedRequirementsIf(k -> k.startsWith(oldPath + ":"));
             }
             data.setCurrentPath(pathId);
             MasteryService.sync(player);

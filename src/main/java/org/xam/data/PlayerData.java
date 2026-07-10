@@ -51,7 +51,7 @@ public class PlayerData {
     }
 
     public List<String> getStartedPaths() {
-        return startedPaths;
+        return java.util.Collections.unmodifiableList(startedPaths);
     }
 
     public void addStartedPath(String path) {
@@ -60,8 +60,12 @@ public class PlayerData {
         }
     }
 
+    public void clearStartedPaths() {
+        startedPaths.clear();
+    }
+
     public List<String> getMasteredPaths() {
-        return masteredPaths;
+        return java.util.Collections.unmodifiableList(masteredPaths);
     }
 
     public void addMasteredPath(String path) {
@@ -70,8 +74,16 @@ public class PlayerData {
         }
     }
 
+    public boolean removeMasteredPath(String path) {
+        return masteredPaths.remove(path);
+    }
+
+    public void clearMasteredPaths() {
+        masteredPaths.clear();
+    }
+
     public List<String> getCompletedRequirements() {
-        return completedRequirements;
+        return java.util.Collections.unmodifiableList(completedRequirements);
     }
 
     public void addCompletedRequirement(String req) {
@@ -80,8 +92,24 @@ public class PlayerData {
         }
     }
 
+    public boolean removeCompletedRequirement(String req) {
+        return completedRequirements.remove(req);
+    }
+
+    public void removeCompletedRequirementsIf(java.util.function.Predicate<String> filter) {
+        completedRequirements.removeIf(filter);
+    }
+
     public void clearCompletedRequirements() {
         completedRequirements.clear();
+    }
+
+    public void clearAll() {
+        startedPaths.clear();
+        masteredPaths.clear();
+        completedRequirements.clear();
+        currentPath = null;
+        devMode = false;
     }
 
     public String getActivePathModId() {

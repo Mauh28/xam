@@ -91,7 +91,7 @@ public class MasteryService {
         if (completedAll) {
             data.addMasteredPath(pathInfo.id);
             data.setCurrentPath(null);
-            data.getCompletedRequirements().removeIf(k -> k.startsWith(pathInfo.id + ":"));
+            data.removeCompletedRequirementsIf(k -> k.startsWith(pathInfo.id + ":"));
             sync(player);
             updateArmorModifiers(player);
             player.sendSystemMessage(Component.translatable("xam.msg.mastered_announcement", pathInfo.name));
