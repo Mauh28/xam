@@ -40,6 +40,23 @@ public class MasteryService {
             } else if (!found) {
                 data.setActivePathModId("");
             }
+
+            // Self-healing clean-up for started paths that no longer exist in config
+            java.util.List<String> started = new java.util.ArrayList<>(data.getStartedPaths());
+            for (String pId : started) {
+                if (!ConfigManager.PATHS_MAP.containsKey(pId)) {
+                    data.removeStartedPath(pId);
+                }
+            }
+
+            // Self-healing clean-up for mastered paths that no longer exist in config
+            java.util.List<String> mastered = new java.util.ArrayList<>(data.getMasteredPaths());
+            for (String pId : mastered) {
+                if (!ConfigManager.PATHS_MAP.containsKey(pId)) {
+                    data.removeMasteredPath(pId);
+                }
+            }
+
             data.setLastConfigVersion(ConfigManager.getConfigVersion());
             if (!player.level().isClientSide() && player instanceof ServerPlayer serverPlayer) {
                 sync(serverPlayer);

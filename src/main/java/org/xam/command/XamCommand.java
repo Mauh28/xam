@@ -393,36 +393,43 @@ public class XamCommand {
     }
 
     private static void deletePath(CommandSourceStack source, String pathId) {
-        PathInfo target = ConfigManager.PATHS_MAP.get(pathId);
-        if (target == null) {
-            source.sendFailure(Component.translatable("xam.msg.path_not_exists", pathId));
-            return;
+        boolean inConfig = ConfigManager.PATHS_MAP.containsKey(pathId);
+        if (inConfig) {
+            java.util.List<PathInfo> updatedPaths = new java.util.ArrayList<>(ConfigManager.PATHS);
+            updatedPaths.removeIf(p -> p.getId().equals(pathId));
+
+            String json = ConfigManager.serializePaths(updatedPaths);
+            ConfigManager.saveConfigFromServer(source.getServer(), json);
         }
-
-        java.util.List<PathInfo> updatedPaths = new java.util.ArrayList<>(ConfigManager.PATHS);
-        updatedPaths.removeIf(p -> p.getId().equals(pathId));
-
-        String json = ConfigManager.serializePaths(updatedPaths);
-        ConfigManager.saveConfigFromServer(source.getServer(), json);
 
         for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                boolean modified = false;
                 if (pathId.equals(data.getCurrentPath())) {
                     data.setCurrentPath(null);
                     data.clearCompletedRequirements();
+                    modified = true;
                 }
                 if (data.getMasteredPaths().contains(pathId)) {
                     data.removeMasteredPath(pathId);
+                    modified = true;
                 }
                 if (data.getStartedPaths().contains(pathId)) {
                     data.removeStartedPath(pathId);
+                    modified = true;
                 }
-                MasteryService.sync(player);
-                MasteryService.updateArmorModifiers(player);
+                if (modified) {
+                    MasteryService.sync(player);
+                    MasteryService.updateArmorModifiers(player);
+                }
             });
         }
 
-        source.sendSuccess(() -> Component.translatable("xam.msg.path_deleted_success", pathId), true);
+        if (inConfig) {
+            source.sendSuccess(() -> Component.translatable("xam.msg.path_deleted_success", pathId), true);
+        } else {
+            source.sendSuccess(() -> Component.literal("The path '" + pathId + "' was not in the config file, but has been cleaned up from all online players."), true);
+        }
     }
 
     private static void completeRequirement(CommandSourceStack source, ServerPlayer player, String reqKey) {
