@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `8eb031d`.
+
 #### Resumen
 `UpdateConfigPacket` valida que cada path tenga `id/name/mod_id` no vacíos, pero no valida que sean `ResourceLocation` válidos, ni que `req.type` sea uno de los tipos conocidos, ni que `perkEffect` sea un efecto registrado.
 
