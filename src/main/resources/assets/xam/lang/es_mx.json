@@ -79,7 +79,7 @@
   "xam.msg.invalid_active_mastery": "%s tiene una maestría activa inválida.",
   "xam.msg.progress_header": "=== Progreso de %s en %s ===",
   "xam.msg.no_started_paths": "No hay ramas en progreso actualmente para %s.",
-  "xam.msg.started_paths_header": "=== Ramas en progreso para %s ===",,
+  "xam.msg.started_paths_header": "=== Ramas en progreso para %s ===",
   "xam.msg.invalid_mastery": "La maestría del jugador es inválida.",
   "xam.msg.req_not_in_path": "El requisito '%s' no pertenece a la maestría activa '%s'.",
   "xam.msg.req_completed_success": "Requisito '%s' marcado como completado para %s",

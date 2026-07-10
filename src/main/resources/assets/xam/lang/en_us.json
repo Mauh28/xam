@@ -79,7 +79,7 @@
   "xam.msg.invalid_active_mastery": "%s has an invalid active mastery.",
   "xam.msg.progress_header": "=== Progress of %s in %s ===",
   "xam.msg.no_started_paths": "No started paths currently in progress for %s.",
-  "xam.msg.started_paths_header": "=== Started Paths in Progress for %s ===",,
+  "xam.msg.started_paths_header": "=== Started Paths in Progress for %s ===",
   "xam.msg.invalid_mastery": "Player's mastery is invalid.",
   "xam.msg.req_not_in_path": "Requirement '%s' does not belong to active mastery '%s'.",
   "xam.msg.req_completed_success": "Requirement '%s' marked as completed for %s",
