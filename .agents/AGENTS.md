@@ -24,3 +24,8 @@ Rules:
 Not lazy about: input validation at trust boundaries, error handling that prevents data loss, security, accessibility, the calibration real hardware needs (the platform is never the spec ideal, a clock drifts, a sensor reads off), anything explicitly requested. Lazy code without its check is unfinished: non-trivial logic leaves ONE runnable check behind, the smallest thing that fails if the logic breaks (an assert-based demo/self-check or one small test file; no frameworks, no fixtures). Trivial one-liners need no test.
 
 (Yes, this file also applies to agents working on the ponytail repo itself. Especially to them.)
+
+## Versioning Rules
+
+- **Auto-increment Version**: Each time you build a new `.jar` version of the project (e.g., executing `./gradlew build` or `./gradlew jar`), you must increment the version number (`mod_version` in `gradle.properties`) BEFORE executing the build, so the generated artifact correctly reflects the new version.
+
