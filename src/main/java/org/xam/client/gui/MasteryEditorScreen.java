@@ -61,6 +61,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
 
     // Layout coordinates
     private MasteryEditorLayout layout;
+    private final MasteryEditorValidator validator = new MasteryEditorValidator();
 
     // Notification state
     private long saveNotificationTime = 0;
@@ -1003,32 +1004,10 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     }
 
     private void saveConfig() {
-        // ponytail: validate all fields with descriptive errors in footer
-        for (int i = 0; i < localPaths.size(); i++) {
-            PathInfo p = localPaths.get(i);
-            if (p.name.trim().isEmpty()) {
-                showError(Component.translatable("xam.screen.mastery_editor.err_branch_no_name", i + 1).getString());
-                return;
-            }
-            if (p.mod_id.trim().isEmpty() || p.mod_id.equals("modid")) {
-                showError(Component.translatable("xam.screen.mastery_editor.err_need_mod_id", p.name).getString());
-                return;
-            }
-            for (int j = 0; j < p.requirements.size(); j++) {
-                Requirement req = p.requirements.get(j);
-                if (req.id.trim().isEmpty()) {
-                    showError(Component.translatable("xam.screen.mastery_editor.err_task_no_id", j + 1, p.name).getString());
-                    return;
-                }
-                if (req.name.trim().isEmpty()) {
-                    showError(Component.translatable("xam.screen.mastery_editor.err_task_no_name", j + 1, p.name).getString());
-                    return;
-                }
-                if (req.description.trim().isEmpty()) {
-                    showError(Component.translatable("xam.screen.mastery_editor.err_task_no_desc", j + 1, p.name).getString());
-                    return;
-                }
-            }
+        MasteryEditorValidator.ValidationResult result = validator.validateAll(localPaths);
+        if (!result.ok) {
+            showError(result.errorMessage);
+            return;
         }
 
         String json = ConfigManager.serializePaths(localPaths);
