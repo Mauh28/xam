@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `6b6078d`.
+
 #### Resumen
 `PathInfo` y `Requirement` son holders anémicos con campos públicos mutables. El cacheo de `TagKey` en `PathInfo` es mutable y cualquiera puede nullificarlo. Convertirlos a records (o al menos hacer campos package-private con getters) mejora encapsulación y previene state corruption.
 
