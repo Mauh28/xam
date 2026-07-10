@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `5be7dbb`.
+
 #### Resumen
 `MasteryService` tiene 376 líneas y mezcla 6 responsabilidades: refresh de capability, validación de items, lookups de advancements, progresión de requisitos, resolución de dependencias y manipulación de atributos de armor.
 
