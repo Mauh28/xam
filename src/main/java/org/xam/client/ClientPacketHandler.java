@@ -90,7 +90,7 @@ public class ClientPacketHandler {
                             // Show custom premium toast notification
                             mc.getToasts().addToast(new MasteryCompletionToast(
                                     Component.translatable("xam.toast.mastery_completed"),
-                                    Component.translatable("xam.toast.mastered_format", pathName),
+                                    Component.translatable("xam.toast.mastered_format", Component.translatable(pathName)),
                                     iconStack
                              ));
                             break;

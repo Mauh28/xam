@@ -146,7 +146,7 @@ public class ClientForgeEvents {
                     if (MasteryService.mustSelectPath(player, data)) {
                         event.getToolTip().add(Component.translatable("xam.msg.locked_choose_mastery").withStyle(net.minecraft.ChatFormatting.RED));
                     } else if (reqPathName != null) {
-                        event.getToolTip().add(Component.translatable("xam.msg.locked_requires_mastery", reqPathName).withStyle(net.minecraft.ChatFormatting.RED));
+                        event.getToolTip().add(Component.translatable("xam.msg.locked_requires_mastery", Component.translatable(reqPathName)).withStyle(net.minecraft.ChatFormatting.RED));
                     } else {
                         event.getToolTip().add(Component.translatable("xam.msg.locked_incompatible").withStyle(net.minecraft.ChatFormatting.RED));
                     }

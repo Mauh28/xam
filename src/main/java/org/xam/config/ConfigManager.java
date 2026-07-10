@@ -150,7 +150,7 @@ public class ConfigManager {
                         if (!simpleName.isEmpty()) {
                             simpleName = Character.toUpperCase(simpleName.charAt(0)) + simpleName.substring(1);
                         }
-                        info.requirements.add(new Requirement("advancement", advId, simpleName, "Completa el logro " + simpleName));
+                        info.requirements.add(new Requirement("advancement", advId, simpleName, net.minecraft.network.chat.Component.translatable("xam.req_type.advancement", simpleName).getString()));
                     }
                 }
                 if (info.perkEffect != null && !info.perkEffect.isEmpty()) {
@@ -265,44 +265,44 @@ public class ConfigManager {
 
             JsonObject botania = new JsonObject();
             botania.addProperty("id", "botania");
-            botania.addProperty("name", "El Camino de la Naturaleza");
+            botania.addProperty("name", "xam.default.botania.name");
             botania.addProperty("mod_id", "botania");
             JsonArray botaniaReqs = new JsonArray();
 
             JsonObject r1 = new JsonObject();
             r1.addProperty("type", "advancement");
             r1.addProperty("id", "botania:main/rune_pickup");
-            r1.addProperty("name", "Rune Pickup");
-            r1.addProperty("description", "Recoge una runa");
+            r1.addProperty("name", "xam.default.botania.req1.name");
+            r1.addProperty("description", "xam.default.botania.req1.description");
             botaniaReqs.add(r1);
 
             JsonObject r2 = new JsonObject();
             r2.addProperty("type", "advancement");
             r2.addProperty("id", "botania:main/elf_portal_open");
-            r2.addProperty("name", "Elf Portal Open");
-            r2.addProperty("description", "Abre el portal élfico");
+            r2.addProperty("name", "xam.default.botania.req2.name");
+            r2.addProperty("description", "xam.default.botania.req2.description");
             botaniaReqs.add(r2);
 
             botania.add("requirements", botaniaReqs);
 
             JsonObject mekanism = new JsonObject();
             mekanism.addProperty("id", "mekanism");
-            mekanism.addProperty("name", "El Camino Tecnológico");
+            mekanism.addProperty("name", "xam.default.mekanism.name");
             mekanism.addProperty("mod_id", "mekanism");
             JsonArray mekanismReqs = new JsonArray();
 
             JsonObject r3 = new JsonObject();
             r3.addProperty("type", "advancement");
             r3.addProperty("id", "mekanism:achievement/elite");
-            r3.addProperty("name", "Elite");
-            r3.addProperty("description", "Completa el logro Élite");
+            r3.addProperty("name", "xam.default.mekanism.req1.name");
+            r3.addProperty("description", "xam.default.mekanism.req1.description");
             mekanismReqs.add(r3);
 
             JsonObject r4 = new JsonObject();
             r4.addProperty("type", "advancement");
             r4.addProperty("id", "mekanism:achievement/master");
-            r4.addProperty("name", "Master");
-            r4.addProperty("description", "Completa el logro Maestro");
+            r4.addProperty("name", "xam.default.mekanism.req2.name");
+            r4.addProperty("description", "xam.default.mekanism.req2.description");
             mekanismReqs.add(r4);
 
             mekanism.add("requirements", mekanismReqs);

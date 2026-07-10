@@ -187,5 +187,15 @@
   "xam.editor.rule.master": "Dominar completa",
   "xam.editor.rule.free": "Cambio libre",
   "xam.editor.rule.tasks_format": "%d tarea(s)",
-  "xam.screen.effect_selection.title": "Seleccionar Efecto de Poción"
+  "xam.screen.effect_selection.title": "Seleccionar Efecto de Poción",
+  "xam.default.botania.name": "El Camino de la Naturaleza",
+  "xam.default.botania.req1.name": "Rune Pickup",
+  "xam.default.botania.req1.description": "Recoge una runa",
+  "xam.default.botania.req2.name": "Elf Portal Open",
+  "xam.default.botania.req2.description": "Abre el portal élfico",
+  "xam.default.mekanism.name": "El Camino Tecnológico",
+  "xam.default.mekanism.req1.name": "Elite",
+  "xam.default.mekanism.req1.description": "Completa el logro Élite",
+  "xam.default.mekanism.req2.name": "Master",
+  "xam.default.mekanism.req2.description": "Completa el logro Maestro"
 }

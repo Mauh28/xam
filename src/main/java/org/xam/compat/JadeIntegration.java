@@ -100,7 +100,7 @@ public class JadeIntegration implements IWailaPlugin {
                         if (MasteryService.mustSelectPath(player, data)) {
                             tooltip.add(Component.translatable("xam.msg.locked_choose_mastery").withStyle(ChatFormatting.RED));
                         } else if (reqPathName != null) {
-                            tooltip.add(Component.translatable("xam.msg.locked_requires_mastery", reqPathName).withStyle(ChatFormatting.RED));
+                            tooltip.add(Component.translatable("xam.msg.locked_requires_mastery", Component.translatable(reqPathName)).withStyle(ChatFormatting.RED));
                         } else {
                             tooltip.add(Component.translatable("xam.msg.locked_incompatible").withStyle(ChatFormatting.RED));
                         }
@@ -131,7 +131,7 @@ public class JadeIntegration implements IWailaPlugin {
                                 }
                                 
                                 if (!hasPathActiveOrMastered && !data.isDevMode()) {
-                                    tooltip.add(Component.translatable("xam.msg.jade_requires_mastery", path.name).withStyle(ChatFormatting.RED));
+                                    tooltip.add(Component.translatable("xam.msg.jade_requires_mastery", Component.translatable(path.name)).withStyle(ChatFormatting.RED));
                                 }
                                 break;
                             }

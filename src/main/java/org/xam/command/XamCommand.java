@@ -43,7 +43,9 @@ public class XamCommand {
                     data.setDevMode(newDev);
                     MasteryService.sync(player);
                     MasteryService.updateArmorModifiers(player);
-                    context.getSource().sendSuccess(() -> Component.literal("Modo Dev " + (newDev ? "ACTIVADO" : "DESACTIVADO") + " para " + player.getGameProfile().getName()), true);
+                    context.getSource().sendSuccess(() -> Component.translatable("xam.msg.dev_mode_format",
+                            Component.translatable(newDev ? "xam.msg.dev_mode_on" : "xam.msg.dev_mode_off"),
+                            player.getGameProfile().getName()), true);
                 });
                 return 1;
             })
@@ -80,7 +82,7 @@ public class XamCommand {
                         data.setDevMode(false);
                         MasteryService.sync(player);
                         MasteryService.updateArmorModifiers(player);
-                        context.getSource().sendSuccess(() -> Component.literal("Progreso de maestría restablecido para " + player.getGameProfile().getName()), true);
+                        context.getSource().sendSuccess(() -> Component.translatable("xam.msg.reset_announcement", player.getGameProfile().getName()), true);
                     });
                     return 1;
                 })

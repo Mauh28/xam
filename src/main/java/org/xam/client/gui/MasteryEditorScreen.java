@@ -31,7 +31,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
     private final MasteryEditorValidator validator = new MasteryEditorValidator();
 
     public MasteryEditorScreen(Screen parent) {
-        super(Component.literal("EDITOR DE MAESTRÍAS"));
+        super(Component.translatable("xam.screen.mastery_editor.title"));
         this.parent = parent;
     }
 
@@ -42,20 +42,20 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         this.layout = new MasteryEditorLayout(containerX, containerY, containerW, bodyY, bodyH);
 
         // Edit box for Title
-        this.pathNameEdit = new EditBox(this.font, layout.titleX + 4, layout.titleY + 5, layout.titleW - 8, 12, Component.literal("Título"));
+        this.pathNameEdit = new EditBox(this.font, layout.titleX + 4, layout.titleY + 5, layout.titleW - 8, 12, Component.translatable("xam.screen.mastery_editor.branch_title"));
         this.pathNameEdit.setBordered(false);
         this.pathNameEdit.setTextColor(TEXT_PRIMARY);
         this.addRenderableWidget(this.pathNameEdit);
 
         // Edit box for Mod ID (Editable)
-        this.pathModIdEdit = new EditBox(this.font, layout.modX + 4, layout.modY + 5, layout.modEditW - 8, 12, Component.literal("Namespace MOD"));
+        this.pathModIdEdit = new EditBox(this.font, layout.modX + 4, layout.modY + 5, layout.modEditW - 8, 12, Component.translatable("xam.screen.mastery_editor.namespace_mod"));
         this.pathModIdEdit.setBordered(false);
         this.pathModIdEdit.setTextColor(TEXT_PRIMARY);
         this.pathModIdEdit.setEditable(true);
         this.addRenderableWidget(this.pathModIdEdit);
 
         // Second line editor inputs
-        this.pathDepsEdit = new EditBox(this.font, layout.depsX + 4, layout.secondY + 5, layout.depsW - 8, 12, Component.literal("Dependencias"));
+        this.pathDepsEdit = new EditBox(this.font, layout.depsX + 4, layout.secondY + 5, layout.depsW - 8, 12, Component.translatable("xam.screen.mastery_editor.branch_dependencies"));
         this.pathDepsEdit.setBordered(false);
         this.pathDepsEdit.setTextColor(TEXT_PRIMARY);
         this.addRenderableWidget(this.pathDepsEdit);

@@ -183,7 +183,7 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             ItemStack icon = getIconForPath(path);
             graphics.renderFakeItem(icon, sqX + (sqSize - 16) / 2, sqY + (sqSize - 16) / 2);
 
-            String nameText = path.name;
+            String nameText = Component.translatable(path.name).getString();
             int nameMaxW = cardW - sqSize - 22;
             if (this.font.width(nameText) > nameMaxW) {
                 nameText = this.font.plainSubstrByWidth(nameText, nameMaxW - 10) + "...";

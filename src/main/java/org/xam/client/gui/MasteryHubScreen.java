@@ -275,7 +275,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 
                 PathInfo path = ConfigManager.PATHS_MAP.get(flippedPathId);
                 if (path != null) {
-                    String pName = path.name;
+                    String pName = Component.translatable(path.name).getString();
                     if (this.font.width(pName) > popW - 10) {
                         pName = this.font.plainSubstrByWidth(pName, popW - 15) + "...";
                     }
@@ -474,7 +474,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             graphics.drawString(this.font, displayBadge, ttX + 38, ttY + 8, badgeCol, false);
 
             // 3. Draw Dependency Status
-            String depStatus = "Desbloqueado";
+            String depStatus = Component.translatable("xam.hub.unlocked").getString();
             int depCol = 0xFF55FF55;
             if (playerData != null && activePath != null) {
                 boolean isUnlocked = true;
@@ -487,7 +487,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                     }
                 }
                 if (!isUnlocked) {
-                    depStatus = "Bloqueado (Falta dependencias)";
+                    depStatus = Component.translatable("xam.hub.locked_dependencies").getString();
                     depCol = 0xFFFF5555;
                 }
             }
@@ -499,7 +499,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             graphics.drawString(this.font, depText, ttX + 38, ttY + 20, depCol, false);
 
             // 4. Draw Description
-            String helpText = hoveredRequirement.description.isEmpty() ? hoveredRequirement.id : hoveredRequirement.description;
+            String helpText = hoveredRequirement.description.isEmpty() ? hoveredRequirement.id : Component.translatable(hoveredRequirement.description).getString();
             if (this.font.width(helpText) > ttW - 16) {
                 helpText = this.font.plainSubstrByWidth(helpText, ttW - 22) + "...";
             }
@@ -513,7 +513,8 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             if (path != null) {
                 int ttX = mouseX + 12;
                 int ttY = mouseY - 12;
-                int ttW = Math.max(100, this.font.width(path.name) + 16);
+                String translatedName = Component.translatable(path.name).getString();
+                int ttW = Math.max(100, this.font.width(translatedName) + 16);
                 int ttH = 20;
 
                 if (ttX + ttW > width) {
@@ -527,7 +528,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 graphics.pose().translate(0, 0, 400);
 
                 drawFlatPanel(graphics, ttX, ttY, ttW, ttH, 0xFF120E0D, COLOR_COPPER);
-                graphics.drawString(this.font, path.name, ttX + 8, ttY + 6, TEXT_PRIMARY, false);
+                graphics.drawString(this.font, translatedName, ttX + 8, ttY + 6, TEXT_PRIMARY, false);
 
                 graphics.pose().popPose();
             }

@@ -187,5 +187,15 @@
   "xam.editor.rule.master": "Complete master",
   "xam.editor.rule.free": "Free switch",
   "xam.editor.rule.tasks_format": "%d task(s)",
-  "xam.screen.effect_selection.title": "Select Potion Effect"
+  "xam.screen.effect_selection.title": "Select Potion Effect",
+  "xam.default.botania.name": "The Path of Nature",
+  "xam.default.botania.req1.name": "Rune Pickup",
+  "xam.default.botania.req1.description": "Collect a rune",
+  "xam.default.botania.req2.name": "Elf Portal Open",
+  "xam.default.botania.req2.description": "Open the Alfheim Portal",
+  "xam.default.mekanism.name": "The Path of Technology",
+  "xam.default.mekanism.req1.name": "Elite",
+  "xam.default.mekanism.req1.description": "Complete the Elite advancement",
+  "xam.default.mekanism.req2.name": "Master",
+  "xam.default.mekanism.req2.description": "Complete the Master advancement"
 }

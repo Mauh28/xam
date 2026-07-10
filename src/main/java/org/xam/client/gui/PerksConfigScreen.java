@@ -92,7 +92,7 @@ public class PerksConfigScreen extends AbstractMasteryScreen {
     @Override
     protected void renderHeader(GuiGraphics graphics, int mouseX, int mouseY) {
         int titleY = containerY + (headerH - 8) / 2;
-        graphics.drawString(this.font, Component.translatable("xam.screen.perks_config.title", path.name.toUpperCase()).getString(), containerX + 15, titleY, COLOR_BRASS, false);
+        graphics.drawString(this.font, Component.translatable("xam.screen.perks_config.title", Component.translatable(path.name).getString().toUpperCase()).getString(), containerX + 15, titleY, COLOR_BRASS, false);
         drawBackButton(graphics, mouseX, mouseY);
     }
 
