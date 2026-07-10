@@ -1,3 +1,5 @@
+> **ESTADO:** ✅ Resuelto en commit `e943aae`.
+
 #### Resumen
 Si en el issue #7 se decidió **Opción A** (eliminar Mixins en vez de arreglar), este issue ejecuta la limpieza completa en `build.gradle`.
 
