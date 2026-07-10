@@ -238,7 +238,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         }
 
         // Sidebar Add and Delete Buttons (split itemW horizontally)
-        int addPathBtnY = sidebarY + sidebarH - 25;
+        addPathBtnY = sidebarY + sidebarH - 25;
         int btnHalfW = itemW / 2 - 2;
 
         // Button "+ AÑADIR"
