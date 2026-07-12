@@ -119,10 +119,31 @@ public class MasteryService {
     }
 
     private static PathInfo findMostProgressedAvailablePath(Player player, PlayerData data) {
+        // First try to pick from started paths prioritizing most progress
+        PathInfo bestStarted = null;
+        int bestStartedCount = -1;
+        for (String startedPathId : data.getStartedPaths()) {
+            PathInfo path = ConfigManager.PATHS_MAP.get(startedPathId);
+            if (path == null) continue;
+            if (path.getRequirements().isEmpty()) continue;
+            if (data.getMasteredPaths().contains(path.getId())) continue;
+            if (!DependencyResolver.areDependenciesMastered(player, data, path)) continue;
+
+            int count = getCompletedRequirementsCount(player, data, path);
+            if (count > bestStartedCount) {
+                bestStartedCount = count;
+                bestStarted = path;
+            }
+        }
+        if (bestStarted != null) {
+            return bestStarted;
+        }
+
+        // Fallback to any available path if no started paths are valid
         PathInfo best = null;
         int bestCount = -1;
         for (PathInfo path : ConfigManager.PATHS) {
-            if (path.getRequirements().isEmpty()) continue; // skip paths with no requirements
+            if (path.getRequirements().isEmpty()) continue;
             if (data.getMasteredPaths().contains(path.getId())) continue;
             if (!DependencyResolver.areDependenciesMastered(player, data, path)) continue;
 
