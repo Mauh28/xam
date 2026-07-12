@@ -9,6 +9,7 @@ public class Requirement {
     private String name;
     private String description;
     private List<String> dependencies = new ArrayList<>();
+    private String effect = "";
 
     public Requirement() {}
 
@@ -81,5 +82,13 @@ public class Requirement {
 
     public void clearDependencies() {
         this.dependencies.clear();
+    }
+
+    public String getEffect() {
+        return effect != null ? effect : "";
+    }
+
+    public void setEffect(String effect) {
+        this.effect = effect != null ? effect : "";
     }
 }

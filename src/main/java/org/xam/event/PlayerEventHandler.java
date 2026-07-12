@@ -60,7 +60,11 @@ public class PlayerEventHandler {
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                MasteryService.revalidateMasteredPaths(player, data);
                 MasteryService.checkAndRefreshPlayerData(player, data);
+                if (data.getCurrentPath() == null) {
+                    player.sendSystemMessage(Component.translatable("xam.msg.welcome_select_path").withStyle(net.minecraft.ChatFormatting.GOLD));
+                }
             });
             MasteryService.sync(player);
             MasteryService.updateArmorModifiers(player);
@@ -75,6 +79,7 @@ public class PlayerEventHandler {
         if (server == null) return;
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                MasteryService.revalidateMasteredPaths(player, data);
                 MasteryService.checkAndRefreshPlayerData(player, data);
                 MasteryService.sync(player);
             });
@@ -138,7 +143,17 @@ public class PlayerEventHandler {
                     for (String pathId : data.getMasteredPaths()) {
                         PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
                         if (path != null && path.getPerkEffectCached() != null) {
-                            player.addEffect(new net.minecraft.world.effect.MobEffectInstance(path.getPerkEffectCached(), 400, path.getPerkAmplifier(), true, false, false));
+                            net.minecraft.world.effect.MobEffectInstance existing = player.getEffect(path.getPerkEffectCached());
+                            if (existing == null || existing.getDuration() < 100 || existing.getAmplifier() != path.getPerkAmplifier()) {
+                                player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                                    path.getPerkEffectCached(), 
+                                    400, 
+                                    path.getPerkAmplifier(), 
+                                    false, // ambient: false (full effect, not beacon)
+                                    true,  // visible: true (show particles)
+                                    true   // showIcon: true (show on HUD)
+                                ));
+                            }
                         }
                     }
                 }

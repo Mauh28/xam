@@ -65,6 +65,7 @@ public final class MasteryEditorModel {
                 r.setName(req.getName());
                 r.setDescription(req.getDescription());
                 r.setDependencies(new ArrayList<>(req.getDependencies()));
+                r.setEffect(req.getEffect() != null ? req.getEffect() : "");
                 p.addRequirement(r);
             }
             this.localPaths.add(p);

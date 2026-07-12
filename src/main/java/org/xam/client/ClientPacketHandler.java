@@ -25,7 +25,7 @@ import java.util.List;
 
 public class ClientPacketHandler {
     private static final Logger LOGGER = LogManager.getLogger(ClientPacketHandler.class);
-    public static boolean shouldOpenPathSelection = false;
+    // shouldOpenPathSelection removed
     private static java.lang.reflect.Field progressField;
 
     static {
@@ -96,20 +96,7 @@ public class ClientPacketHandler {
                             break;
                         }
                     }
-                } else {
-                    // Open path selection screen automatically on first join if no path is active
-                    if (data.getCurrentPath() == null) {
-                        boolean hasAvailablePaths = false;
-                        for (PathInfo path : ConfigManager.PATHS) {
-                            if (!data.getMasteredPaths().contains(path.getId())) {
-                                hasAvailablePaths = true;
-                                break;
-                            }
-                        }
-                        if (hasAvailablePaths) {
-                            shouldOpenPathSelection = true;
-                        }
-                    }
+                    // Auto-open path selection screen removed to allow closing selection screen without choosing a path.
                 }
             });
         }

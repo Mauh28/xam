@@ -127,6 +127,7 @@ public class ConfigManager {
                         req.setId(rObj.get("id").getAsString());
                         req.setName(rObj.has("name") ? rObj.get("name").getAsString() : "");
                         req.setDescription(rObj.has("description") ? rObj.get("description").getAsString() : "");
+                        req.setEffect(rObj.has("effect") ? rObj.get("effect").getAsString() : "");
                         req.setDependencies(new ArrayList<>());
                         if (rObj.has("dependencies")) {
                             JsonArray reqDeps = rObj.getAsJsonArray("dependencies");
@@ -207,6 +208,7 @@ public class ConfigManager {
                 rObj.addProperty("id", req.getId());
                 rObj.addProperty("name", req.getName());
                 rObj.addProperty("description", req.getDescription());
+                rObj.addProperty("effect", req.getEffect() != null ? req.getEffect() : "");
                 JsonArray reqDeps = new JsonArray();
                 if (req.getDependencies() != null) {
                     for (String dep : req.getDependencies()) {

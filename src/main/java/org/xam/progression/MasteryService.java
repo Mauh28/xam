@@ -57,6 +57,15 @@ public class MasteryService {
                 }
             }
 
+            // Self-healing clean-up for completed requirements of paths that no longer exist in config
+            data.removeCompletedRequirementsIf(k -> {
+                String[] parts = k.split(":");
+                if (parts.length > 0) {
+                    return !ConfigManager.PATHS_MAP.containsKey(parts[0]);
+                }
+                return false;
+            });
+
             data.setLastConfigVersion(ConfigManager.getConfigVersion());
             if (!player.level().isClientSide() && player instanceof ServerPlayer serverPlayer) {
                 sync(serverPlayer);
@@ -86,14 +95,44 @@ public class MasteryService {
         }
     }
 
+    public static String getRequirementShortKey(Requirement req) {
+        if (req == null) return "";
+        String base = req.getType() + ":" + req.getId();
+        if (req.getEffect() != null && !req.getEffect().isEmpty()) {
+            return base + ":" + req.getEffect();
+        }
+        return base;
+    }
+
+    public static String getRequirementKey(String pathId, Requirement req) {
+        if (req == null) return "";
+        return pathId + ":" + getRequirementShortKey(req);
+    }
+
     public static boolean isRequirementCompleted(Player player, PlayerData data, String pathId, Requirement req) {
         if (req == null) return false;
         if (req.getType().equals("advancement")) {
             return isAdvancementCompleted(player, req.getId());
         } else {
-            String reqKey = pathId + ":" + req.getType() + ":" + req.getId();
-            return data.getCompletedRequirements().contains(reqKey);
+            return data.getCompletedRequirements().contains(getRequirementKey(pathId, req));
         }
+    }
+
+    private static PathInfo findMostProgressedAvailablePath(Player player, PlayerData data) {
+        PathInfo best = null;
+        int bestCount = -1;
+        for (PathInfo path : ConfigManager.PATHS) {
+            if (path.getRequirements().isEmpty()) continue; // skip paths with no requirements
+            if (data.getMasteredPaths().contains(path.getId())) continue;
+            if (!DependencyResolver.areDependenciesMastered(player, data, path)) continue;
+
+            int count = getCompletedRequirementsCount(player, data, path);
+            if (count > bestCount) {
+                bestCount = count;
+                best = path;
+            }
+        }
+        return best;
     }
 
     public static void checkPathCompletion(ServerPlayer player, PlayerData data, PathInfo pathInfo) {
@@ -107,15 +146,71 @@ public class MasteryService {
 
         if (completedAll) {
             data.addMasteredPath(pathInfo.getId());
-            data.setCurrentPath(null);
-            data.removeCompletedRequirementsIf(k -> k.startsWith(pathInfo.getId() + ":"));
+
+            PathInfo bestPath = findMostProgressedAvailablePath(player, data);
+            if (bestPath != null) {
+                data.setCurrentPath(bestPath.getId());
+                data.setActivePathModId(bestPath.getModId());
+            } else {
+                data.setCurrentPath(null);
+                data.setActivePathModId("");
+            }
+
             sync(player);
             updateArmorModifiers(player);
-            player.sendSystemMessage(Component.translatable("xam.msg.mastered_announcement", pathInfo.getName()));
+            player.sendSystemMessage(Component.translatable("xam.msg.mastered_announcement", Component.translatable(pathInfo.getName())));
+
+            if (bestPath != null) {
+                player.sendSystemMessage(Component.translatable("xam.msg.auto_assigned_path", Component.translatable(bestPath.getName())).withStyle(net.minecraft.ChatFormatting.GREEN));
+            }
         }
     }
 
+    public static void revalidateMasteredPaths(ServerPlayer player, PlayerData data) {
+        java.util.List<String> toUnmaster = new java.util.ArrayList<>();
+        for (String pathId : data.getMasteredPaths()) {
+            PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
+            if (path == null) continue;
+
+            boolean allMet = true;
+            for (Requirement req : path.getRequirements()) {
+                if (!isRequirementCompleted(player, data, pathId, req)) {
+                    String expectedKey = getRequirementKey(pathId, req);
+                    org.xam.XamConstants.LOGGER.warn("XAM Revalidation failed for player {} on path {}: requirement {} not completed. Key expected: '{}'. Player completed requirements: {}",
+                            player.getGameProfile().getName(), pathId, req.getId(), expectedKey, data.getCompletedRequirements());
+                    allMet = false;
+                    break;
+                }
+            }
+            if (!allMet) {
+                toUnmaster.add(pathId);
+            }
+        }
+
+        if (toUnmaster.isEmpty()) return;
+
+        for (String pathId : toUnmaster) {
+            data.removeMasteredPath(pathId);
+            PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
+            String pathName = path != null ? path.getName() : pathId;
+
+            if (data.getCurrentPath() == null && path != null) {
+                data.setCurrentPath(pathId);
+                data.setActivePathModId(path.getModId());
+            }
+
+            player.sendSystemMessage(Component.translatable("xam.msg.mastery_revoked", Component.translatable(pathName)).withStyle(net.minecraft.ChatFormatting.YELLOW));
+        }
+
+        sync(player);
+        updateArmorModifiers(player);
+    }
+
     public static void checkAndProgressRequirement(ServerPlayer player, String type, String targetId) {
+        checkAndProgressRequirement(player, type, targetId, null);
+    }
+
+    public static void checkAndProgressRequirement(ServerPlayer player, String type, String targetId, net.minecraft.world.entity.LivingEntity killedEntity) {
         player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
             String currentPath = data.getCurrentPath();
             if (currentPath == null) return;
@@ -126,9 +221,14 @@ public class MasteryService {
             boolean changed = false;
             for (Requirement req : pathInfo.getRequirements()) {
                 if (req.getType().equals(type) && req.getId().equals(targetId)) {
+                    if (type.equals("kill") && killedEntity != null && req.getEffect() != null && !req.getEffect().isEmpty()) {
+                        if (!hasRequiredEffect(killedEntity, req.getEffect())) {
+                            continue;
+                        }
+                    }
                     // ponytail: skip if this requirement's own dependencies aren't satisfied yet
                     if (!areRequirementDependenciesMet(player, data, req)) continue;
-                    String reqKey = currentPath + ":" + type + ":" + targetId;
+                    String reqKey = getRequirementKey(currentPath, req);
                     if (!data.getCompletedRequirements().contains(reqKey)) {
                         data.addCompletedRequirement(reqKey);
                         changed = true;
@@ -142,6 +242,35 @@ public class MasteryService {
                 checkPathCompletion(player, data, pathInfo);
             }
         });
+    }
+
+    private static boolean hasRequiredEffect(net.minecraft.world.entity.LivingEntity entity, String effectStr) {
+        String effectId = "";
+        int requiredLevel = 1;
+        if (effectStr.contains(" ")) {
+            int lastSpace = effectStr.lastIndexOf(' ');
+            effectId = effectStr.substring(0, lastSpace).trim();
+            try {
+                requiredLevel = Integer.parseInt(effectStr.substring(lastSpace + 1).trim());
+            } catch (NumberFormatException ignored) {}
+        } else {
+            effectId = effectStr.trim();
+        }
+
+        if (effectId.equals("minecraft:strenght")) {
+            effectId = "minecraft:strength";
+        }
+
+        ResourceLocation rl = ResourceLocation.tryParse(effectId);
+        if (rl == null) return false;
+
+        net.minecraft.world.effect.MobEffect effect = net.minecraftforge.registries.ForgeRegistries.MOB_EFFECTS.getValue(rl);
+        if (effect == null) return false;
+
+        net.minecraft.world.effect.MobEffectInstance instance = entity.getEffect(effect);
+        if (instance == null) return false;
+
+        return instance.getAmplifier() >= (requiredLevel - 1);
     }
 
     public static int getCompletedRequirementsCount(Player player, PlayerData data, PathInfo path) {

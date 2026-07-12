@@ -22,12 +22,15 @@ public class CombatEventHandler {
     public static void onLivingHurt(LivingHurtEvent event) {
         if (event.getSource().getEntity() instanceof Player player) {
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                if (MasteryService.mustSelectPath(player, data)) {
-                    event.setAmount(1.0f);
-                    MessageUtils.sendWarning(player, Component.translatable("xam.msg.must_select_path"));
+                ItemStack mainHand = player.getMainHandItem();
+                if (data.getCurrentPath() == null) {
+                    if (!mainHand.isEmpty() && org.xam.progression.MasteryGuard.isNonVanillaTinkersTool(mainHand)) {
+                        event.setAmount(1.0f);
+                        MessageUtils.sendItemWarning(player, mainHand);
+                    }
                     return;
                 }
-                ItemStack mainHand = player.getMainHandItem();
+
                 if (!mainHand.isEmpty()) {
                     MasteryService.checkAndRefreshPlayerData(player, data);
                     if (!MasteryService.isItemValid(mainHand, data)) {
@@ -44,7 +47,7 @@ public class CombatEventHandler {
         if (event.getSource() != null && event.getSource().getEntity() instanceof ServerPlayer serverPlayer) {
             ResourceLocation rl = ForgeRegistries.ENTITY_TYPES.getKey(event.getEntity().getType());
             if (rl != null) {
-                MasteryService.checkAndProgressRequirement(serverPlayer, "kill", rl.toString());
+                MasteryService.checkAndProgressRequirement(serverPlayer, "kill", rl.toString(), event.getEntity());
             }
         }
     }

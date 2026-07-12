@@ -32,12 +32,7 @@ public class ClientForgeEvents {
         if (event.phase == TickEvent.Phase.START) {
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                if (ClientPacketHandler.shouldOpenPathSelection && mc.screen == null) {
-                    ClientPacketHandler.shouldOpenPathSelection = false;
-                    mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                        mc.setScreen(new PathSelectionScreen(data));
-                    });
-                }
+
 
                 // Check if they pressed the key
                 if (ClientModEvents.MASTERY_KEY.consumeClick()) {
@@ -48,10 +43,13 @@ public class ClientForgeEvents {
 
                 // Key suppression check for invalid items or no mastery selected
                 mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-                    boolean suppress = MasteryService.mustSelectPath(mc.player, data);
-                    if (!suppress) {
-                        ItemStack mainHand = mc.player.getMainHandItem();
-                        ItemStack offHand = mc.player.getOffhandItem();
+                    boolean suppress = false;
+                    ItemStack mainHand = mc.player.getMainHandItem();
+                    ItemStack offHand = mc.player.getOffhandItem();
+                    if (data.getCurrentPath() == null) {
+                        suppress = (!mainHand.isEmpty() && org.xam.progression.MasteryGuard.isNonVanillaTinkersTool(mainHand))
+                                || (!offHand.isEmpty() && org.xam.progression.MasteryGuard.isNonVanillaTinkersTool(offHand));
+                    } else {
                         suppress = (!mainHand.isEmpty() && !MasteryService.isItemValid(mainHand, data))
                                 || (!offHand.isEmpty() && !MasteryService.isItemValid(offHand, data));
                     }
@@ -143,9 +141,7 @@ public class ClientForgeEvents {
                         }
                     }
 
-                    if (MasteryService.mustSelectPath(player, data)) {
-                        event.getToolTip().add(Component.translatable("xam.msg.locked_choose_mastery").withStyle(net.minecraft.ChatFormatting.RED));
-                    } else if (reqPathName != null) {
+                    if (reqPathName != null) {
                         event.getToolTip().add(Component.translatable("xam.msg.locked_requires_mastery", Component.translatable(reqPathName)).withStyle(net.minecraft.ChatFormatting.RED));
                     } else {
                         event.getToolTip().add(Component.translatable("xam.msg.locked_incompatible").withStyle(net.minecraft.ChatFormatting.RED));

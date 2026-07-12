@@ -93,7 +93,7 @@ public class UpdateConfigPacket {
             if (p.has("dependencies")) {
                 for (JsonElement depEl : p.getAsJsonArray("dependencies")) {
                     String dep = depEl.getAsString();
-                    if (!dep.matches("^[a-z0-9_]+:(\\d+|%|mastered)$")) {
+                    if (!dep.matches("^[a-z0-9_]+(:(\\d+%?|mastered))?$")) {
                         player.sendSystemMessage(Component.translatable("xam.msg.config_bad_dependency", dep).withStyle(net.minecraft.ChatFormatting.RED));
                         return false;
                     }

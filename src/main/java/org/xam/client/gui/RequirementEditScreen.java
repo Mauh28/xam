@@ -16,6 +16,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import java.util.ArrayList;
 
 public class RequirementEditScreen extends AbstractMasteryScreen {
@@ -28,6 +29,7 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
     private EditBox descEdit;
     private EditBox idEdit;
     private EditBox dependenciesEdit;
+    private EditBox effectEdit;
 
     private String errorMsg = null;
     private boolean committed = false;
@@ -40,6 +42,7 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
     private int idX, idY, idW;
     private int changeBtnX, changeBtnY, changeBtnW;
     private int depsX, depsY, depsEditW, depsBtnX;
+    private int effectX, effectY, effectEditW, effectBtnX;
 
     public RequirementEditScreen(MasteryEditorScreen parent, String parentPathId, Requirement requirement) {
         this(parent, parentPathId, requirement, null);
@@ -84,7 +87,16 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
             this.changeBtnY = typeY;
             this.changeBtnW = 100;
 
-            this.depsY = typeY + gapY + 10;
+            if (requirement.getType().equals("kill")) {
+                this.effectY = typeY + gapY + 10;
+                this.effectX = nameX;
+                this.effectEditW = nameW - 25;
+                this.effectBtnX = nameX + effectEditW + 5;
+
+                this.depsY = effectY + gapY + 10;
+            } else {
+                this.depsY = typeY + gapY + 10;
+            }
             this.depsEditW = nameW - 25;
             this.depsX = nameX;
             this.depsBtnX = nameX + depsEditW + 5;
@@ -98,7 +110,16 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
             this.changeBtnY = typeY;
             this.changeBtnW = nameW - 130;
 
-            this.depsY = idY + gapY + 5;
+            if (requirement.getType().equals("kill")) {
+                this.effectY = idY + gapY + 5;
+                this.effectX = nameX;
+                this.effectEditW = nameW - 25;
+                this.effectBtnX = nameX + effectEditW + 5;
+
+                this.depsY = effectY + gapY + 5;
+            } else {
+                this.depsY = idY + gapY + 5;
+            }
             this.depsEditW = nameW - 25;
             this.depsX = nameX;
             this.depsBtnX = nameX + depsEditW + 5;
@@ -116,6 +137,7 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         this.descEdit.setBordered(false);
         this.descEdit.setTextColor(TEXT_PRIMARY);
         this.descEdit.setValue(requirement.getDescription());
+        this.descEdit.setMaxLength(52);
         this.addRenderableWidget(this.descEdit);
 
         // ID/Objetivo Input Box (Editable!)
@@ -124,6 +146,17 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         this.idEdit.setTextColor(TEXT_PRIMARY);
         this.idEdit.setValue(requirement.getId());
         this.addRenderableWidget(this.idEdit);
+
+        // Effect Input Box (if type is kill)
+        if (requirement.getType().equals("kill")) {
+            this.effectEdit = new EditBox(this.font, effectX + 4, effectY + 5, effectEditW - 8, 12, Component.literal("Efecto"));
+            this.effectEdit.setBordered(false);
+            this.effectEdit.setTextColor(TEXT_PRIMARY);
+            this.effectEdit.setValue(requirement.getEffect());
+            this.addRenderableWidget(this.effectEdit);
+        } else {
+            this.effectEdit = null;
+        }
 
         // Dependencias Input Box
         this.dependenciesEdit = new EditBox(this.font, depsX + 4, depsY + 5, depsEditW - 8, 12, Component.literal("Dependencias"));
@@ -151,6 +184,11 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
                     this.requirement.addDependency(dep.trim());
                 }
             }
+        }
+        if (this.effectEdit != null && this.requirement.getType().equals("kill")) {
+            this.requirement.setEffect(this.effectEdit.getValue());
+        } else if (!this.requirement.getType().equals("kill")) {
+            this.requirement.setEffect("");
         }
     }
 
@@ -222,6 +260,18 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
         int depsBtnBorder = depsBtnHovered ? COLOR_BRASS : 0xFF2C221D;
         drawFlatPanel(graphics, depsBtnX, depsY, 20, 20, depsBtnBg, depsBtnBorder);
         graphics.drawCenteredString(this.font, "...", depsBtnX + 10, depsY + 6, TEXT_PRIMARY);
+
+        // Effect section (if type is kill)
+        if (requirement.getType().equals("kill")) {
+            graphics.drawString(this.font, "Efecto (Poción)", effectX, effectY - 11, TEXT_MUTED, false);
+            drawFlatPanel(graphics, effectX, effectY, effectEditW, 20, INPUT_BACKGROUND, BORDER_STANDARD);
+
+            boolean effectBtnHovered = mouseX >= effectBtnX && mouseX < effectBtnX + 20 && mouseY >= effectY && mouseY < effectY + 20;
+            int effectBtnBg = effectBtnHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
+            int effectBtnBorder = effectBtnHovered ? COLOR_BRASS : 0xFF2C221D;
+            drawFlatPanel(graphics, effectBtnX, effectY, 20, 20, effectBtnBg, effectBtnBorder);
+            graphics.drawCenteredString(this.font, "...", effectBtnX + 10, effectY + 6, TEXT_PRIMARY);
+        }
     }
 
     @Override
@@ -258,6 +308,29 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
                     requirement.clearDependencies();
                     requirement.getDependencies().addAll(deps);
                     if (dependenciesEdit != null) dependenciesEdit.setValue(String.join(", ", deps));
+                    Minecraft.getInstance().setScreen(this);
+                }));
+                return true;
+            }
+
+            // 4. Click Efecto "..." -> Open effect selection screen
+            if (requirement.getType().equals("kill") && mouseX >= effectBtnX && mouseX < effectBtnX + 20 && mouseY >= effectY && mouseY < effectY + 20) {
+                playClickSound();
+                saveFields();
+                Minecraft.getInstance().setScreen(new EffectSelectionScreen(this, effect -> {
+                    ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.MOB_EFFECTS.getKey(effect);
+                    if (rl != null) {
+                        String currentVal = effectEdit != null ? effectEdit.getValue() : "";
+                        String currentLevel = "1";
+                        if (currentVal.contains(" ")) {
+                            String[] split = currentVal.split(" ");
+                            currentLevel = split[split.length - 1];
+                        }
+                        requirement.setEffect(rl.toString() + " " + currentLevel);
+                        if (effectEdit != null) {
+                            effectEdit.setValue(requirement.getEffect());
+                        }
+                    }
                     Minecraft.getInstance().setScreen(this);
                 }));
                 return true;
@@ -331,9 +404,8 @@ public class RequirementEditScreen extends AbstractMasteryScreen {
                 req.setDescription(Component.translatable("xam.editor.default.craft_dirt_desc").getString());
             }
         }
-        if (idEdit != null) idEdit.setValue(req.getId());
-        if (nameEdit != null) nameEdit.setValue(req.getName());
-        if (descEdit != null) descEdit.setValue(req.getDescription());
+        this.clearWidgets();
+        this.init(this.minecraft, this.width, this.height);
     }
 
     private boolean isItem(String id) {

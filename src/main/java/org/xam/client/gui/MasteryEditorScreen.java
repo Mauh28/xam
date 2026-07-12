@@ -246,7 +246,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int addBg = addHovered ? COLOR_COPPER_HOVER : COLOR_COPPER;
         int addBorder = addHovered ? COLOR_BRASS : 0xFF2C221D;
         drawFlatPanel(graphics, listX, addPathBtnY, btnHalfW, 18, addBg, addBorder);
-        graphics.drawCenteredString(this.font, Component.translatable("xam.screen.mastery_editor.add_branch").getString(), listX + btnHalfW / 2, addPathBtnY + 5, TEXT_PRIMARY);
+        graphics.drawCenteredString(this.font, "+", listX + btnHalfW / 2, addPathBtnY + 5, TEXT_PRIMARY);
 
         // Button "- BORRAR"
         int delBtnX = listX + btnHalfW + 4;
@@ -254,7 +254,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         int delBg = delBtnHovered ? 0xFF3A1111 : 0xFF140F0D;
         int delBorder = delBtnHovered ? 0xFFFF5555 : 0xFF2C221D;
         drawFlatPanel(graphics, delBtnX, addPathBtnY, btnHalfW, 18, delBg, delBorder);
-        graphics.drawCenteredString(this.font, Component.translatable("xam.screen.mastery_editor.delete_branch").getString(), delBtnX + btnHalfW / 2, addPathBtnY + 5, delBtnHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
+        graphics.drawCenteredString(this.font, "✕", delBtnX + btnHalfW / 2, addPathBtnY + 5, delBtnHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
 
         // --- RIGHT COLUMN (Editor - 75% of body width or more if narrow) ---
         int editorX = layout.editorX;
@@ -827,10 +827,44 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
+    private String getUniqueBranchName() {
+        String baseName = Component.translatable("xam.editor.default.new_branch_name").getString();
+        boolean exists = false;
+        for (PathInfo path : model.getPaths()) {
+            if (path.getName().equalsIgnoreCase(baseName)) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            return baseName;
+        }
+        int i = 1;
+        while (true) {
+            String candidate = baseName + " (" + i + ")";
+            boolean candExists = false;
+            for (PathInfo path : model.getPaths()) {
+                if (path.getName().equalsIgnoreCase(candidate)) {
+                    candExists = true;
+                    break;
+                }
+            }
+            if (!candExists) {
+                return candidate;
+            }
+            i++;
+        }
+    }
+
     private void addPath() {
         PathInfo p = new PathInfo();
-        p.setId("path_" + java.util.UUID.randomUUID().toString().substring(0, 8));
-        p.setName(Component.translatable("xam.editor.default.new_branch_name").getString());
+        String uniqueName = getUniqueBranchName();
+        p.setName(uniqueName);
+        String generatedId = uniqueName.toLowerCase().replaceAll("[^a-z0-9_]", "_").replaceAll("__+", "_").replaceAll("^_+|_+$", "");
+        if (generatedId.isEmpty()) {
+            generatedId = "path_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        }
+        p.setId(generatedId);
         p.setModId("modid");
         p.setIcon("minecraft:writable_book");
         p.setRequirements(new ArrayList<>());

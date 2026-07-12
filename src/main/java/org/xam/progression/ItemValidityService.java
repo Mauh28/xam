@@ -12,14 +12,7 @@ import org.xam.util.ItemUtils;
 public final class ItemValidityService {
 
     public static boolean mustSelectPath(Player player, PlayerData data) {
-        if (data != null && data.isDevMode()) return false;
-        if (data.getCurrentPath() != null) return false;
-        for (PathInfo path : ConfigManager.PATHS) {
-            if (!data.getMasteredPaths().contains(path.getId()) && DependencyResolver.areDependenciesMastered(player, data, path)) {
-                return true;
-            }
-        }
-        return false; // all paths mastered or none unlocked, no restriction
+        return false;
     }
 
     public static boolean isItemValid(ItemStack stack, PlayerData data) {
