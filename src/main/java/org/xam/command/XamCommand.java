@@ -478,6 +478,7 @@ public class XamCommand {
                 String fullKey = MasteryService.getRequirementKey(pathInfo.getId(), foundReq);
                 if (!data.getCompletedRequirements().contains(fullKey)) {
                     data.addCompletedRequirement(fullKey);
+                    data.addStartedPath(pathInfo.getId());
                     MasteryService.sync(player);
                     MasteryService.checkPathCompletion(player, data, pathInfo);
                 }

@@ -184,19 +184,15 @@ public class PlayerData {
         }
 
         startedPaths.clear();
-        if (nbt.contains("startedPaths", Tag.TAG_LIST)) {
-            ListTag startedTag = nbt.getList("startedPaths", Tag.TAG_STRING);
-            for (int i = 0; i < startedTag.size(); i++) {
-                startedPaths.add(startedTag.getString(i));
-            }
+        ListTag startedTag = nbt.getList("startedPaths", Tag.TAG_STRING);
+        for (int i = 0; i < startedTag.size(); i++) {
+            startedPaths.add(startedTag.getString(i));
         }
 
         completedRequirements.clear();
-        if (nbt.contains("completedRequirements", Tag.TAG_LIST)) {
-            ListTag completedTag = nbt.getList("completedRequirements", Tag.TAG_STRING);
-            for (int i = 0; i < completedTag.size(); i++) {
-                completedRequirements.add(completedTag.getString(i));
-            }
+        ListTag completedTag = nbt.getList("completedRequirements", Tag.TAG_STRING);
+        for (int i = 0; i < completedTag.size(); i++) {
+            completedRequirements.add(completedTag.getString(i));
         }
 
         activePathModId = nbt.contains("activePathModId", Tag.TAG_STRING) ? nbt.getString("activePathModId") : "";
