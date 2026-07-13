@@ -324,12 +324,14 @@ public class XamCommand {
                     for (Requirement req : path.getRequirements()) {
                         data.addCompletedRequirement(MasteryService.getRequirementKey(pathId, req));
                     }
+                    MasteryService.checkPathCompletion(player, data, path);
+                } else {
+                    if (pathId.equals(data.getCurrentPath())) {
+                        data.setCurrentPath(null);
+                    }
+                    MasteryService.sync(player);
+                    MasteryService.updateArmorModifiers(player);
                 }
-                if (pathId.equals(data.getCurrentPath())) {
-                    data.setCurrentPath(null);
-                }
-                MasteryService.sync(player);
-                MasteryService.updateArmorModifiers(player);
                 source.sendSuccess(() -> Component.translatable("xam.msg.path_mastered_success", pathId, player.getGameProfile().getName()), true);
             } else {
                 data.removeMasteredPath(pathId);
