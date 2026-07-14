@@ -77,6 +77,7 @@ public class PlayerEventHandler {
     public static void onConfigReloaded(ConfigReloadedEvent event) {
         net.minecraft.server.MinecraftServer server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
         if (server == null) return;
+        if (!server.isSameThread()) return; // ponytail: prevent client thread from executing server player capability syncs in singleplayer
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                 MasteryService.revalidateMasteredPaths(player, data);
