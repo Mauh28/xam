@@ -141,8 +141,13 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 }
             }
         } else {
-            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.no_active_branch").getString(), leftX + 12, leftY + 30, TEXT_MUTED, false);
-            graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.select_branch_tip").getString(), leftX + 12, leftY + 45, TEXT_SECONDARY, false);
+            if (playerData != null && playerData.isCompletedAllMasteries()) {
+                graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.all_masteries_completed").getString(), leftX + 12, leftY + 30, COLOR_BRASS, false);
+                graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.all_masteries_completed_tip").getString(), leftX + 12, leftY + 45, TEXT_SECONDARY, false);
+            } else {
+                graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.no_active_branch").getString(), leftX + 12, leftY + 30, TEXT_MUTED, false);
+                graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.select_branch_tip").getString(), leftX + 12, leftY + 45, TEXT_SECONDARY, false);
+            }
         }
 
         // Ramas Empezadas list - Grid layout

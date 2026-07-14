@@ -22,6 +22,7 @@ public class PlayerData {
     private String activePathModId = "";
     private long lastConfigVersion = -1;
     private boolean devMode = false;
+    private boolean completedAllMasteries = false;
 
     public boolean isDevMode() {
         return devMode;
@@ -114,6 +115,7 @@ public class PlayerData {
         completedRequirements.clear();
         currentPath = null;
         devMode = false;
+        completedAllMasteries = false;
     }
 
     public String getActivePathModId() {
@@ -132,6 +134,14 @@ public class PlayerData {
         this.lastConfigVersion = lastConfigVersion;
     }
 
+    public boolean isCompletedAllMasteries() {
+        return completedAllMasteries;
+    }
+
+    public void setCompletedAllMasteries(boolean completedAllMasteries) {
+        this.completedAllMasteries = completedAllMasteries;
+    }
+
     public void copyFrom(PlayerData source) {
         this.currentPath = source.currentPath;
         this.masteredPaths.clear();
@@ -143,6 +153,7 @@ public class PlayerData {
         this.activePathModId = source.activePathModId;
         this.lastConfigVersion = source.lastConfigVersion;
         this.devMode = source.devMode;
+        this.completedAllMasteries = source.completedAllMasteries;
     }
 
     public void saveNBTData(CompoundTag nbt) {
@@ -170,6 +181,7 @@ public class PlayerData {
         nbt.putString("activePathModId", activePathModId);
         nbt.putLong("lastConfigVersion", lastConfigVersion);
         nbt.putBoolean("devMode", devMode);
+        nbt.putBoolean("completedAllMasteries", completedAllMasteries);
     }
 
     public void loadNBTData(CompoundTag nbt) {
@@ -198,5 +210,6 @@ public class PlayerData {
         activePathModId = nbt.contains("activePathModId", Tag.TAG_STRING) ? nbt.getString("activePathModId") : "";
         lastConfigVersion = nbt.contains("lastConfigVersion", Tag.TAG_LONG) ? nbt.getLong("lastConfigVersion") : -1;
         devMode = nbt.contains("devMode", Tag.TAG_BYTE) && nbt.getBoolean("devMode");
+        completedAllMasteries = nbt.contains("completedAllMasteries", Tag.TAG_BYTE) && nbt.getBoolean("completedAllMasteries");
     }
 }

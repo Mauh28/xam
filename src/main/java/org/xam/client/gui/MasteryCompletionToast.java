@@ -64,9 +64,12 @@ public class MasteryCompletionToast implements Toast {
         // Background: PANEL_INNER_BG (0xFF120E0D), Border: COLOR_BRASS (0xFFDF9E3F)
         AbstractMasteryScreen.drawFlatPanel(guiGraphics, 0, 0, this.width, 32, 0xFF120E0D, 0xFFDF9E3F);
 
-        // Draw item icon
+        // Draw item icon or mod logo
         if (!icon.isEmpty()) {
             guiGraphics.renderFakeItem(icon, 8, 8);
+        } else {
+            net.minecraft.resources.ResourceLocation logoRl = net.minecraft.resources.ResourceLocation.tryParse("xam:textures/logo.png");
+            guiGraphics.blit(logoRl, 8, 8, 18, 16, 0.0F, 0.0F, 972, 868, 972, 868);
         }
 
         // Draw texts

@@ -71,6 +71,23 @@ public class MasteryService {
                 sync(serverPlayer);
             }
         }
+        updateCompletedAllMasteriesState(player, data);
+    }
+
+    public static void updateCompletedAllMasteriesState(Player player, PlayerData data) {
+        boolean allMastered = true;
+        if (ConfigManager.PATHS.isEmpty()) {
+            allMastered = false;
+        } else {
+            for (PathInfo path : ConfigManager.PATHS) {
+                if (path.getRequirements().isEmpty()) continue;
+                if (!data.getMasteredPaths().contains(path.getId())) {
+                    allMastered = false;
+                    break;
+                }
+            }
+        }
+        data.setCompletedAllMasteries(allMastered);
     }
 
     public static boolean hasItem(Player player, ResourceLocation itemId) {
@@ -181,6 +198,7 @@ public class MasteryService {
                 data.setActivePathModId("");
             }
 
+            updateCompletedAllMasteriesState(player, data);
             sync(player);
             updateArmorModifiers(player);
             player.sendSystemMessage(Component.translatable("xam.msg.mastered_announcement", Component.translatable(pathInfo.getName())));

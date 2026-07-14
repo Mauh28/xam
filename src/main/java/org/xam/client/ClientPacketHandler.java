@@ -70,33 +70,42 @@ public class ClientPacketHandler {
             mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                 boolean isFirstSync = !data.isInitialized();
                 List<String> oldMastered = new ArrayList<>(data.getMasteredPaths());
+                boolean oldAllMastered = data.isCompletedAllMasteries();
                 data.loadNBTData(nbt);
+                boolean newAllMastered = data.isCompletedAllMasteries();
                 data.setInitialized(true);
 
                 if (!isFirstSync) {
-                    List<String> newMastered = data.getMasteredPaths();
-                    for (String pathId : newMastered) {
-                        if (!oldMastered.contains(pathId)) {
-                            // Find the name and icon of the mastered path
-                            String pathName = pathId;
-                            PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
-                            ItemStack iconStack;
-                            if (path != null) {
-                                pathName = path.getName();
-                                iconStack = PathIcons.getIcon(path);
-                            } else {
-                                iconStack = PathIcons.getDefaultIcon(pathId);
+                    if (newAllMastered && !oldAllMastered) {
+                        mc.getToasts().addToast(new MasteryCompletionToast(
+                                Component.translatable("xam.toast.all_masteries_completed_title"),
+                                Component.translatable("xam.toast.all_masteries_completed_desc"),
+                                ItemStack.EMPTY
+                        ));
+                    } else {
+                        List<String> newMastered = data.getMasteredPaths();
+                        for (String pathId : newMastered) {
+                            if (!oldMastered.contains(pathId)) {
+                                // Find the name and icon of the mastered path
+                                String pathName = pathId;
+                                PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
+                                ItemStack iconStack;
+                                if (path != null) {
+                                    pathName = path.getName();
+                                    iconStack = PathIcons.getIcon(path);
+                                } else {
+                                    iconStack = PathIcons.getDefaultIcon(pathId);
+                                }
+                                // Show custom premium toast notification
+                                mc.getToasts().addToast(new MasteryCompletionToast(
+                                        Component.translatable("xam.toast.mastery_completed"),
+                                        Component.translatable("xam.toast.mastered_format", Component.translatable(pathName)),
+                                        iconStack
+                                 ));
+                                break;
                             }
-                            // Show custom premium toast notification
-                            mc.getToasts().addToast(new MasteryCompletionToast(
-                                    Component.translatable("xam.toast.mastery_completed"),
-                                    Component.translatable("xam.toast.mastered_format", Component.translatable(pathName)),
-                                    iconStack
-                             ));
-                            break;
                         }
                     }
-                    // Auto-open path selection screen removed to allow closing selection screen without choosing a path.
                 }
             });
         }

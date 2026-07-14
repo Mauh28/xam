@@ -11,6 +11,8 @@
   "xam.screen.mastery_hub.tasks_format": "%d / %d tareas",
   "xam.screen.mastery_hub.no_active_branch": "Ninguna Rama Activa",
   "xam.screen.mastery_hub.select_branch_tip": "Selecciona una en 'Elegir Rama'",
+  "xam.screen.mastery_hub.all_masteries_completed": "¡COMPLETASTE TODAS LAS MAESTRÍAS!",
+  "xam.screen.mastery_hub.all_masteries_completed_tip": "¡Eres un maestro absoluto!",
   "xam.screen.mastery_hub.in_progress": "EN PROGRESO",
   "xam.screen.mastery_hub.none": "Ninguna",
   "xam.screen.mastery_hub.mastered_branches": "RAMAS DOMINADAS",
@@ -75,6 +77,8 @@
 
   "xam.toast.mastery_completed": "¡Maestría Completada!",
   "xam.toast.mastered_format": "Has dominado: %s",
+  "xam.toast.all_masteries_completed_title": "¡Desafío Absoluto!",
+  "xam.toast.all_masteries_completed_desc": "¡Todas las maestrías dominadas!",
 
   "xam.msg.must_select_path": "Debes elegir una maestría antes de realizar acciones. Presiona M para abrir el menú.",
   "xam.msg.weapon_no_effect": "Esta arma no tiene efecto bajo tu maestría",

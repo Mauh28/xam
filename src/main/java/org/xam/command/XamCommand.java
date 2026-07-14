@@ -352,6 +352,7 @@ public class XamCommand {
                     }
                 }
 
+                MasteryService.updateCompletedAllMasteriesState(player, data);
                 MasteryService.sync(player);
                 MasteryService.updateArmorModifiers(player);
                 player.sendSystemMessage(Component.translatable("xam.msg.mastered_announcement", Component.translatable(path != null ? path.getName() : pathId)));
@@ -364,6 +365,7 @@ public class XamCommand {
             } else {
                 data.removeMasteredPath(pathId);
                 data.removeCompletedRequirementsIf(k -> k.startsWith(pathId + ":"));
+                MasteryService.updateCompletedAllMasteriesState(player, data);
                 MasteryService.sync(player);
                 MasteryService.updateArmorModifiers(player);
                 source.sendSuccess(() -> Component.translatable("xam.msg.path_unmastered_success", pathId, player.getGameProfile().getName()), true);
