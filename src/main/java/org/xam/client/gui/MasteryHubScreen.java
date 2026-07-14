@@ -25,6 +25,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     private long lastFlipTime = 0;
     private String flippingBackPathId = null;
     private long lastFlipBackTime = 0;
+    private int masteredPathsPage = 0;
 
     public MasteryHubScreen(PlayerData playerData) {
         super(Component.translatable("xam.screen.mastery_hub.title"));
@@ -191,13 +192,51 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
         int empRows = empCount > 0 ? (empCount + medalsPerRow - 1) / medalsPerRow : 1;
         int empHeight = empRows * (medalSize + medalGap);
         int domY = empGridStartY + empHeight + 10;
-        graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.mastered_branches").getString(), leftX + 12, domY, COLOR_BRASS, false);
-        graphics.fill(leftX + 12, domY + 11, leftX + leftW - 12, domY + 12, 0xFF2C221D);
 
         int domGridStartY = domY + 16;
+        int totalMastered = playerData != null ? playerData.getMasteredPaths().size() : 0;
+        int maxDomRows = (leftY + leftH - domGridStartY) / (medalSize + medalGap);
+        if (maxDomRows < 1) maxDomRows = 1;
+        int medalsPerPage = medalsPerRow * maxDomRows;
+        int totalPages = (totalMastered + medalsPerPage - 1) / medalsPerPage;
+        if (totalPages < 1) totalPages = 1;
+
+        if (masteredPathsPage >= totalPages) {
+            masteredPathsPage = totalPages - 1;
+        }
+        if (masteredPathsPage < 0) {
+            masteredPathsPage = 0;
+        }
+
+        // Draw horizontal line (dynamically sized based on whether we have pagination buttons)
+        int lineEndX = totalPages > 1 ? leftX + leftW - 38 : leftX + leftW - 12;
+        graphics.drawString(this.font, Component.translatable("xam.screen.mastery_hub.mastered_branches").getString(), leftX + 12, domY, COLOR_BRASS, false);
+        graphics.fill(leftX + 12, domY + 11, lineEndX, domY + 12, 0xFF2C221D);
+
+        // Draw page selector `<` and `>` buttons
+        if (totalPages > 1) {
+            int btnW = 12;
+            int btnH = 10;
+            int btnY = domY - 1;
+            int prevBtnX = leftX + leftW - 30;
+            int nextBtnX = leftX + leftW - 16;
+
+            boolean prevHovered = mouseX >= prevBtnX && mouseX < prevBtnX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
+            boolean nextHovered = mouseX >= nextBtnX && mouseX < nextBtnX + btnW && mouseY >= btnY && mouseY < btnY + btnH;
+
+            int prevColor = prevHovered ? COLOR_BRASS : TEXT_SECONDARY;
+            graphics.drawString(this.font, "<", prevBtnX, btnY, prevColor, false);
+
+            int nextColor = nextHovered ? COLOR_BRASS : TEXT_SECONDARY;
+            graphics.drawString(this.font, ">", nextBtnX, btnY, nextColor, false);
+        }
+
         int domCount = 0;
         if (playerData != null && !playerData.getMasteredPaths().isEmpty()) {
-            for (int i = 0; i < playerData.getMasteredPaths().size(); i++) {
+            int startIndex = masteredPathsPage * medalsPerPage;
+            int endIndex = Math.min(startIndex + medalsPerPage, totalMastered);
+
+            for (int i = startIndex; i < endIndex; i++) {
                 String id = playerData.getMasteredPaths().get(i);
                 net.minecraft.world.item.ItemStack iconStack = getPathIcon(id);
                 
@@ -205,10 +244,6 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 int col = domCount % medalsPerRow;
                 int mx = leftX + 12 + col * (medalSize + medalGap);
                 int my = domGridStartY + row * (medalSize + medalGap);
-                
-                if (my + medalSize >= leftY + leftH) {
-                    break;
-                }
 
                 // Animation calculations
                 boolean isFlipped = id.equals(flippedPathId);
@@ -264,9 +299,12 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
         // Render hovered/flipped medal detail popup
         if (flippedPathId != null && playerData != null) {
             int fIdx = playerData.getMasteredPaths().indexOf(flippedPathId);
-            if (fIdx >= 0) {
-                int row = fIdx / medalsPerRow;
-                int col = fIdx % medalsPerRow;
+            int startIndex = masteredPathsPage * medalsPerPage;
+            int endIndex = Math.min(startIndex + medalsPerPage, totalMastered);
+            if (fIdx >= startIndex && fIdx < endIndex) {
+                int pageIdx = fIdx - startIndex;
+                int row = pageIdx / medalsPerRow;
+                int col = pageIdx % medalsPerRow;
                 int mx = leftX + 12 + col * (medalSize + medalGap);
                 int my = domGridStartY + row * (medalSize + medalGap);
                 
@@ -585,10 +623,10 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 return true;
             }
 
-            // Medal click check
             int leftW = (int) (containerW * 0.35);
             int leftX = containerX + 10;
             int leftY = bodyY + 10;
+            int leftH = bodyH - 20;
 
             // Recalculate domY dynamically based on in-progress count
             int empY = leftY + 98;
@@ -613,9 +651,49 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             int domGridStartY = domY + 16;
 
             if (playerData != null && !playerData.getMasteredPaths().isEmpty()) {
-                for (int i = 0; i < playerData.getMasteredPaths().size(); i++) {
-                    int row = i / medalsPerRow;
-                    int col = i % medalsPerRow;
+                int totalMastered = playerData.getMasteredPaths().size();
+                int maxDomRows = (leftY + leftH - domGridStartY) / (medalSize + medalGap);
+                if (maxDomRows < 1) maxDomRows = 1;
+                int medalsPerPage = medalsPerRow * maxDomRows;
+                int totalPages = (totalMastered + medalsPerPage - 1) / medalsPerPage;
+                if (totalPages < 1) totalPages = 1;
+
+                if (masteredPathsPage >= totalPages) {
+                    masteredPathsPage = totalPages - 1;
+                }
+                if (masteredPathsPage < 0) {
+                    masteredPathsPage = 0;
+                }
+
+                // Check pagination buttons first
+                if (totalPages > 1) {
+                    int btnY = domY - 1;
+                    int prevBtnX = leftX + leftW - 30;
+                    int nextBtnX = leftX + leftW - 16;
+                    int btnW = 12;
+                    int btnH = 10;
+
+                    // Prev "<" clicked
+                    if (mouseX >= prevBtnX && mouseX < prevBtnX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
+                        playClickSound();
+                        masteredPathsPage = (masteredPathsPage - 1 + totalPages) % totalPages;
+                        return true;
+                    }
+                    // Next ">" clicked
+                    if (mouseX >= nextBtnX && mouseX < nextBtnX + btnW && mouseY >= btnY && mouseY < btnY + btnH) {
+                        playClickSound();
+                        masteredPathsPage = (masteredPathsPage + 1) % totalPages;
+                        return true;
+                    }
+                }
+
+                int startIndex = masteredPathsPage * medalsPerPage;
+                int endIndex = Math.min(startIndex + medalsPerPage, totalMastered);
+                int domCount = 0;
+
+                for (int i = startIndex; i < endIndex; i++) {
+                    int row = domCount / medalsPerRow;
+                    int col = domCount % medalsPerRow;
                     int mx = leftX + 12 + col * (medalSize + medalGap);
                     int my = domGridStartY + row * (medalSize + medalGap);
                     
@@ -631,6 +709,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                         }
                         return true;
                     }
+                    domCount++;
                 }
             }
 

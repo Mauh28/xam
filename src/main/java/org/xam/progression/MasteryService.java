@@ -118,7 +118,7 @@ public class MasteryService {
         }
     }
 
-    private static PathInfo findMostProgressedAvailablePath(Player player, PlayerData data) {
+    public static PathInfo findMostProgressedAvailablePath(Player player, PlayerData data) {
         // First try to pick from started paths prioritizing most progress.
         // A path is started if it is in startedPaths list OR has completed requirements count > 0.
         PathInfo bestStarted = null;

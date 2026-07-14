@@ -322,16 +322,44 @@ public class XamCommand {
                 PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
                 if (path != null) {
                     for (Requirement req : path.getRequirements()) {
-                        data.addCompletedRequirement(MasteryService.getRequirementKey(pathId, req));
+                        if (req.getType().equals("advancement")) {
+                            ResourceLocation resLoc = ResourceLocation.tryParse(req.getId());
+                            if (resLoc != null) {
+                                net.minecraft.advancements.Advancement adv = player.server.getAdvancements().getAdvancement(resLoc);
+                                if (adv != null) {
+                                    net.minecraft.advancements.AdvancementProgress progress = player.getAdvancements().getOrStartProgress(adv);
+                                    if (!progress.isDone()) {
+                                        for (String criteria : progress.getRemainingCriteria()) {
+                                            player.getAdvancements().award(adv, criteria);
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            data.addCompletedRequirement(MasteryService.getRequirementKey(pathId, req));
+                        }
                     }
-                    MasteryService.checkPathCompletion(player, data, path);
+                }
+                
+                PathInfo bestPath = MasteryService.findMostProgressedAvailablePath(player, data);
+                if (bestPath != null) {
+                    data.setCurrentPath(bestPath.getId());
+                    data.setActivePathModId(bestPath.getModId());
                 } else {
                     if (pathId.equals(data.getCurrentPath())) {
                         data.setCurrentPath(null);
+                        data.setActivePathModId("");
                     }
-                    MasteryService.sync(player);
-                    MasteryService.updateArmorModifiers(player);
                 }
+
+                MasteryService.sync(player);
+                MasteryService.updateArmorModifiers(player);
+                player.sendSystemMessage(Component.translatable("xam.msg.mastered_announcement", Component.translatable(path != null ? path.getName() : pathId)));
+
+                if (bestPath != null) {
+                    player.sendSystemMessage(Component.translatable("xam.msg.auto_assigned_path", Component.translatable(bestPath.getName())).withStyle(net.minecraft.ChatFormatting.GREEN));
+                }
+
                 source.sendSuccess(() -> Component.translatable("xam.msg.path_mastered_success", pathId, player.getGameProfile().getName()), true);
             } else {
                 data.removeMasteredPath(pathId);
