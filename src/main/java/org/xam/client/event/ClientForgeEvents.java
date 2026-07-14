@@ -46,13 +46,8 @@ public class ClientForgeEvents {
                     boolean suppress = false;
                     ItemStack mainHand = mc.player.getMainHandItem();
                     ItemStack offHand = mc.player.getOffhandItem();
-                    if (data.getCurrentPath() == null) {
-                        suppress = (!mainHand.isEmpty() && org.xam.progression.MasteryGuard.isNonVanillaTinkersTool(mainHand))
-                                || (!offHand.isEmpty() && org.xam.progression.MasteryGuard.isNonVanillaTinkersTool(offHand));
-                    } else {
-                        suppress = (!mainHand.isEmpty() && !MasteryService.isItemValid(mainHand, data))
-                                || (!offHand.isEmpty() && !MasteryService.isItemValid(offHand, data));
-                    }
+                    suppress = (!mainHand.isEmpty() && !MasteryService.isItemValid(mainHand, data))
+                            || (!offHand.isEmpty() && !MasteryService.isItemValid(offHand, data));
                     if (suppress) {
                         for (net.minecraft.client.KeyMapping keyMapping : mc.options.keyMappings) {
                             if (isInteractionKey(keyMapping, mc.options)) {

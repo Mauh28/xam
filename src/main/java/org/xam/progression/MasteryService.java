@@ -192,43 +192,7 @@ public class MasteryService {
     }
 
     public static void revalidateMasteredPaths(ServerPlayer player, PlayerData data) {
-        java.util.List<String> toUnmaster = new java.util.ArrayList<>();
-        for (String pathId : data.getMasteredPaths()) {
-            PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
-            if (path == null) continue;
-
-            boolean allMet = true;
-            for (Requirement req : path.getRequirements()) {
-                if (!isRequirementCompleted(player, data, pathId, req)) {
-                    String expectedKey = getRequirementKey(pathId, req);
-                    org.xam.XamConstants.LOGGER.warn("XAM Revalidation failed for player {} on path {}: requirement {} not completed. Key expected: '{}'. Player completed requirements: {}",
-                            player.getGameProfile().getName(), pathId, req.getId(), expectedKey, data.getCompletedRequirements());
-                    allMet = false;
-                    break;
-                }
-            }
-            if (!allMet) {
-                toUnmaster.add(pathId);
-            }
-        }
-
-        if (toUnmaster.isEmpty()) return;
-
-        for (String pathId : toUnmaster) {
-            data.removeMasteredPath(pathId);
-            PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
-            String pathName = path != null ? path.getName() : pathId;
-
-            if (data.getCurrentPath() == null && path != null) {
-                data.setCurrentPath(pathId);
-                data.setActivePathModId(path.getModId());
-            }
-
-            player.sendSystemMessage(Component.translatable("xam.msg.mastery_revoked", Component.translatable(pathName)).withStyle(net.minecraft.ChatFormatting.YELLOW));
-        }
-
-        sync(player);
-        updateArmorModifiers(player);
+        // ponytail: disabled automated retroactive revocation to prevent cheat-completed or legacy masteries from being cleared on reload/login
     }
 
     public static void checkAndProgressRequirement(ServerPlayer player, String type, String targetId) {

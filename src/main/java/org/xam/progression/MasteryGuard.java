@@ -66,14 +66,8 @@ public final class MasteryGuard {
             if (data.isDevMode()) return;
             MasteryService.checkAndRefreshPlayerData(player, data);
 
-            if (data.getCurrentPath() == null) {
-                if (isNonVanillaTinkersTool(stack)) {
-                    out.set(Result.ITEM_INVALID);
-                }
-            } else {
-                if (!MasteryService.isItemValid(stack, data)) {
-                    out.set(Result.ITEM_INVALID);
-                }
+            if (!MasteryService.isItemValid(stack, data)) {
+                out.set(Result.ITEM_INVALID);
             }
         });
         return out.get();
