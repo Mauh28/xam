@@ -272,6 +272,71 @@ public class XamCommand {
             )
         );
 
+        // revert_req subcommand
+        xamCommand.then(Commands.literal("revert_req")
+            .requires(source -> source.hasPermission(2))
+            .then(Commands.argument("requirement", StringArgumentType.string())
+                .suggests((context, builder) -> {
+                    try {
+                        ServerPlayer player = context.getSource().getPlayerOrException();
+                        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+                            String currentPath = data.getCurrentPath();
+                            if (currentPath != null) {
+                                PathInfo path = ConfigManager.PATHS_MAP.get(currentPath);
+                                if (path != null) {
+                                    for (Requirement req : path.getRequirements()) {
+                                        builder.suggest(MasteryService.getRequirementShortKey(req));
+                                    }
+                                }
+                            }
+                        });
+                    } catch (Exception ignored) {}
+                    return builder.buildFuture();
+                })
+                .executes(context -> {
+                    ServerPlayer player = context.getSource().getPlayerOrException();
+                    String reqKey = StringArgumentType.getString(context, "requirement");
+                    revertRequirement(context.getSource(), player, reqKey);
+                    return 1;
+                })
+                .then(Commands.argument("player", EntityArgument.player())
+                    .executes(context -> {
+                        ServerPlayer player = EntityArgument.getPlayer(context, "player");
+                        String reqKey = StringArgumentType.getString(context, "requirement");
+                        revertRequirement(context.getSource(), player, reqKey);
+                        return 1;
+                    })
+                )
+            )
+        );
+
+        // check_item subcommand
+        xamCommand.then(Commands.literal("check_item")
+            .requires(source -> source.hasPermission(2))
+            .executes(context -> {
+                ServerPlayer player = context.getSource().getPlayerOrException();
+                checkItem(context.getSource(), player);
+                return 1;
+            })
+        );
+
+        // master_all subcommand
+        xamCommand.then(Commands.literal("master_all")
+            .requires(source -> source.hasPermission(2))
+            .executes(context -> {
+                ServerPlayer player = context.getSource().getPlayerOrException();
+                masterAllPaths(context.getSource(), player);
+                return 1;
+            })
+            .then(Commands.argument("player", EntityArgument.player())
+                .executes(context -> {
+                    ServerPlayer player = EntityArgument.getPlayer(context, "player");
+                    masterAllPaths(context.getSource(), player);
+                    return 1;
+                })
+            )
+        );
+
         // help subcommand
         xamCommand.then(Commands.literal("help")
             .executes(context -> {
@@ -288,6 +353,9 @@ public class XamCommand {
                     source.sendSuccess(() -> Component.translatable("xam.cmd.help_master"), false);
                     source.sendSuccess(() -> Component.translatable("xam.cmd.help_deletepath"), false);
                     source.sendSuccess(() -> Component.translatable("xam.cmd.help_complete_req"), false);
+                    source.sendSuccess(() -> Component.translatable("xam.cmd.help_revert_req"), false);
+                    source.sendSuccess(() -> Component.translatable("xam.cmd.help_check_item"), false);
+                    source.sendSuccess(() -> Component.translatable("xam.cmd.help_master_all"), false);
                     source.sendSuccess(() -> Component.translatable("xam.cmd.help_reset"), false);
                     source.sendSuccess(() -> Component.translatable("xam.cmd.help_reload"), false);
                 }
@@ -511,11 +579,144 @@ public class XamCommand {
                 if (!data.getCompletedRequirements().contains(fullKey)) {
                     data.addCompletedRequirement(fullKey);
                     data.addStartedPath(pathInfo.getId());
-                    MasteryService.sync(player);
-                    MasteryService.checkPathCompletion(player, data, pathInfo);
                 }
             }
+            MasteryService.checkAndRefreshPlayerData(player, data);
+            MasteryService.sync(player);
             source.sendSuccess(() -> Component.translatable("xam.msg.req_completed_success", reqKey, player.getGameProfile().getName()), true);
+        });
+    }
+
+    private static void revertRequirement(CommandSourceStack source, ServerPlayer player, String reqKey) {
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            String currentPath = data.getCurrentPath();
+            if (currentPath == null) {
+                source.sendFailure(Component.translatable("xam.msg.no_active_mastery", player.getGameProfile().getName()));
+                return;
+            }
+            PathInfo pathInfo = ConfigManager.PATHS_MAP.get(currentPath);
+            if (pathInfo == null) {
+                source.sendFailure(Component.translatable("xam.msg.invalid_mastery"));
+                return;
+            }
+            Requirement foundReq = null;
+            for (Requirement req : pathInfo.getRequirements()) {
+                if (MasteryService.getRequirementShortKey(req).equals(reqKey)) {
+                    foundReq = req;
+                    break;
+                }
+            }
+            if (foundReq == null) {
+                source.sendFailure(Component.translatable("xam.msg.req_not_in_path", reqKey, currentPath));
+                return;
+            }
+            if (foundReq.getType().equals("advancement")) {
+                ResourceLocation resLoc = ResourceLocation.tryParse(foundReq.getId());
+                if (resLoc != null) {
+                    net.minecraft.advancements.Advancement adv = player.server.getAdvancements().getAdvancement(resLoc);
+                    if (adv != null) {
+                        net.minecraft.advancements.AdvancementProgress progress = player.getAdvancements().getOrStartProgress(adv);
+                        if (progress.hasProgress()) {
+                            for (String criteria : progress.getCompletedCriteria()) {
+                                player.getAdvancements().revoke(adv, criteria);
+                            }
+                        }
+                    }
+                }
+            } else {
+                String fullKey = MasteryService.getRequirementKey(pathInfo.getId(), foundReq);
+                data.removeCompletedRequirement(fullKey);
+            }
+
+            // If the path was mastered, revoke it as well
+            if (data.getMasteredPaths().contains(pathInfo.getId())) {
+                data.removeMasteredPath(pathInfo.getId());
+                data.setCompletedAllMasteries(false);
+            }
+
+            MasteryService.checkAndRefreshPlayerData(player, data);
+            MasteryService.sync(player);
+            MasteryService.updateArmorModifiers(player);
+            source.sendSuccess(() -> Component.literal("Reverted requirement progress: " + reqKey + " for player: " + player.getGameProfile().getName()), true);
+        });
+    }
+
+    private static void checkItem(CommandSourceStack source, ServerPlayer player) {
+        net.minecraft.world.item.ItemStack stack = player.getMainHandItem();
+        if (stack.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("§cNo item in main hand.§r"), false);
+            return;
+        }
+        ResourceLocation rl = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
+        if (rl == null) {
+            source.sendSuccess(() -> Component.literal("§cUnknown item.§r"), false);
+            return;
+        }
+        String idStr = rl.toString();
+        String namespace = rl.getNamespace();
+        boolean isUniversal = ConfigManager.UNIVERSAL_NAMESPACES.contains(namespace);
+
+        source.sendSuccess(() -> Component.literal("§6--- XAM Item Check ---§r"), false);
+        source.sendSuccess(() -> Component.literal("§eItem ID:§r " + idStr), false);
+        source.sendSuccess(() -> Component.literal("§eMod Namespace:§r " + namespace + (isUniversal ? " §a(Universal)§r" : "")), false);
+
+        // Find tags matched by this item
+        java.util.List<String> matchedWeapons = new java.util.ArrayList<>();
+        java.util.List<String> matchedTools = new java.util.ArrayList<>();
+        java.util.List<String> matchedArmor = new java.util.ArrayList<>();
+
+        for (PathInfo path : ConfigManager.PATHS) {
+            if (stack.is(path.getWeaponsTag())) matchedWeapons.add(path.getId());
+            if (stack.is(path.getToolsTag())) matchedTools.add(path.getId());
+            if (stack.is(path.getArmorTag())) matchedArmor.add(path.getId());
+        }
+
+        if (!matchedWeapons.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("§eMatched Weapons Tag of:§r " + String.join(", ", matchedWeapons)), false);
+        }
+        if (!matchedTools.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("§eMatched Tools Tag of:§r " + String.join(", ", matchedTools)), false);
+        }
+        if (!matchedArmor.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("§eMatched Armor Tag of:§r " + String.join(", ", matchedArmor)), false);
+        }
+
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            boolean isValid = MasteryService.isItemValid(stack, data);
+            String reason = isValid ? "§aAllowed§r" : "§cBlocked§r";
+            source.sendSuccess(() -> Component.literal("§eCurrent player access:§r " + reason), false);
+        });
+    }
+
+    private static void masterAllPaths(CommandSourceStack source, ServerPlayer player) {
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            for (PathInfo path : ConfigManager.PATHS) {
+                data.addStartedPath(path.getId());
+                data.addMasteredPath(path.getId());
+                for (Requirement req : path.getRequirements()) {
+                    if (req.getType().equals("advancement")) {
+                        ResourceLocation resLoc = ResourceLocation.tryParse(req.getId());
+                        if (resLoc != null) {
+                            net.minecraft.advancements.Advancement adv = player.server.getAdvancements().getAdvancement(resLoc);
+                            if (adv != null) {
+                                net.minecraft.advancements.AdvancementProgress progress = player.getAdvancements().getOrStartProgress(adv);
+                                if (!progress.isDone()) {
+                                    for (String criteria : progress.getRemainingCriteria()) {
+                                        player.getAdvancements().award(adv, criteria);
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        String fullKey = MasteryService.getRequirementKey(path.getId(), req);
+                        data.addCompletedRequirement(fullKey);
+                    }
+                }
+            }
+            MasteryService.updateCompletedAllMasteriesState(player, data);
+            MasteryService.sync(player);
+            MasteryService.updateArmorModifiers(player);
+            source.sendSuccess(() -> Component.literal("Successfully mastered all paths for " + player.getGameProfile().getName()), true);
         });
     }
 }
