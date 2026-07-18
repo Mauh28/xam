@@ -680,8 +680,7 @@ public class MasteryEditorScreen extends AbstractMasteryScreen {
                     this.pathDepsEdit.setResponder(null);
                     Minecraft.getInstance().setScreen(new DependencySelectionScreen(
                             this, p.getId(), model.getPaths(), new ArrayList<>(p.getDependencies()), deps -> {
-                        p.clearDependencies();
-                        p.getDependencies().addAll(deps);
+                        p.setDependencies(deps);
                         pathDepsEdit.setValue(String.join(", ", deps));
                         pathDepsEdit.setResponder(val -> {
                             p.clearDependencies();
