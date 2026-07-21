@@ -23,6 +23,15 @@ public class PlayerData {
     private long lastConfigVersion = -1;
     private boolean devMode = false;
     private boolean completedAllMasteries = false;
+    private String trackedRequirementKey = "";
+
+    public String getTrackedRequirementKey() {
+        return trackedRequirementKey != null ? trackedRequirementKey : "";
+    }
+
+    public void setTrackedRequirementKey(String trackedRequirementKey) {
+        this.trackedRequirementKey = trackedRequirementKey != null ? trackedRequirementKey : "";
+    }
 
     public boolean isDevMode() {
         return devMode;
@@ -116,6 +125,7 @@ public class PlayerData {
         currentPath = null;
         devMode = false;
         completedAllMasteries = false;
+        trackedRequirementKey = "";
     }
 
     public String getActivePathModId() {
@@ -154,6 +164,7 @@ public class PlayerData {
         this.lastConfigVersion = source.lastConfigVersion;
         this.devMode = source.devMode;
         this.completedAllMasteries = source.completedAllMasteries;
+        this.trackedRequirementKey = source.trackedRequirementKey;
     }
 
     public void saveNBTData(CompoundTag nbt) {
@@ -182,6 +193,7 @@ public class PlayerData {
         nbt.putLong("lastConfigVersion", lastConfigVersion);
         nbt.putBoolean("devMode", devMode);
         nbt.putBoolean("completedAllMasteries", completedAllMasteries);
+        nbt.putString("trackedRequirementKey", trackedRequirementKey != null ? trackedRequirementKey : "");
     }
 
     public void loadNBTData(CompoundTag nbt) {
@@ -211,5 +223,6 @@ public class PlayerData {
         lastConfigVersion = nbt.contains("lastConfigVersion", Tag.TAG_LONG) ? nbt.getLong("lastConfigVersion") : -1;
         devMode = nbt.contains("devMode", Tag.TAG_BYTE) && nbt.getBoolean("devMode");
         completedAllMasteries = nbt.contains("completedAllMasteries", Tag.TAG_BYTE) && nbt.getBoolean("completedAllMasteries");
+        trackedRequirementKey = nbt.contains("trackedRequirementKey", Tag.TAG_STRING) ? nbt.getString("trackedRequirementKey") : "";
     }
 }

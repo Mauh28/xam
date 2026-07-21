@@ -139,6 +139,10 @@
   "xam.cmd.help_reset": "/xam reset <jugador> - Restablece todo el progreso de maestría.",
   "xam.cmd.help_reload": "/xam reload - Recarga la configuración xam_paths.json desde disco.",
 
+  "xam.tooltip.mastered": "✔ Dominado",
+  "xam.tooltip.active": "⚡ Maestría Activa",
+  "xam.tooltip.universal": "🌐 Ítem Universal",
+
   "xam.editor.all": "Todos",
   "xam.editor.search": "Buscar...",
   "xam.editor.search_placeholder": "Buscar...",

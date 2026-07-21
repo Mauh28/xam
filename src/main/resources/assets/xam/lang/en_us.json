@@ -135,6 +135,10 @@
   "xam.cmd.help_reset": "/xam reset <player> - Resets all mastery progress.",
   "xam.cmd.help_reload": "/xam reload - Reloads xam_paths.json configuration from disk.",
 
+  "xam.tooltip.mastered": "✔ Mastered",
+  "xam.tooltip.active": "⚡ Active Mastery",
+  "xam.tooltip.universal": "🌐 Universal Item",
+
   "xam.editor.all": "All",
   "xam.editor.search": "Search...",
   "xam.editor.search_placeholder": "Search...",

@@ -123,24 +123,37 @@ public class ClientForgeEvents {
         if (player != null) {
             player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
                 ItemStack stack = event.getItemStack();
-                if (!stack.isEmpty() && !MasteryService.isItemValid(stack, data)) {
-                    String reqPathName = null;
-                    ResourceLocation rl = ForgeRegistries.ITEMS.getKey(stack.getItem());
-                    if (rl != null) {
-                        String namespace = rl.getNamespace();
-                        for (PathInfo path : ConfigManager.PATHS) {
-                            if (path.getModId() != null && path.getModId().equals(namespace)) {
-                                reqPathName = path.getName();
-                                break;
-                            }
-                        }
-                    }
+                if (stack.isEmpty()) return;
 
-                    if (reqPathName != null) {
-                        event.getToolTip().add(Component.translatable("xam.msg.locked_requires_mastery", Component.translatable(reqPathName)).withStyle(net.minecraft.ChatFormatting.RED));
-                    } else {
-                        event.getToolTip().add(Component.translatable("xam.msg.locked_incompatible").withStyle(net.minecraft.ChatFormatting.RED));
+                ResourceLocation rl = ForgeRegistries.ITEMS.getKey(stack.getItem());
+                if (rl == null) return;
+
+                String namespace = rl.getNamespace();
+
+                // Find matching path by tag or modId
+                PathInfo matchedPath = null;
+                for (PathInfo path : ConfigManager.PATHS) {
+                    if ((path.getModId() != null && path.getModId().equals(namespace))
+                            || stack.is(path.getWeaponsTag())
+                            || stack.is(path.getToolsTag())
+                            || stack.is(path.getArmorTag())) {
+                        matchedPath = path;
+                        break;
                     }
+                }
+
+                if (matchedPath != null) {
+                    event.getToolTip().add(Component.literal("§8──────── XAM ────────§r"));
+                    if (data.getMasteredPaths().contains(matchedPath.getId())) {
+                        event.getToolTip().add(Component.translatable("xam.tooltip.mastered").withStyle(net.minecraft.ChatFormatting.GREEN));
+                    } else if (matchedPath.getId().equals(data.getCurrentPath())) {
+                        event.getToolTip().add(Component.translatable("xam.tooltip.active").withStyle(net.minecraft.ChatFormatting.GOLD));
+                    } else if (!MasteryService.isItemValid(stack, data)) {
+                        event.getToolTip().add(Component.translatable("xam.msg.locked_requires_mastery", Component.translatable(matchedPath.getName())).withStyle(net.minecraft.ChatFormatting.RED));
+                    }
+                } else if (!MasteryService.isItemValid(stack, data)) {
+                    event.getToolTip().add(Component.literal("§8──────── XAM ────────§r"));
+                    event.getToolTip().add(Component.translatable("xam.msg.locked_incompatible").withStyle(net.minecraft.ChatFormatting.RED));
                 }
             });
         }

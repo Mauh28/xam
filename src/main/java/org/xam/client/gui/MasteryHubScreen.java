@@ -26,6 +26,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     private String flippingBackPathId = null;
     private long lastFlipBackTime = 0;
     private int masteredPathsPage = 0;
+    private boolean showHelpModal = false;
 
     public MasteryHubScreen(PlayerData playerData) {
         super(Component.translatable("xam.screen.mastery_hub.title"));
@@ -47,6 +48,14 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
         int titleY = containerY + (headerH - 8) / 2;
         String titleText = Component.translatable("xam.screen.mastery_hub.header").getString();
         graphics.drawString(this.font, titleText, containerX + 15, titleY, TEXT_SECONDARY, false);
+
+        // Help button "?"
+        int helpX = containerX + containerW - 35;
+        int helpY = containerY + (headerH - 12) / 2;
+        boolean helpHovered = mouseX >= helpX && mouseX < helpX + 12 && mouseY >= helpY && mouseY < helpY + 12;
+        drawFlatPanel(graphics, helpX, helpY, 12, 12, helpHovered ? 0xFF2C221D : PANEL_INNER_BG, helpHovered ? COLOR_BRASS : WARM_BORDER);
+        graphics.drawCenteredString(this.font, "?", helpX + 6, helpY + 2, helpHovered ? COLOR_BRASS : TEXT_SECONDARY);
+
         drawCloseButton(graphics, mouseX, mouseY);
     }
 
@@ -443,6 +452,15 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 drawFlatPanel(graphics, badgeX, badgeY, badgeW, 12, 0xFF140F0D, 0xFF2C221D);
                 graphics.drawCenteredString(this.font, badge, badgeX + badgeW / 2, badgeY + 2, COLOR_BRASS);
 
+                // Pin Indicator
+                String reqKey = MasteryService.getRequirementShortKey(req);
+                boolean isTracked = reqKey.equals(playerData.getTrackedRequirementKey());
+                if (isTracked) {
+                    graphics.drawString(this.font, "📌", listX + listW - 14, cardY + 4, 0xFFDF9E3F, false);
+                } else if (cardHovered) {
+                    graphics.drawString(this.font, "📌", listX + listW - 14, cardY + 4, 0xFF555555, false);
+                }
+
                 // Draw availability badge
                 if (req.getType().equals("craft") || req.getType().equals("collect")) {
                     net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(req.getId()));
@@ -584,6 +602,50 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 graphics.pose().popPose();
             }
         }
+
+        if (showHelpModal) {
+            renderHelpModal(graphics, mouseX, mouseY);
+        }
+    }
+
+    private void renderHelpModal(GuiGraphics graphics, int mouseX, int mouseY) {
+        int modalW = Math.min(330, (int) (this.width * 0.95));
+        int modalH = 175;
+        int modalX = (this.width - modalW) / 2;
+        int modalY = (this.height - modalH) / 2;
+
+        graphics.pose().pushPose();
+        graphics.pose().translate(0, 0, 500);
+
+        graphics.fill(0, 0, this.width, this.height, 0x90000000);
+
+        drawFlatPanel(graphics, modalX, modalY, modalW, modalH, PANEL_BACKGROUND, COLOR_BRASS);
+        drawFlatPanel(graphics, modalX + 2, modalY + 2, modalW - 4, 22, PANEL_INNER_BG, WARM_BORDER);
+        graphics.drawString(this.font, "❓ Guía de Maestrías - XAM", modalX + 10, modalY + 8, COLOR_BRASS, false);
+
+        int closeX = modalX + modalW - 18;
+        int closeY = modalY + 6;
+        boolean closeHovered = mouseX >= closeX && mouseX < closeX + 12 && mouseY >= closeY && mouseY < closeY + 12;
+        graphics.drawString(this.font, "✕", closeX, closeY, closeHovered ? COLOR_BRASS : TEXT_MUTED, false);
+
+        int textY = modalY + 32;
+        int textX = modalX + 12;
+
+        String[] lines = {
+            "§61. Selección e Inicio:§r Elige una rama activa para especializarte.",
+            "§62. Uso de Objetos:§r Solo puedes usar ítems de tu rama activa,",
+            "ramas dominadas o ítems universales/vanilla.",
+            "§63. Dominio de Ramas:§r Al completar el 100% de misiones, la rama",
+            "quedará §aDominada§r permanentemente y sus ítems permitidos.",
+            "§64. Fijar Misión (📌):§r Haz clic en una misión para seguirla en tu HUD."
+        };
+
+        for (String line : lines) {
+            graphics.drawString(this.font, line, textX, textY, TEXT_PRIMARY, false);
+            textY += 13;
+        }
+
+        graphics.pose().popPose();
     }
 
     private net.minecraft.world.item.ItemStack getPathIcon(String pathId) {
@@ -596,6 +658,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (showHelpModal) return true;
         if (playerData != null && playerData.getCurrentPath() != null) {
             PathInfo activePath = ConfigManager.PATHS_MAP.get(playerData.getCurrentPath());
             if (activePath != null) {
@@ -611,9 +674,38 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             }
         }
         return super.mouseScrolled(mouseX, mouseY, delta);
-    }    @Override
+    }
+
+    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
+            if (showHelpModal) {
+                int modalW = Math.min(330, (int) (this.width * 0.95));
+                int modalH = 175;
+                int modalX = (this.width - modalW) / 2;
+                int modalY = (this.height - modalH) / 2;
+                int closeX = modalX + modalW - 18;
+                int closeY = modalY + 6;
+                if (mouseX >= closeX && mouseX < closeX + 12 && mouseY >= closeY && mouseY < closeY + 12) {
+                    playClickSound();
+                    showHelpModal = false;
+                    return true;
+                }
+                if (mouseX < modalX || mouseX >= modalX + modalW || mouseY < modalY || mouseY >= modalY + modalH) {
+                    showHelpModal = false;
+                    return true;
+                }
+                return true;
+            }
+
+            int helpX = containerX + containerW - 35;
+            int helpY = containerY + (headerH - 12) / 2;
+            if (mouseX >= helpX && mouseX < helpX + 12 && mouseY >= helpY && mouseY < helpY + 12) {
+                playClickSound();
+                showHelpModal = true;
+                return true;
+            }
+
             String prevFlippedPathId = flippedPathId;
             flippedPathId = null;
             if (prevFlippedPathId != null) {
@@ -626,6 +718,40 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 playClickSound();
                 this.onClose();
                 return true;
+            }
+
+            // Check task card clicks in right panel (pinning)
+            if (playerData != null && playerData.getCurrentPath() != null) {
+                PathInfo activePath = ConfigManager.PATHS_MAP.get(playerData.getCurrentPath());
+                if (activePath != null) {
+                    int leftW = (int) (containerW * 0.35);
+                    int rightX = containerX + leftW + 20;
+                    int rightW = containerW - leftW - 30;
+                    int rightY = bodyY + 10;
+                    int rightH = bodyH - 20;
+                    int listX = rightX + 10;
+                    int listY = rightY + 35;
+                    int listW = rightW - 24;
+                    int listH = rightH - 35;
+                    int cardH = 38;
+                    int gap = 6;
+
+                    if (mouseX >= listX && mouseX < listX + listW && mouseY >= listY && mouseY < listY + listH) {
+                        for (int i = 0; i < activePath.getRequirements().size(); i++) {
+                            Requirement req = activePath.getRequirements().get(i);
+                            int cardY = (int) (listY + i * (cardH + gap) - targetScrollY);
+                            if (mouseY >= cardY && mouseY < cardY + cardH) {
+                                String reqKey = MasteryService.getRequirementShortKey(req);
+                                String currentTracked = playerData.getTrackedRequirementKey();
+                                String nextTracked = reqKey.equals(currentTracked) ? "" : reqKey;
+                                playerData.setTrackedRequirementKey(nextTracked);
+                                org.xam.network.XamNetwork.CHANNEL.sendToServer(new org.xam.network.TrackRequirementPacket(nextTracked));
+                                playClickSound();
+                                return true;
+                            }
+                        }
+                    }
+                }
             }
 
             int leftW = (int) (containerW * 0.35);

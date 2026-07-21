@@ -28,5 +28,7 @@ public class XamNetwork {
                 NotifyConfigUpdatePacket::encode, NotifyConfigUpdatePacket::decode, NotifyConfigUpdatePacket::handle);
         CHANNEL.registerMessage(packetId++, RequestConfigPacket.class,
                 RequestConfigPacket::encode, RequestConfigPacket::decode, RequestConfigPacket::handle);
+        CHANNEL.registerMessage(packetId++, TrackRequirementPacket.class,
+                TrackRequirementPacket::encode, TrackRequirementPacket::decode, TrackRequirementPacket::handle);
     }
 }
