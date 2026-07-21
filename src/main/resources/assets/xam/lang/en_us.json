@@ -21,6 +21,8 @@
   "xam.screen.mastery_hub.locked": "LOCKED",
   "xam.screen.mastery_hub.perk_none": "None",
   "xam.screen.mastery_hub.perk_label": "Perk: %s",
+  "xam.screen.mastery_hub.track": "📍 TRACK",
+  "xam.screen.mastery_hub.tracking": "📍 TRACKING",
 
   "xam.screen.path_selection.title": "SELECT PATH",
   "xam.screen.path_selection.page_format": "[ Page %d of %d ]",

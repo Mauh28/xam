@@ -23,6 +23,8 @@
   "xam.screen.mastery_hub.locked": "BLOQUEADO",
   "xam.screen.mastery_hub.perk_none": "Ninguno",
   "xam.screen.mastery_hub.perk_label": "Perk: %s",
+  "xam.screen.mastery_hub.track": "📍 RASTREAR",
+  "xam.screen.mastery_hub.tracking": "📍 RASTREANDO",
 
   "xam.screen.path_selection.title": "SELECCIÓN DE RAMA",
   "xam.screen.path_selection.page_format": "[ Página %d de %d ]",

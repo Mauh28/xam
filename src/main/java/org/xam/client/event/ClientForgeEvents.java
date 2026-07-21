@@ -143,7 +143,7 @@ public class ClientForgeEvents {
                 }
 
                 if (matchedPath != null) {
-                    event.getToolTip().add(Component.literal("§8──────── XAM ────────§r"));
+                    event.getToolTip().add(Component.literal("§8✦ §6XAM MAESTRÍA §8✦§r"));
                     if (data.getMasteredPaths().contains(matchedPath.getId())) {
                         event.getToolTip().add(Component.translatable("xam.tooltip.mastered").withStyle(net.minecraft.ChatFormatting.GREEN));
                     } else if (matchedPath.getId().equals(data.getCurrentPath())) {
@@ -152,7 +152,7 @@ public class ClientForgeEvents {
                         event.getToolTip().add(Component.translatable("xam.msg.locked_requires_mastery", Component.translatable(matchedPath.getName())).withStyle(net.minecraft.ChatFormatting.RED));
                     }
                 } else if (!MasteryService.isItemValid(stack, data)) {
-                    event.getToolTip().add(Component.literal("§8──────── XAM ────────§r"));
+                    event.getToolTip().add(Component.literal("§8✦ §6XAM MAESTRÍA §8✦§r"));
                     event.getToolTip().add(Component.translatable("xam.msg.locked_incompatible").withStyle(net.minecraft.ChatFormatting.RED));
                 }
             });

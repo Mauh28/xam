@@ -26,12 +26,50 @@ public class MasteryTrackerOverlay {
     private static boolean lastCompleted = false;
     private static long completionTime = 0;
 
+    private static java.lang.reflect.Field toastVisibleField = null;
+
+    static {
+        try {
+            toastVisibleField = net.minecraft.client.gui.components.toasts.ToastComponent.class.getDeclaredField("f_94917_");
+            toastVisibleField.setAccessible(true);
+        } catch (Exception e1) {
+            try {
+                toastVisibleField = net.minecraft.client.gui.components.toasts.ToastComponent.class.getDeclaredField("occupied");
+                toastVisibleField.setAccessible(true);
+            } catch (Exception e2) {
+                try {
+                    for (java.lang.reflect.Field f : net.minecraft.client.gui.components.toasts.ToastComponent.class.getDeclaredFields()) {
+                        if (java.util.List.class.isAssignableFrom(f.getType())) {
+                            f.setAccessible(true);
+                            toastVisibleField = f;
+                            break;
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    private static boolean isToastActive(Minecraft mc) {
+        if (mc.getToasts() == null || toastVisibleField == null) return false;
+        try {
+            Object val = toastVisibleField.get(mc.getToasts());
+            if (val instanceof java.util.List<?> list) {
+                return !list.isEmpty();
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
     @SubscribeEvent
     public static void onRenderGuiOverlay(RenderGuiOverlayEvent.Post event) {
         if (event.getOverlay() != VanillaGuiOverlay.HOTBAR.type()) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.options.hideGui || mc.screen != null) return;
+
+        // Hide overlay if a Toast notification is currently active
+        if (isToastActive(mc)) return;
 
         mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
             String currentPath = data.getCurrentPath();
@@ -85,7 +123,6 @@ public class MasteryTrackerOverlay {
 
             GuiGraphics g = event.getGuiGraphics();
             Font font = mc.font;
-            int screenWidth = mc.getWindow().getGuiScaledWidth();
 
             int completedCount = MasteryService.getCompletedRequirementsCount(mc.player, data, path);
             int totalCount = path.getRequirements().size();
@@ -98,7 +135,8 @@ public class MasteryTrackerOverlay {
             int cardW = Math.max(150, Math.max(titleW, descW) + 36);
             int cardH = 32;
 
-            int cardX = screenWidth - cardW - 12;
+            // Position: Top-Left corner next to toasts
+            int cardX = 12;
             int cardY = 12;
 
             int bg = 0xD8120E0D;

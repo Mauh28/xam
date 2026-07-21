@@ -49,13 +49,15 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
         String titleText = Component.translatable("xam.screen.mastery_hub.header").getString();
         graphics.drawString(this.font, titleText, containerX + 15, titleY, TEXT_SECONDARY, false);
 
-        // Help button "?"
-        int helpX = containerX + containerW - 35;
-        int helpY = containerY + (headerH - 12) / 2;
-        boolean helpHovered = mouseX >= helpX && mouseX < helpX + 12 && mouseY >= helpY && mouseY < helpY + 12;
-        drawFlatPanel(graphics, helpX, helpY, 12, 12, helpHovered ? 0xFF2C221D : PANEL_INNER_BG, helpHovered ? COLOR_BRASS : WARM_BORDER);
-        graphics.drawCenteredString(this.font, "?", helpX + 6, helpY + 2, helpHovered ? COLOR_BRASS : TEXT_SECONDARY);
+        int btnSize = 20;
+        int closeX = containerX + containerW - 15 - btnSize;
+        int helpX = closeX - btnSize - 6;
+        int btnY = containerY + (headerH - btnSize) / 2;
 
+        // Draw Help button "?" next to Close button
+        drawFlatButton(graphics, helpX, btnY, btnSize, btnSize, "?", mouseX, mouseY, true);
+
+        // Draw Close button "✕"
         drawCloseButton(graphics, mouseX, mouseY);
     }
 
@@ -81,9 +83,11 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        int effMouseX = showHelpModal ? -999 : mouseX;
+        int effMouseY = showHelpModal ? -999 : mouseY;
         Requirement hoveredRequirement = null;
         // Draw container base and headers/footers
-        super.render(graphics, mouseX, mouseY, partialTick);
+        super.render(graphics, effMouseX, effMouseY, partialTick);
 
         // Layout variables
         int leftW = (int) (containerW * 0.35);
@@ -402,7 +406,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 }
 
                 // Check card hover
-                boolean cardHovered = mouseX >= listX && mouseX < listX + listW && mouseY >= cardY && mouseY < cardY + cardH && mouseY >= listY && mouseY < listY + listH;
+                boolean cardHovered = effMouseX >= listX && effMouseX < listX + listW && effMouseY >= cardY && effMouseY < cardY + cardH && effMouseY >= listY && effMouseY < listY + listH;
                 if (cardHovered) {
                     hoveredRequirement = req;
                 }
@@ -452,13 +456,24 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 drawFlatPanel(graphics, badgeX, badgeY, badgeW, 12, 0xFF140F0D, 0xFF2C221D);
                 graphics.drawCenteredString(this.font, badge, badgeX + badgeW / 2, badgeY + 2, COLOR_BRASS);
 
-                // Pin Indicator
+                // Track / Pin Badge Button
                 String reqKey = MasteryService.getRequirementShortKey(req);
                 boolean isTracked = reqKey.equals(playerData.getTrackedRequirementKey());
+                String trackText = isTracked 
+                    ? Component.translatable("xam.screen.mastery_hub.tracking").getString()
+                    : Component.translatable("xam.screen.mastery_hub.track").getString();
+                int trackBtnW = this.font.width(trackText) + 8;
+                int trackBtnX = badgeX - trackBtnW - 6;
+                int trackBtnY = badgeY;
+
+                boolean trackHovered = mouseX >= trackBtnX && mouseX < trackBtnX + trackBtnW && mouseY >= trackBtnY && mouseY < trackBtnY + 12;
+
                 if (isTracked) {
-                    graphics.drawString(this.font, "📌", listX + listW - 14, cardY + 4, 0xFFDF9E3F, false);
-                } else if (cardHovered) {
-                    graphics.drawString(this.font, "📌", listX + listW - 14, cardY + 4, 0xFF555555, false);
+                    drawFlatPanel(graphics, trackBtnX, trackBtnY, trackBtnW, 12, 0xFF4A3816, COLOR_BRASS);
+                    graphics.drawCenteredString(this.font, trackText, trackBtnX + trackBtnW / 2, trackBtnY + 2, 0xFFFFD700);
+                } else {
+                    drawFlatPanel(graphics, trackBtnX, trackBtnY, trackBtnW, 12, trackHovered ? 0xFF2C221D : 0xFF140F0D, trackHovered ? COLOR_BRASS : WARM_BORDER);
+                    graphics.drawCenteredString(this.font, trackText, trackBtnX + trackBtnW / 2, trackBtnY + 2, trackHovered ? COLOR_BRASS : TEXT_SECONDARY);
                 }
 
                 // Draw availability badge
@@ -472,7 +487,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                         int availBorder = isAvailable ? 0xFF2A593E : 0xFF592A2A;
                         int availBg = isAvailable ? 0xFF152615 : 0xFF2A1515;
                         int availW = this.font.width(availText) + 8;
-                        int availX = badgeX - availW - 6;
+                        int availX = trackBtnX - availW - 6;
                         drawFlatPanel(graphics, availX, badgeY, availW, 12, availBg, availBorder);
                         graphics.drawCenteredString(this.font, availText, availX + availW / 2, badgeY + 2, availCol);
                     }
@@ -609,8 +624,8 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     }
 
     private void renderHelpModal(GuiGraphics graphics, int mouseX, int mouseY) {
-        int modalW = Math.min(330, (int) (this.width * 0.95));
-        int modalH = 175;
+        int modalW = Math.min(340, (int) (this.width * 0.95));
+        int modalH = 195;
         int modalX = (this.width - modalW) / 2;
         int modalY = (this.height - modalH) / 2;
 
@@ -628,21 +643,24 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
         boolean closeHovered = mouseX >= closeX && mouseX < closeX + 12 && mouseY >= closeY && mouseY < closeY + 12;
         graphics.drawString(this.font, "✕", closeX, closeY, closeHovered ? COLOR_BRASS : TEXT_MUTED, false);
 
-        int textY = modalY + 32;
+        int textY = modalY + 30;
         int textX = modalX + 12;
+        int maxTextW = modalW - 24;
 
-        String[] lines = {
-            "§61. Selección e Inicio:§r Elige una rama activa para especializarte.",
-            "§62. Uso de Objetos:§r Solo puedes usar ítems de tu rama activa,",
-            "ramas dominadas o ítems universales/vanilla.",
-            "§63. Dominio de Ramas:§r Al completar el 100% de misiones, la rama",
-            "quedará §aDominada§r permanentemente y sus ítems permitidos.",
-            "§64. Fijar Misión (📌):§r Haz clic en una misión para seguirla en tu HUD."
+        String[] rawRules = {
+            "§61. Selección e Inicio:§r Elige una rama activa en el Hub para especializarte en sus misiones.",
+            "§62. Uso de Objetos:§r Solo puedes usar ítems de tu rama activa, ramas dominadas o ítems universales/vanilla.",
+            "§63. Dominio de Ramas:§r Al completar el 100% de misiones, la rama quedará §aDominada§r permanentemente y sus ítems permitidos.",
+            "§64. Fijar Misión (📍):§r Haz clic en el botón [📍 RASTREAR] de cualquier misión para seguir su progreso en tu pantalla."
         };
 
-        for (String line : lines) {
-            graphics.drawString(this.font, line, textX, textY, TEXT_PRIMARY, false);
-            textY += 13;
+        for (String raw : rawRules) {
+            var formattedLines = this.font.split(Component.literal(raw), maxTextW);
+            for (var line : formattedLines) {
+                graphics.drawString(this.font, line, textX, textY, TEXT_PRIMARY, false);
+                textY += 11;
+            }
+            textY += 3;
         }
 
         graphics.pose().popPose();
@@ -680,8 +698,8 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
             if (showHelpModal) {
-                int modalW = Math.min(330, (int) (this.width * 0.95));
-                int modalH = 175;
+                int modalW = Math.min(340, (int) (this.width * 0.95));
+                int modalH = 195;
                 int modalX = (this.width - modalW) / 2;
                 int modalY = (this.height - modalH) / 2;
                 int closeX = modalX + modalW - 18;
@@ -698,9 +716,11 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 return true;
             }
 
-            int helpX = containerX + containerW - 35;
-            int helpY = containerY + (headerH - 12) / 2;
-            if (mouseX >= helpX && mouseX < helpX + 12 && mouseY >= helpY && mouseY < helpY + 12) {
+            int btnSize = 20;
+            int closeX = containerX + containerW - 15 - btnSize;
+            int helpX = closeX - btnSize - 6;
+            int headerBtnY = containerY + (headerH - btnSize) / 2;
+            if (mouseX >= helpX && mouseX < helpX + btnSize && mouseY >= headerBtnY && mouseY < headerBtnY + btnSize) {
                 playClickSound();
                 showHelpModal = true;
                 return true;
