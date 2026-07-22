@@ -228,8 +228,15 @@ public class XamCommand {
                                 PathInfo path = ConfigManager.PATHS_MAP.get(currentPath);
                                 if (path != null) {
                                     for (Requirement req : path.getRequirements()) {
+                                        builder.suggest(req.getId());
                                         builder.suggest(MasteryService.getRequirementShortKey(req));
                                     }
+                                }
+                            }
+                            for (PathInfo path : ConfigManager.PATHS) {
+                                for (Requirement req : path.getRequirements()) {
+                                    builder.suggest(req.getId());
+                                    builder.suggest(MasteryService.getRequirementShortKey(req));
                                 }
                             }
                         });
@@ -285,8 +292,15 @@ public class XamCommand {
                                 PathInfo path = ConfigManager.PATHS_MAP.get(currentPath);
                                 if (path != null) {
                                     for (Requirement req : path.getRequirements()) {
+                                        builder.suggest(req.getId());
                                         builder.suggest(MasteryService.getRequirementShortKey(req));
                                     }
+                                }
+                            }
+                            for (PathInfo path : ConfigManager.PATHS) {
+                                for (Requirement req : path.getRequirements()) {
+                                    builder.suggest(req.getId());
+                                    builder.suggest(MasteryService.getRequirementShortKey(req));
                                 }
                             }
                         });
@@ -386,6 +400,7 @@ public class XamCommand {
                 return;
             }
             if (mastered) {
+                data.addStartedPath(pathId);
                 data.addMasteredPath(pathId);
                 PathInfo path = ConfigManager.PATHS_MAP.get(pathId);
                 if (path != null) {
@@ -423,6 +438,7 @@ public class XamCommand {
                 MasteryService.updateCompletedAllMasteriesState(player, data);
                 MasteryService.sync(player);
                 MasteryService.updateArmorModifiers(player);
+                MasteryService.triggerTriumphEffects(player);
                 player.sendSystemMessage(Component.translatable("xam.msg.mastered_announcement", Component.translatable(path != null ? path.getName() : pathId)));
 
                 if (bestPath != null) {
@@ -538,29 +554,75 @@ public class XamCommand {
         }
     }
 
-    private static void completeRequirement(CommandSourceStack source, ServerPlayer player, String reqKey) {
-        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-            String currentPath = data.getCurrentPath();
-            if (currentPath == null) {
-                source.sendFailure(Component.translatable("xam.msg.no_active_mastery", player.getGameProfile().getName()));
-                return;
-            }
-            PathInfo pathInfo = ConfigManager.PATHS_MAP.get(currentPath);
-            if (pathInfo == null) {
-                source.sendFailure(Component.translatable("xam.msg.invalid_mastery"));
-                return;
-            }
-            Requirement foundReq = null;
-            for (Requirement req : pathInfo.getRequirements()) {
-                if (MasteryService.getRequirementShortKey(req).equals(reqKey)) {
-                    foundReq = req;
-                    break;
+    private static class FoundReqResult {
+        final PathInfo path;
+        final Requirement req;
+
+        FoundReqResult(PathInfo path, Requirement req) {
+            this.path = path;
+            this.req = req;
+        }
+    }
+
+    private static FoundReqResult resolveRequirement(org.xam.data.PlayerData data, String reqInput) {
+        if (reqInput == null || reqInput.trim().isEmpty()) return null;
+        String cleanInput = reqInput.trim();
+
+        // 1. Try active/current path first if available
+        String currentPathId = data.getCurrentPath();
+        if (currentPathId != null) {
+            PathInfo currentPath = ConfigManager.PATHS_MAP.get(currentPathId);
+            if (currentPath != null) {
+                for (Requirement req : currentPath.getRequirements()) {
+                    String shortKey = MasteryService.getRequirementShortKey(req);
+                    String fullKey = MasteryService.getRequirementKey(currentPath.getId(), req);
+                    String reqId = req.getId();
+
+                    if (cleanInput.equalsIgnoreCase(shortKey) || 
+                        cleanInput.equalsIgnoreCase(reqId) || 
+                        cleanInput.equalsIgnoreCase(fullKey)) {
+                        return new FoundReqResult(currentPath, req);
+                    }
                 }
             }
-            if (foundReq == null) {
-                source.sendFailure(Component.translatable("xam.msg.req_not_in_path", reqKey, currentPath));
+        }
+
+        // 2. Fallback to searching all configured paths
+        for (PathInfo path : ConfigManager.PATHS) {
+            for (Requirement req : path.getRequirements()) {
+                String shortKey = MasteryService.getRequirementShortKey(req);
+                String fullKey = MasteryService.getRequirementKey(path.getId(), req);
+                String reqId = req.getId();
+
+                if (cleanInput.equalsIgnoreCase(shortKey) || 
+                    cleanInput.equalsIgnoreCase(reqId) || 
+                    cleanInput.equalsIgnoreCase(fullKey)) {
+                    return new FoundReqResult(path, req);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static void completeRequirement(CommandSourceStack source, ServerPlayer player, String reqKey) {
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            FoundReqResult result = resolveRequirement(data, reqKey);
+            if (result == null) {
+                source.sendFailure(Component.translatable("xam.msg.req_not_in_path", reqKey, data.getCurrentPath() != null ? data.getCurrentPath() : "None"));
                 return;
             }
+
+            PathInfo pathInfo = result.path;
+            Requirement foundReq = result.req;
+
+            data.addStartedPath(pathInfo.getId());
+
+            if (data.getCurrentPath() == null) {
+                data.setCurrentPath(pathInfo.getId());
+                data.setActivePathModId(pathInfo.getModId());
+            }
+
             if (foundReq.getType().equals("advancement")) {
                 ResourceLocation resLoc = ResourceLocation.tryParse(foundReq.getId());
                 if (resLoc != null) {
@@ -574,42 +636,31 @@ public class XamCommand {
                         }
                     }
                 }
-            } else {
-                String fullKey = MasteryService.getRequirementKey(pathInfo.getId(), foundReq);
-                if (!data.getCompletedRequirements().contains(fullKey)) {
-                    data.addCompletedRequirement(fullKey);
-                    data.addStartedPath(pathInfo.getId());
-                }
             }
+
+            String fullKey = MasteryService.getRequirementKey(pathInfo.getId(), foundReq);
+            if (!data.getCompletedRequirements().contains(fullKey)) {
+                data.addCompletedRequirement(fullKey);
+            }
+
             MasteryService.checkAndRefreshPlayerData(player, data);
             MasteryService.sync(player);
-            source.sendSuccess(() -> Component.translatable("xam.msg.req_completed_success", reqKey, player.getGameProfile().getName()), true);
+            MasteryService.checkPathCompletion(player, data, pathInfo);
+            source.sendSuccess(() -> Component.translatable("xam.msg.req_completed_success", foundReq.getId(), player.getGameProfile().getName()), true);
         });
     }
 
     private static void revertRequirement(CommandSourceStack source, ServerPlayer player, String reqKey) {
         player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-            String currentPath = data.getCurrentPath();
-            if (currentPath == null) {
-                source.sendFailure(Component.translatable("xam.msg.no_active_mastery", player.getGameProfile().getName()));
+            FoundReqResult result = resolveRequirement(data, reqKey);
+            if (result == null) {
+                source.sendFailure(Component.translatable("xam.msg.req_not_in_path", reqKey, data.getCurrentPath() != null ? data.getCurrentPath() : "None"));
                 return;
             }
-            PathInfo pathInfo = ConfigManager.PATHS_MAP.get(currentPath);
-            if (pathInfo == null) {
-                source.sendFailure(Component.translatable("xam.msg.invalid_mastery"));
-                return;
-            }
-            Requirement foundReq = null;
-            for (Requirement req : pathInfo.getRequirements()) {
-                if (MasteryService.getRequirementShortKey(req).equals(reqKey)) {
-                    foundReq = req;
-                    break;
-                }
-            }
-            if (foundReq == null) {
-                source.sendFailure(Component.translatable("xam.msg.req_not_in_path", reqKey, currentPath));
-                return;
-            }
+
+            PathInfo pathInfo = result.path;
+            Requirement foundReq = result.req;
+
             if (foundReq.getType().equals("advancement")) {
                 ResourceLocation resLoc = ResourceLocation.tryParse(foundReq.getId());
                 if (resLoc != null) {
@@ -623,12 +674,11 @@ public class XamCommand {
                         }
                     }
                 }
-            } else {
-                String fullKey = MasteryService.getRequirementKey(pathInfo.getId(), foundReq);
-                data.removeCompletedRequirement(fullKey);
             }
 
-            // If the path was mastered, revoke it as well
+            String fullKey = MasteryService.getRequirementKey(pathInfo.getId(), foundReq);
+            data.removeCompletedRequirement(fullKey);
+
             if (data.getMasteredPaths().contains(pathInfo.getId())) {
                 data.removeMasteredPath(pathInfo.getId());
                 data.setCompletedAllMasteries(false);
@@ -637,7 +687,7 @@ public class XamCommand {
             MasteryService.checkAndRefreshPlayerData(player, data);
             MasteryService.sync(player);
             MasteryService.updateArmorModifiers(player);
-            source.sendSuccess(() -> Component.literal("Reverted requirement progress: " + reqKey + " for player: " + player.getGameProfile().getName()), true);
+            source.sendSuccess(() -> Component.literal("Reverted requirement progress: " + foundReq.getId() + " for player: " + player.getGameProfile().getName()), true);
         });
     }
 
@@ -716,6 +766,7 @@ public class XamCommand {
             MasteryService.updateCompletedAllMasteriesState(player, data);
             MasteryService.sync(player);
             MasteryService.updateArmorModifiers(player);
+            MasteryService.triggerTriumphEffects(player);
             source.sendSuccess(() -> Component.literal("Successfully mastered all paths for " + player.getGameProfile().getName()), true);
         });
     }

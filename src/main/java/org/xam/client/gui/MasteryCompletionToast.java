@@ -53,12 +53,12 @@ public class MasteryCompletionToast implements Toast {
             f = Math.max(0.0F, Math.min(1.0F, f));
         }
 
-        float desiredX = -this.width + (this.width + 12.0F) * f;
+        float desiredX = -this.width + (this.width + 4.0F) * f;
         int screenWidth = toastComponent.getMinecraft().getWindow().getGuiScaledWidth();
         float currentX = (float)screenWidth - (float)this.width * f;
 
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(desiredX - currentX, 12.0F, 0);
+        guiGraphics.pose().translate(desiredX - currentX, 4.0F, 0);
 
         // Draw our premium Ponder-themed notification card (dynamic width x 32)
         // Background: PANEL_INNER_BG (0xFF120E0D), Border: COLOR_BRASS (0xFFDF9E3F)

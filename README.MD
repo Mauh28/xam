@@ -1,8 +1,12 @@
 # XAM (xd Absolute Mastery)
 
-
 ![XAM Logo](src/main/resources/xam.png)
 
+[![Minecraft 1.20.1](https://img.shields.io/badge/Minecraft-1.20.1-55FF55?style=for-the-badge&logo=minecraft&logoColor=white)](https://www.minecraft.net/)
+[![Forge 47.4.0+](https://img.shields.io/badge/Forge-47.4.0%2B-DF9E3F?style=for-the-badge)](https://files.minecraftforge.net/)
+[![Build Status](https://img.shields.io/badge/Build-Passing-4ADE80?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/Mauh28/xam/actions)
+[![License: LGPL v3](https://img.shields.io/badge/License-LGPL--3.0-blue?style=for-the-badge)](https://github.com/Mauh28/xam/blob/master/LICENSE)
+[![Releases](https://img.shields.io/badge/Releases-GitHub-purple?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Mauh28/xam/releases)
 
 **XAM** es un mod de progresión y maestría para Minecraft Forge 1.20.1 que revoluciona la forma en que los jugadores interactúan con los mods en un modpack. En lugar de tener acceso a todo desde el principio, XAM divide el contenido en "Rutas" o "Maestrías". El jugador debe elegir una ruta, completar requisitos específicos (logros, crafteos, matar jefes) y solo entonces desbloquear el uso de los items, herramientas y armaduras de esa categoría.
 
@@ -47,6 +51,11 @@ Al entrar al mundo por primera vez, el jugador no podrá usar items de mods comp
 
 XAM está pensado para ser altamente configurable mediante el archivo `xam_paths.json` que se genera en la carpeta `config/` al ejecutar el mod por primera vez.
 
+* 📖 **Guía Completa de Configuración**: Consulta la [Guía Técnica de Configuración (CONFIG_GUIDE.md)](docs/CONFIG_GUIDE.md) para ver la especificación completa de campos y sintaxis.
+* 📁 **Ejemplos Listos para Usar**: Explora la carpeta [examples/](examples/) para ver plantillas preconfiguradas:
+  * [Plantilla Básica (starter_pack.json)](examples/starter_pack.json)
+  * [Plantilla Avanzada / Expert Pack (expert_modpack.json)](examples/expert_modpack.json)
+
 Allí puedes definir:
 * Nuevas rutas y sus respectivos IDs de mods.
 * Requisitos personalizados (tipo: `advancement`, `craft`, `kill`, `collect`).
@@ -60,14 +69,20 @@ El mod incluye el comando `/xam` para gestionar a los jugadores (requiere permis
 
 | Comando | Descripción |
 | :--- | :--- |
-| `/xam info [player]` | Muestra el estado actual de maestría del jugador. |
-| `/xam progress [player]` | Muestra el progreso detallado de la ruta actual. |
-| `/xam select <path_id> [player]` | Fuerza a un jugador a seleccionar una ruta. |
-| `/xam master <path_id> [player]` | Marca una ruta como dominada para un jugador. |
-| `/xam complete_req <req_id> [player]` | Completa automáticamente un requisito para un jugador. |
-| `/xam reset <player>` | Borra todo el progreso del jugador. |
-| `/xam dev` | Activa/desactiva el Modo Dev (ignora restricciones de items). |
-| `/xam reload` | Recarga la configuración `xam_paths.json` sin reiniciar el servidor. |
+| `/xam info [player]` | Muestra la información de maestría activa, ramas dominadas y modo dev del jugador. |
+| `/xam progress [player]` | Muestra el progreso de requisitos de la maestría activa del jugador. |
+| `/xam started [player]` | Muestra las ramas iniciadas actualmente en progreso por el jugador. |
+| `/xam help` | Muestra el menú de ayuda interactivo con la lista de comandos. |
+| `/xam select <path_id> [player]` | Selecciona o asigna una rama activa a un jugador. |
+| `/xam master <path_id> [true/false] [player]` | Domina o desmarca una rama de maestría para un jugador (activa efectos 3D). |
+| `/xam complete_req <req_id> [player]` | Completa manualmente un requisito específico para un jugador. |
+| `/xam revert_req <req_id> [player]` | Revierte el progreso de un requisito específico para un jugador. |
+| `/xam check_item` | Analiza el objeto en mano mostrando sus etiquetas, namespace y estado de acceso. |
+| `/xam master_all [player]` | Domina instantáneamente todas las ramas de maestría para un jugador. |
+| `/xam deletepath <path_id>` | Elimina una rama de maestría completamente de la configuración del servidor. |
+| `/xam reset <player>` | Restablece y borra todo el progreso de maestría de un jugador. |
+| `/xam dev` | Activa o desactiva el Modo Desarrollador (ignora restricciones de objetos). |
+| `/xam reload` | Recarga la configuración `xam_paths.json` desde disco sin reiniciar el servidor. |
 
 ---
 

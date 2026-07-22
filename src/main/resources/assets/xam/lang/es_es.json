@@ -243,5 +243,20 @@
   "xam.default.mekanism.req1.name": "Elite",
   "xam.default.mekanism.req1.description": "Completa el logro Élite",
   "xam.default.mekanism.req2.name": "Master",
-  "xam.default.mekanism.req2.description": "Completa el logro Maestro"
+  "xam.default.mekanism.req2.description": "Completa el logro Maestro",
+
+  "xam.overlay.mission_completed": "✔ ¡Misión Completada!",
+  "xam.tooltip.req_type.craft": "Misión de Fabricación",
+  "xam.tooltip.req_type.collect": "Misión de Obtener/Recolectar",
+  "xam.tooltip.req_type.kill": "Misión de Caza/Eliminación",
+  "xam.tooltip.req_type.advancement": "Misión de Logro",
+  "xam.tooltip.available": "Disponible: Ítem utilizable con tu maestría actual",
+  "xam.tooltip.locked_mastery": "Bloqueado: Requiere desbloquear la rama correspondiente",
+  "xam.tooltip.track_pin": "Fijar Misión (Haz clic para rastrear en pantalla)",
+  "xam.tooltip.track_unpin": "Fijada (Haz clic para desmarcar)",
+  "xam.help_modal.title": "❓ Guía de Maestrías - XAM",
+  "xam.help_modal.rule1": "§61. Selección e Inicio:§r Elige una rama activa en el Hub para especializarte en sus misiones.",
+  "xam.help_modal.rule2": "§62. Uso de Objetos:§r Solo puedes usar ítems de tu rama activa, ramas dominadas o ítems universales/vanilla.",
+  "xam.help_modal.rule3": "§63. Dominio de Ramas:§r Al completar el 100% de misiones, la rama quedará §aDominada§r permanentemente y sus ítems permitidos.",
+  "xam.help_modal.rule4": "§64. Fijar Misión (📌):§r Haz clic en el botón de fijar misión para seguir su progreso en tu pantalla."
 }

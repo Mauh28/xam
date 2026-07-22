@@ -616,22 +616,50 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
             cursorY += 4;
         }
 
-        String collectBadge = Component.translatable("xam.req_type.badge.collect").getString();
-        int maxBadgeW = this.font.width(collectBadge) + 6;
+        String hoveredIconTooltip = null;
 
         for (Requirement req : selectedPathForDetails.getRequirements()) {
             boolean done = isRequirementCompletedClient(selectedPathForDetails, req);
             String symbol = done ? "§a[✓]§r" : "§c[✘]§r";
             String reqName = resolveRequirementName(req);
-            String typeBadge = Component.translatable("xam.req_type.badge." + req.getType().toLowerCase()).getString();
-            int rNameMaxW = contentW - 24 - maxBadgeW - 4;
+
+            int iconSize = 14;
+            int iconX = contentX + contentW - iconSize - 2;
+            int iconY = cursorY - 1;
+
+            String reqType = req.getType().toLowerCase();
+            String typeSymbol = "📜";
+            int typeBorder = COLOR_BRASS;
+
+            if (reqType.equals("craft")) {
+                typeSymbol = "⚒";
+                typeBorder = 0xFF5DADE2;
+            } else if (reqType.equals("collect")) {
+                typeSymbol = "📦";
+                typeBorder = 0xFF58D68D;
+            } else if (reqType.equals("kill")) {
+                typeSymbol = "⚔";
+                typeBorder = 0xFFEC7063;
+            } else if (reqType.equals("advancement")) {
+                typeSymbol = "📜";
+                typeBorder = 0xFFF5B041;
+            }
+
+            boolean iconHovered = mouseX >= iconX && mouseX < iconX + iconSize && mouseY >= iconY && mouseY < iconY + iconSize && mouseY >= viewportY && mouseY < viewportY + viewportH;
+
+            drawFlatPanel(graphics, iconX, iconY, iconSize, iconSize, iconHovered ? 0xFF2C221D : 0xFF140F0D, iconHovered ? COLOR_BRASS : typeBorder);
+            graphics.drawCenteredString(this.font, typeSymbol, iconX + iconSize / 2, iconY + 2, typeBorder);
+
+            if (iconHovered) {
+                hoveredIconTooltip = Component.translatable("xam.tooltip.req_type." + reqType).getString();
+            }
+
+            int rNameMaxW = contentW - 24 - iconSize - 4;
             if (this.font.width(reqName) > rNameMaxW) {
                 reqName = this.font.plainSubstrByWidth(reqName, rNameMaxW - 10) + "...";
             }
             graphics.drawString(this.font, symbol + " " + reqName, contentX + 6, cursorY, done ? 0xFF8FD68F : TEXT_PRIMARY, false);
-            drawFlatPanel(graphics, contentX + contentW - maxBadgeW - 2, cursorY - 1, maxBadgeW, 11, 0xFF140F0D, 0xFF2C221D);
-            graphics.drawString(this.font, typeBadge, contentX + contentW - maxBadgeW + 1, cursorY, COLOR_BRASS, false);
-            cursorY += 12;
+            cursorY += 14;
 
             String rDesc = resolveRequirementDescription(req);
             if (!rDesc.isEmpty()) {
@@ -645,6 +673,29 @@ public class PathSelectionScreen extends AbstractMasteryScreen {
         }
 
         graphics.disableScissor();
+
+        // Render hovered icon tooltip if active
+        if (hoveredIconTooltip != null) {
+            int ttX = mouseX + 12;
+            int ttY = mouseY - 12;
+            int ttW = this.font.width(hoveredIconTooltip) + 16;
+            int ttH = 20;
+
+            if (ttX + ttW > width) {
+                ttX = mouseX - ttW - 12;
+            }
+            if (ttY + ttH > height) {
+                ttY = height - ttH - 6;
+            }
+
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, 500);
+
+            drawFlatPanel(graphics, ttX, ttY, ttW, ttH, 0xFF120E0D, COLOR_COPPER);
+            graphics.drawString(this.font, hoveredIconTooltip, ttX + 8, ttY + 6, TEXT_PRIMARY, false);
+
+            graphics.pose().popPose();
+        }
 
         // Update content height
         modalContentHeight = cursorY - startY;

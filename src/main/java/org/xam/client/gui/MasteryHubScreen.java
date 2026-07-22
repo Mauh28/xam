@@ -86,6 +86,7 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
         int effMouseX = showHelpModal ? -999 : mouseX;
         int effMouseY = showHelpModal ? -999 : mouseY;
         Requirement hoveredRequirement = null;
+        String hoveredIconTooltip = null;
         // Draw container base and headers/footers
         super.render(graphics, effMouseX, effMouseY, partialTick);
 
@@ -448,45 +449,78 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 }
                 graphics.drawString(this.font, reqDescText, listX + 25, cardY + 20, isCompleted ? 0xFF657E6D : TEXT_SECONDARY, false);
 
-                // Task Type badge on the right
-                String badge = Component.translatable("xam.req_type.badge." + req.getType().toLowerCase()).getString();
-                int badgeW = this.font.width(badge) + 10;
-                int badgeX = listX + listW - badgeW - 10;
-                int badgeY = cardY + (cardH - 12) / 2;
-                drawFlatPanel(graphics, badgeX, badgeY, badgeW, 12, 0xFF140F0D, 0xFF2C221D);
-                graphics.drawCenteredString(this.font, badge, badgeX + badgeW / 2, badgeY + 2, COLOR_BRASS);
+                // Render minimalist icon buttons on the right side of the card
+                int btnSize = 16;
+                int iconY = cardY + (cardH - btnSize) / 2;
 
-                // Track Icon Square Button [ 🎯 ]
+                // 1. Track Button (Far right)
+                int trackBtnX = listX + listW - 8 - btnSize;
                 String reqKey = MasteryService.getRequirementShortKey(req);
                 boolean isTracked = reqKey.equals(playerData.getTrackedRequirementKey());
-                int trackBtnSize = 14;
-                int trackBtnX = badgeX - trackBtnSize - 6;
-                int trackBtnY = cardY + (cardH - trackBtnSize) / 2;
 
-                boolean trackHovered = effMouseX >= trackBtnX && effMouseX < trackBtnX + trackBtnSize && effMouseY >= trackBtnY && effMouseY < trackBtnY + trackBtnSize;
+                boolean trackHovered = effMouseX >= trackBtnX && effMouseX < trackBtnX + btnSize && effMouseY >= iconY && effMouseY < iconY + btnSize && effMouseY >= listY && effMouseY < listY + listH;
 
                 if (isTracked) {
-                    drawFlatPanel(graphics, trackBtnX, trackBtnY, trackBtnSize, trackBtnSize, 0xFF4A3816, COLOR_BRASS);
-                    graphics.drawCenteredString(this.font, "🎯", trackBtnX + trackBtnSize / 2, trackBtnY + 3, 0xFFFFD700);
+                    drawFlatPanel(graphics, trackBtnX, iconY, btnSize, btnSize, 0xFF4A3816, COLOR_BRASS);
+                    graphics.drawCenteredString(this.font, "📌", trackBtnX + btnSize / 2, iconY + 3, 0xFFFFD700);
                 } else {
-                    drawFlatPanel(graphics, trackBtnX, trackBtnY, trackBtnSize, trackBtnSize, trackHovered ? 0xFF2C221D : 0xFF140F0D, trackHovered ? COLOR_BRASS : WARM_BORDER);
-                    graphics.drawCenteredString(this.font, "🎯", trackBtnX + trackBtnSize / 2, trackBtnY + 3, trackHovered ? COLOR_BRASS : 0xFF888888);
+                    drawFlatPanel(graphics, trackBtnX, iconY, btnSize, btnSize, trackHovered ? 0xFF2C221D : 0xFF140F0D, trackHovered ? COLOR_BRASS : WARM_BORDER);
+                    graphics.drawCenteredString(this.font, "📌", trackBtnX + btnSize / 2, iconY + 3, trackHovered ? COLOR_BRASS : 0xFF888888);
                 }
 
-                // Draw availability badge
+                if (trackHovered) {
+                    hoveredIconTooltip = isTracked ? Component.translatable("xam.tooltip.track_unpin").getString() : Component.translatable("xam.tooltip.track_pin").getString();
+                }
+
+                // 2. Requirement Type Badge Icon
+                int typeBtnX = trackBtnX - 4 - btnSize;
+                boolean typeHovered = effMouseX >= typeBtnX && effMouseX < typeBtnX + btnSize && effMouseY >= iconY && effMouseY < iconY + btnSize && effMouseY >= listY && effMouseY < listY + listH;
+
+                String reqType = req.getType().toLowerCase();
+                String typeSymbol = "📜";
+                int typeBorder = COLOR_BRASS;
+
+                if (reqType.equals("craft")) {
+                    typeSymbol = "⚒";
+                    typeBorder = 0xFF5DADE2;
+                } else if (reqType.equals("collect")) {
+                    typeSymbol = "📦";
+                    typeBorder = 0xFF58D68D;
+                } else if (reqType.equals("kill")) {
+                    typeSymbol = "⚔";
+                    typeBorder = 0xFFEC7063;
+                } else if (reqType.equals("advancement")) {
+                    typeSymbol = "📜";
+                    typeBorder = 0xFFF5B041;
+                }
+
+                drawFlatPanel(graphics, typeBtnX, iconY, btnSize, btnSize, typeHovered ? 0xFF2C221D : 0xFF140F0D, typeHovered ? COLOR_BRASS : typeBorder);
+                graphics.drawCenteredString(this.font, typeSymbol, typeBtnX + btnSize / 2, iconY + 3, typeBorder);
+
+                if (typeHovered) {
+                    hoveredIconTooltip = Component.translatable("xam.tooltip.req_type." + reqType).getString();
+                }
+
+                // 3. Availability Badge Icon
                 if (req.getType().equals("craft") || req.getType().equals("collect")) {
                     net.minecraft.world.item.Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.tryParse(req.getId()));
                     if (item != null && item != net.minecraft.world.item.Items.AIR) {
                         net.minecraft.world.item.ItemStack dummyStack = new net.minecraft.world.item.ItemStack(item);
                         boolean isAvailable = MasteryService.isItemValid(dummyStack, playerData);
-                        String availText = isAvailable ? Component.translatable("xam.screen.mastery_hub.available").getString() : Component.translatable("xam.screen.mastery_hub.locked").getString();
+                        int availBtnX = typeBtnX - 4 - btnSize;
+                        boolean availHovered = effMouseX >= availBtnX && effMouseX < availBtnX + btnSize && effMouseY >= iconY && effMouseY < iconY + btnSize && effMouseY >= listY && effMouseY < listY + listH;
+
                         int availCol = isAvailable ? 0xFF55FF55 : 0xFFFF5555;
                         int availBorder = isAvailable ? 0xFF2A593E : 0xFF592A2A;
                         int availBg = isAvailable ? 0xFF152615 : 0xFF2A1515;
-                        int availW = this.font.width(availText) + 8;
-                        int availX = trackBtnX - availW - 6;
-                        drawFlatPanel(graphics, availX, badgeY, availW, 12, availBg, availBorder);
-                        graphics.drawCenteredString(this.font, availText, availX + availW / 2, badgeY + 2, availCol);
+                        String availSymbol = isAvailable ? "🔓" : "🔒";
+
+                        drawFlatPanel(graphics, availBtnX, iconY, btnSize, btnSize, availBg, availHovered ? COLOR_BRASS : availBorder);
+                        graphics.drawCenteredString(this.font, availSymbol, availBtnX + btnSize / 2, iconY + 3, availCol);
+
+                        if (availHovered) {
+                            hoveredIconTooltip = isAvailable ? Component.translatable("xam.tooltip.available").getString() : Component.translatable("xam.tooltip.locked_mastery").getString();
+                        }
                     }
                 }
             }
@@ -506,8 +540,28 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
             }
         }
 
-        // Render rich tooltip if hovered
-        if (hoveredRequirement != null) {
+        // Render tooltips
+        if (hoveredIconTooltip != null) {
+            int ttX = mouseX + 12;
+            int ttY = mouseY - 12;
+            int ttW = this.font.width(hoveredIconTooltip) + 16;
+            int ttH = 20;
+
+            if (ttX + ttW > width) {
+                ttX = mouseX - ttW - 12;
+            }
+            if (ttY + ttH > height) {
+                ttY = height - ttH - 6;
+            }
+
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, 400);
+
+            drawFlatPanel(graphics, ttX, ttY, ttW, ttH, 0xFF120E0D, COLOR_COPPER);
+            graphics.drawString(this.font, hoveredIconTooltip, ttX + 8, ttY + 6, TEXT_PRIMARY, false);
+
+            graphics.pose().popPose();
+        } else if (hoveredRequirement != null) {
             int ttX = mouseX + 12;
             int ttY = mouseY - 12;
             int ttW = 160;
@@ -633,22 +687,22 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
 
         drawFlatPanel(graphics, modalX, modalY, modalW, modalH, PANEL_BACKGROUND, COLOR_BRASS);
         drawFlatPanel(graphics, modalX + 2, modalY + 2, modalW - 4, 22, PANEL_INNER_BG, WARM_BORDER);
-        graphics.drawString(this.font, "❓ Guía de Maestrías - XAM", modalX + 10, modalY + 8, COLOR_BRASS, false);
+        graphics.drawString(this.font, Component.translatable("xam.help_modal.title").getString(), modalX + 10, modalY + 8, COLOR_BRASS, false);
 
-        int closeX = modalX + modalW - 18;
+        int closeSize = 14;
+        int closeX = modalX + modalW - 19;
         int closeY = modalY + 6;
-        boolean closeHovered = mouseX >= closeX && mouseX < closeX + 12 && mouseY >= closeY && mouseY < closeY + 12;
-        graphics.drawString(this.font, "✕", closeX, closeY, closeHovered ? COLOR_BRASS : TEXT_MUTED, false);
+        drawFlatButton(graphics, closeX, closeY, closeSize, closeSize, "✕", mouseX, mouseY, true);
 
         int textY = modalY + 30;
         int textX = modalX + 12;
         int maxTextW = modalW - 24;
 
         String[] rawRules = {
-            "§61. Selección e Inicio:§r Elige una rama activa en el Hub para especializarte en sus misiones.",
-            "§62. Uso de Objetos:§r Solo puedes usar ítems de tu rama activa, ramas dominadas o ítems universales/vanilla.",
-            "§63. Dominio de Ramas:§r Al completar el 100% de misiones, la rama quedará §aDominada§r permanentemente y sus ítems permitidos.",
-            "§64. Fijar Misión (📍):§r Haz clic en el botón [📍 RASTREAR] de cualquier misión para seguir su progreso en tu pantalla."
+            Component.translatable("xam.help_modal.rule1").getString(),
+            Component.translatable("xam.help_modal.rule2").getString(),
+            Component.translatable("xam.help_modal.rule3").getString(),
+            Component.translatable("xam.help_modal.rule4").getString()
         };
 
         for (String raw : rawRules) {
@@ -699,9 +753,10 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 int modalH = 195;
                 int modalX = (this.width - modalW) / 2;
                 int modalY = (this.height - modalH) / 2;
-                int closeX = modalX + modalW - 18;
+                int closeSize = 14;
+                int closeX = modalX + modalW - 19;
                 int closeY = modalY + 6;
-                if (mouseX >= closeX && mouseX < closeX + 12 && mouseY >= closeY && mouseY < closeY + 12) {
+                if (mouseX >= closeX && mouseX < closeX + closeSize && mouseY >= closeY && mouseY < closeY + closeSize) {
                     playClickSound();
                     showHelpModal = false;
                     return true;

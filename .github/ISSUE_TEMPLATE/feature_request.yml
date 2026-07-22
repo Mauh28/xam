@@ -1,0 +1,23 @@
+name: 💡 Sugerencia o Idea (Feature Request)
+description: Propón una nueva función o mejora para el mod XAM
+title: "[IDEA]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ¡Nos encanta escuchar nuevas ideas! Describe la función que te gustaría ver en XAM.
+  - type: textarea
+    id: idea_description
+    attributes:
+      label: Descripción de la Sugerencia
+      description: ¿Qué función te gustaría añadir o modificar?
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Caso de Uso / Beneficio para Modpacks
+      description: ¿Cómo mejoraría la experiencia de juego o la creación de modpacks esta sugerencia?
+    validations:
+      required: true

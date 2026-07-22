@@ -1,0 +1,66 @@
+{
+  "universal_namespaces": [
+    "minecraft",
+    "tconstruct"
+  ],
+  "paths": [
+    {
+      "id": "botania",
+      "name": "El Camino de la Naturaleza",
+      "mod_id": "botania",
+      "icon": "botania:lexicon",
+      "min_to_switch": 0,
+      "perk_effect": "minecraft:speed",
+      "perk_amplifier": 0,
+      "dependencies": [],
+      "requirements": [
+        {
+          "type": "advancement",
+          "id": "botania:main/rune_pickup",
+          "name": "Recoger Runa",
+          "description": "Obtén cualquier runa mística de Botania",
+          "effect": "",
+          "dependencies": []
+        },
+        {
+          "type": "advancement",
+          "id": "botania:main/elf_portal_open",
+          "name": "Portal de Alfheim",
+          "description": "Abre el portal hacia el reino de los elfos",
+          "effect": "",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "id": "mekanism",
+      "name": "El Camino Tecnológico",
+      "mod_id": "mekanism",
+      "icon": "mekanism:configurator",
+      "min_to_switch": 1,
+      "perk_effect": "minecraft:haste",
+      "perk_amplifier": 0,
+      "dependencies": [
+        "botania:1"
+      ],
+      "requirements": [
+        {
+          "type": "craft",
+          "id": "mekanism:basic_control_circuit",
+          "name": "Circuito de Control Básico",
+          "description": "Fabrica un Circuito de Control Básico",
+          "effect": "",
+          "dependencies": []
+        },
+        {
+          "type": "collect",
+          "id": "mekanism:ingot_osmium",
+          "name": "Lingote de Osmio",
+          "description": "Obtén un Lingote de Osmio en tu inventario",
+          "effect": "",
+          "dependencies": []
+        }
+      ]
+    }
+  ]
+}

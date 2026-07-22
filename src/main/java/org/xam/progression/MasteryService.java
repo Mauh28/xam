@@ -206,6 +206,21 @@ public class MasteryService {
             if (bestPath != null) {
                 player.sendSystemMessage(Component.translatable("xam.msg.auto_assigned_path", Component.translatable(bestPath.getName())).withStyle(net.minecraft.ChatFormatting.GREEN));
             }
+
+            // Spawn celebratory 3D particles and triumph sound
+            triggerTriumphEffects(player);
+        }
+    }
+
+    public static void triggerTriumphEffects(ServerPlayer player) {
+        if (player != null && player.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+            double px = player.getX();
+            double py = player.getY() + 1.0;
+            double pz = player.getZ();
+
+            serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.TOTEM_OF_UNDYING, px, py, pz, 60, 0.6, 0.9, 0.6, 0.18);
+            serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.END_ROD, px, py, pz, 30, 0.5, 0.7, 0.5, 0.10);
+            serverLevel.playSound(null, px, py, pz, net.minecraft.sounds.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, net.minecraft.sounds.SoundSource.PLAYERS, 1.0F, 1.0F);
         }
     }
 

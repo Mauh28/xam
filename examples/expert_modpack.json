@@ -1,0 +1,100 @@
+{
+  "universal_namespaces": [
+    "minecraft",
+    "tconstruct",
+    "ae2"
+  ],
+  "paths": [
+    {
+      "id": "magic_tier1",
+      "name": "Ars Nouveau: Aprendiz de Magia",
+      "mod_id": "ars_nouveau",
+      "icon": "ars_nouveau:worn_notebook",
+      "min_to_switch": 0,
+      "perk_effect": "minecraft:regeneration",
+      "perk_amplifier": 0,
+      "dependencies": [],
+      "requirements": [
+        {
+          "type": "craft",
+          "id": "ars_nouveau:novice_spell_book",
+          "name": "Libro de Hechizos Principiante",
+          "description": "Craftea un Libro de Hechizos Principiante",
+          "effect": "",
+          "dependencies": []
+        },
+        {
+          "type": "collect",
+          "id": "ars_nouveau:source_gem",
+          "name": "Gema de Fuente",
+          "description": "Recolecta una Gema de Fuente",
+          "effect": "",
+          "dependencies": [
+            "craft:ars_nouveau:novice_spell_book"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tech_tier1",
+      "name": "Mekanism: Fundamentos",
+      "mod_id": "mekanism",
+      "icon": "mekanism:metallurgic_infuser",
+      "min_to_switch": 2,
+      "perk_effect": "minecraft:speed",
+      "perk_amplifier": 1,
+      "dependencies": [
+        "magic_tier1:50%"
+      ],
+      "requirements": [
+        {
+          "type": "craft",
+          "id": "mekanism:metallurgic_infuser",
+          "name": "Infusor Metalúrgico",
+          "description": "Fabrica el Infusor Metalúrgico inicial",
+          "effect": "",
+          "dependencies": []
+        },
+        {
+          "type": "collect",
+          "id": "mekanism:alloy_infused",
+          "name": "Aleación Infundida",
+          "description": "Obtén una Aleación Infundida",
+          "effect": "",
+          "dependencies": []
+        },
+        {
+          "type": "kill",
+          "id": "cataclysm:netherite_monstrosity",
+          "name": "Derrota a Netherite Monstrosity",
+          "description": "Elimina a la Netherite Monstrosity bajo el efecto de Fuerza",
+          "effect": "minecraft:strength 1",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "id": "endgame_mastery",
+      "name": "Maestría Suprema",
+      "mod_id": "cataclysm",
+      "icon": "cataclysm:ignitium_ingot",
+      "min_to_switch": -1,
+      "perk_effect": "minecraft:resistance",
+      "perk_amplifier": 1,
+      "dependencies": [
+        "magic_tier1:mastered",
+        "tech_tier1:mastered"
+      ],
+      "requirements": [
+        {
+          "type": "collect",
+          "id": "cataclysm:ignitium_ingot",
+          "name": "Lingote de Ignitium",
+          "description": "Obtén el lingote definitivo de Ignitium",
+          "effect": "",
+          "dependencies": []
+        }
+      ]
+    }
+  ]
+}

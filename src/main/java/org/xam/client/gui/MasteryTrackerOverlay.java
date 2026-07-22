@@ -13,7 +13,6 @@ import org.xam.XamConstants;
 import org.xam.config.ConfigManager;
 import org.xam.config.PathInfo;
 import org.xam.config.Requirement;
-import org.xam.data.PlayerData;
 import org.xam.data.PlayerDataProvider;
 import org.xam.network.TrackRequirementPacket;
 import org.xam.network.XamNetwork;
@@ -21,12 +20,16 @@ import org.xam.progression.MasteryService;
 import org.xam.progression.RequirementFormatter;
 import org.xam.util.PathIcons;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Mod.EventBusSubscriber(modid = XamConstants.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class MasteryTrackerOverlay {
 
-    private static String lastTrackedReqKey = "";
-    private static boolean lastCompleted = false;
-    private static long completionTime = 0;
+    private static String lastCompletedKey = "";
+    private static long completionStartTime = 0;
+    private static Requirement completedReqRef = null;
+    private static final Map<String, Boolean> prevCompletionMap = new HashMap<>();
 
     private static java.lang.reflect.Field toastVisibleField = null;
 
@@ -82,68 +85,66 @@ public class MasteryTrackerOverlay {
 
             if (data.isCompletedAllMasteries()) return;
 
-            String trackedKey = data.getTrackedRequirementKey();
-            Requirement trackedReq = null;
-
-            if (trackedKey != null && !trackedKey.isEmpty()) {
-                for (Requirement r : path.getRequirements()) {
-                    if (MasteryService.getRequirementShortKey(r).equals(trackedKey)) {
-                        trackedReq = r;
-                        break;
-                    }
-                }
-            }
-
-            if (trackedReq == null) {
-                for (Requirement r : path.getRequirements()) {
-                    if (!MasteryService.isRequirementCompleted(mc.player, data, path.getId(), r)) {
-                        trackedReq = r;
-                        break;
-                    }
-                }
-            }
-
-            if (trackedReq == null) return;
-
-            String currentKey = MasteryService.getRequirementShortKey(trackedReq);
-            boolean isCompleted = MasteryService.isRequirementCompleted(mc.player, data, path.getId(), trackedReq);
             long now = System.currentTimeMillis();
 
-            if (!currentKey.equals(lastTrackedReqKey)) {
-                lastTrackedReqKey = currentKey;
-                lastCompleted = isCompleted;
-                completionTime = isCompleted ? now : 0;
-            } else if (isCompleted && !lastCompleted) {
-                lastCompleted = true;
-                completionTime = now;
-                mc.player.playSound(net.minecraft.sounds.SoundEvents.PLAYER_LEVELUP, 0.6F, 1.4F);
+            // Detect requirement completion state changes
+            for (Requirement r : path.getRequirements()) {
+                String rKey = MasteryService.getRequirementShortKey(r);
+                boolean isComp = MasteryService.isRequirementCompleted(mc.player, data, path.getId(), r);
+                Boolean wasComp = prevCompletionMap.get(rKey);
+
+                if (wasComp != null && !wasComp && isComp) {
+                    // Requirement transitioned from incomplete -> complete!
+                    lastCompletedKey = rKey;
+                    completedReqRef = r;
+                    completionStartTime = now;
+                    mc.player.playSound(net.minecraft.sounds.SoundEvents.PLAYER_LEVELUP, 0.6F, 1.4F);
+
+                    // If tracked requirement key matches, auto-advance tracked key to next uncompleted requirement
+                    String trackedKey = data.getTrackedRequirementKey();
+                    if (trackedKey != null && trackedKey.equals(rKey)) {
+                        Requirement nextReq = null;
+                        for (Requirement nextR : path.getRequirements()) {
+                            if (!MasteryService.isRequirementCompleted(mc.player, data, path.getId(), nextR)) {
+                                nextReq = nextR;
+                                break;
+                            }
+                        }
+                        String nextKey = nextReq != null ? MasteryService.getRequirementShortKey(nextReq) : "";
+                        data.setTrackedRequirementKey(nextKey);
+                        XamNetwork.CHANNEL.sendToServer(new TrackRequirementPacket(nextKey));
+                    }
+                }
+                prevCompletionMap.put(rKey, isComp);
             }
 
-            // If requirement was completed, show completion toast for 3 seconds then auto-advance to next uncompleted requirement!
-            if (isCompleted) {
-                if (completionTime > 0 && (now - completionTime > 3000)) {
-                    // Auto-advance to next uncompleted requirement
-                    Requirement nextReq = null;
+            boolean showingCompletion = completionStartTime > 0 && (now - completionStartTime < 3000) && completedReqRef != null;
+
+            Requirement reqToDisplay = null;
+
+            if (showingCompletion) {
+                reqToDisplay = completedReqRef;
+            } else {
+                String trackedKey = data.getTrackedRequirementKey();
+                if (trackedKey != null && !trackedKey.isEmpty()) {
                     for (Requirement r : path.getRequirements()) {
-                        if (!MasteryService.isRequirementCompleted(mc.player, data, path.getId(), r)) {
-                            nextReq = r;
+                        if (MasteryService.getRequirementShortKey(r).equals(trackedKey)) {
+                            reqToDisplay = r;
                             break;
                         }
                     }
-                    if (nextReq != null) {
-                        String nextKey = MasteryService.getRequirementShortKey(nextReq);
-                        data.setTrackedRequirementKey(nextKey);
-                        XamNetwork.CHANNEL.sendToServer(new TrackRequirementPacket(nextKey));
-                        lastTrackedReqKey = nextKey;
-                        lastCompleted = false;
-                        completionTime = 0;
-                        trackedReq = nextReq;
-                        isCompleted = false;
-                    } else {
-                        return; // All masteries completed
+                }
+                if (reqToDisplay == null) {
+                    for (Requirement r : path.getRequirements()) {
+                        if (!MasteryService.isRequirementCompleted(mc.player, data, path.getId(), r)) {
+                            reqToDisplay = r;
+                            break;
+                        }
                     }
                 }
             }
+
+            if (reqToDisplay == null) return;
 
             GuiGraphics g = event.getGuiGraphics();
             Font font = mc.font;
@@ -151,20 +152,20 @@ public class MasteryTrackerOverlay {
             int completedCount = MasteryService.getCompletedRequirementsCount(mc.player, data, path);
             int totalCount = path.getRequirements().size();
 
-            String titleText = "⚡ " + path.getName() + " (" + completedCount + "/" + totalCount + ")";
-            String descText = isCompleted ? "✔ ¡Misión Completada!" : (trackedReq.getName() != null && !trackedReq.getName().isEmpty() ? trackedReq.getName() : RequirementFormatter.formatRequirementDescription(trackedReq));
+            String titleText = "⚡ " + (path.getName().startsWith("xam.") ? net.minecraft.network.chat.Component.translatable(path.getName()).getString() : path.getName()) + " (" + completedCount + "/" + totalCount + ")";
+            String descText = showingCompletion ? net.minecraft.network.chat.Component.translatable("xam.overlay.mission_completed").getString() : (reqToDisplay.getName() != null && !reqToDisplay.getName().isEmpty() ? (reqToDisplay.getName().startsWith("xam.") ? net.minecraft.network.chat.Component.translatable(reqToDisplay.getName()).getString() : reqToDisplay.getName()) : RequirementFormatter.formatRequirementDescription(reqToDisplay));
 
             int titleW = font.width(titleText);
             int descW = font.width(descText);
             int cardW = Math.max(150, Math.max(titleW, descW) + 36);
             int cardH = 32;
 
-            // Exact position: 4px from top and 4px from left margin
+            // Position at (4, 4)
             int cardX = 4;
             int cardY = 4;
 
             int bg = 0xD8120E0D;
-            int border = isCompleted ? 0xFF55FF55 : 0xFFDF9E3F;
+            int border = showingCompletion ? 0xFF55FF55 : 0xFFDF9E3F;
 
             g.pose().pushPose();
             AbstractMasteryScreen.drawFlatPanel(g, cardX, cardY, cardW, cardH, bg, border);
@@ -175,8 +176,8 @@ public class MasteryTrackerOverlay {
             }
 
             int textX = cardX + 30;
-            g.drawString(font, titleText, textX, cardY + 6, isCompleted ? 0xFF55FF55 : 0xFFDF9E3F, false);
-            g.drawString(font, descText, textX, cardY + 18, isCompleted ? 0xFF55FF55 : 0xFFFFFFFF, false);
+            g.drawString(font, titleText, textX, cardY + 6, showingCompletion ? 0xFF55FF55 : 0xFFDF9E3F, false);
+            g.drawString(font, descText, textX, cardY + 18, showingCompletion ? 0xFF55FF55 : 0xFFFFFFFF, false);
 
             g.pose().popPose();
         });

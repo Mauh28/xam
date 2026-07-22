@@ -1,24 +1,39 @@
-# MacOS DS_Store files
+# Operating System files
 .DS_Store
+Thumbs.db
 
-# Gradle cache folder
-.gradle
+# Gradle build & cache folders
+.gradle/
+build/
 
-# Gradle build folder
-build
-
-# IntelliJ
-out/
-.idea
+# IntelliJ IDEA
+.idea/
 *.iml
-# mpeltonen/sbt-idea plugin
+out/
 .idea_modules/
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Eclipse IDE
+.project
+.classpath
+.settings/
+
+# NetBeans IDE
+nbproject/
+build/
+nbbuild/
+dist/
+
+# Java crash logs & runtime outputs
 hs_err_pid*
+replay_pid*
+*.log
+logs/
 
-# Common working directory
-run
+# Minecraft run directory & testing outputs
+run/
+usernamecache.json
+usercache.json
 
-# AI agent config (development context, not part of the mod)
+# AI agent & development tools context
 .agents/
+.gemini/

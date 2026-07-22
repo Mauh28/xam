@@ -239,5 +239,20 @@
   "xam.default.mekanism.req1.name": "Elite",
   "xam.default.mekanism.req1.description": "Complete the Elite advancement",
   "xam.default.mekanism.req2.name": "Master",
-  "xam.default.mekanism.req2.description": "Complete the Master advancement"
+  "xam.default.mekanism.req2.description": "Complete the Master advancement",
+
+  "xam.overlay.mission_completed": "✔ Mission Completed!",
+  "xam.tooltip.req_type.craft": "Craft Requirement",
+  "xam.tooltip.req_type.collect": "Collect Requirement",
+  "xam.tooltip.req_type.kill": "Kill Requirement",
+  "xam.tooltip.req_type.advancement": "Advancement Requirement",
+  "xam.tooltip.available": "Available: Item usable with your active mastery",
+  "xam.tooltip.locked_mastery": "Locked: Requires unlocking corresponding mastery path",
+  "xam.tooltip.track_pin": "Pin Mission (Click to track on screen)",
+  "xam.tooltip.track_unpin": "Pinned (Click to unpin)",
+  "xam.help_modal.title": "❓ Mastery Guide - XAM",
+  "xam.help_modal.rule1": "§61. Selection & Start:§r Choose an active path in the Hub to specialize in its tasks.",
+  "xam.help_modal.rule2": "§62. Item Usage:§r You can only use items from your active path, mastered paths, or universal/vanilla items.",
+  "xam.help_modal.rule3": "§63. Path Mastery:§r Upon completing 100% of tasks, the path will be permanently §aMastered§r and its items allowed.",
+  "xam.help_modal.rule4": "§64. Pin Mission (📌):§r Click the pin button on any mission to track its progress on your screen."
 }

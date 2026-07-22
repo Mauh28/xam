@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Discusiones de GitHub
+    url: https://github.com/Mauh28/xam/discussions
+    about: ¿Tienes preguntas sobre la configuración de xam_paths.json? ¡Pregunta aquí!

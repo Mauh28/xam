@@ -1,0 +1,49 @@
+name: 🐛 Reporte de Error (Bug Report)
+description: Reporta un error o falla en el mod XAM
+title: "[BUG]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ¡Gracias por tomarte el tiempo de reportar un problema! Por favor completa la información a continuación para ayudarnos a solucionarlo rápidamente.
+  - type: input
+    id: version
+    attributes:
+      label: Versión de XAM
+      description: Versión del mod (ej. 1.2.30)
+      placeholder: 1.2.30
+    validations:
+      required: true
+  - type: input
+    id: forge_version
+    attributes:
+      label: Versión de Forge / Minecraft
+      description: Versión de Minecraft Forge utilizada
+      placeholder: Forge 47.4.20 (Minecraft 1.20.1)
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripción del Problema
+      description: Describe claramente lo que ocurrió y qué esperabas que sucediera.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Pasos para Reproducir
+      description: Lista detallada de los pasos para reproducir el fallo.
+      placeholder: |
+        1. Abrir el Hub de Maestrías con la tecla M
+        2. Seleccionar la ruta Botania
+        3. Intentar craftear X objeto...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Crash Log / Registros de Consola (Si aplica)
+      description: Pega aquí el contenido relevante de `crash-reports` o `latest.log`.
+      render: text

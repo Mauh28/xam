@@ -1,11 +1,14 @@
-﻿name: Build
+name: Build & Release
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, main ]
     tags:     [ 'v*' ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, main ]
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -29,10 +32,19 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle-
 
       - name: Build jar
-        run: chmod +x gradlew && ./gradlew jar --no-daemon
+        run: chmod +x gradlew && ./gradlew build --no-daemon
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: xam-${{ github.ref_name }}
           path: build/libs/*.jar
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/libs/*.jar
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
