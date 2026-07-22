@@ -456,24 +456,21 @@ public class MasteryHubScreen extends AbstractMasteryScreen {
                 drawFlatPanel(graphics, badgeX, badgeY, badgeW, 12, 0xFF140F0D, 0xFF2C221D);
                 graphics.drawCenteredString(this.font, badge, badgeX + badgeW / 2, badgeY + 2, COLOR_BRASS);
 
-                // Track / Pin Badge Button
+                // Track Icon Square Button [ 🎯 ]
                 String reqKey = MasteryService.getRequirementShortKey(req);
                 boolean isTracked = reqKey.equals(playerData.getTrackedRequirementKey());
-                String trackText = isTracked 
-                    ? Component.translatable("xam.screen.mastery_hub.tracking").getString()
-                    : Component.translatable("xam.screen.mastery_hub.track").getString();
-                int trackBtnW = this.font.width(trackText) + 8;
-                int trackBtnX = badgeX - trackBtnW - 6;
-                int trackBtnY = badgeY;
+                int trackBtnSize = 14;
+                int trackBtnX = badgeX - trackBtnSize - 6;
+                int trackBtnY = cardY + (cardH - trackBtnSize) / 2;
 
-                boolean trackHovered = mouseX >= trackBtnX && mouseX < trackBtnX + trackBtnW && mouseY >= trackBtnY && mouseY < trackBtnY + 12;
+                boolean trackHovered = effMouseX >= trackBtnX && effMouseX < trackBtnX + trackBtnSize && effMouseY >= trackBtnY && effMouseY < trackBtnY + trackBtnSize;
 
                 if (isTracked) {
-                    drawFlatPanel(graphics, trackBtnX, trackBtnY, trackBtnW, 12, 0xFF4A3816, COLOR_BRASS);
-                    graphics.drawCenteredString(this.font, trackText, trackBtnX + trackBtnW / 2, trackBtnY + 2, 0xFFFFD700);
+                    drawFlatPanel(graphics, trackBtnX, trackBtnY, trackBtnSize, trackBtnSize, 0xFF4A3816, COLOR_BRASS);
+                    graphics.drawCenteredString(this.font, "🎯", trackBtnX + trackBtnSize / 2, trackBtnY + 3, 0xFFFFD700);
                 } else {
-                    drawFlatPanel(graphics, trackBtnX, trackBtnY, trackBtnW, 12, trackHovered ? 0xFF2C221D : 0xFF140F0D, trackHovered ? COLOR_BRASS : WARM_BORDER);
-                    graphics.drawCenteredString(this.font, trackText, trackBtnX + trackBtnW / 2, trackBtnY + 2, trackHovered ? COLOR_BRASS : TEXT_SECONDARY);
+                    drawFlatPanel(graphics, trackBtnX, trackBtnY, trackBtnSize, trackBtnSize, trackHovered ? 0xFF2C221D : 0xFF140F0D, trackHovered ? COLOR_BRASS : WARM_BORDER);
+                    graphics.drawCenteredString(this.font, "🎯", trackBtnX + trackBtnSize / 2, trackBtnY + 3, trackHovered ? COLOR_BRASS : 0xFF888888);
                 }
 
                 // Draw availability badge

@@ -15,6 +15,8 @@ import org.xam.config.PathInfo;
 import org.xam.config.Requirement;
 import org.xam.data.PlayerData;
 import org.xam.data.PlayerDataProvider;
+import org.xam.network.TrackRequirementPacket;
+import org.xam.network.XamNetwork;
 import org.xam.progression.MasteryService;
 import org.xam.progression.RequirementFormatter;
 import org.xam.util.PathIcons;
@@ -117,8 +119,30 @@ public class MasteryTrackerOverlay {
                 mc.player.playSound(net.minecraft.sounds.SoundEvents.PLAYER_LEVELUP, 0.6F, 1.4F);
             }
 
-            if (isCompleted && completionTime > 0 && (now - completionTime > 3000)) {
-                return;
+            // If requirement was completed, show completion toast for 3 seconds then auto-advance to next uncompleted requirement!
+            if (isCompleted) {
+                if (completionTime > 0 && (now - completionTime > 3000)) {
+                    // Auto-advance to next uncompleted requirement
+                    Requirement nextReq = null;
+                    for (Requirement r : path.getRequirements()) {
+                        if (!MasteryService.isRequirementCompleted(mc.player, data, path.getId(), r)) {
+                            nextReq = r;
+                            break;
+                        }
+                    }
+                    if (nextReq != null) {
+                        String nextKey = MasteryService.getRequirementShortKey(nextReq);
+                        data.setTrackedRequirementKey(nextKey);
+                        XamNetwork.CHANNEL.sendToServer(new TrackRequirementPacket(nextKey));
+                        lastTrackedReqKey = nextKey;
+                        lastCompleted = false;
+                        completionTime = 0;
+                        trackedReq = nextReq;
+                        isCompleted = false;
+                    } else {
+                        return; // All masteries completed
+                    }
+                }
             }
 
             GuiGraphics g = event.getGuiGraphics();
@@ -135,9 +159,9 @@ public class MasteryTrackerOverlay {
             int cardW = Math.max(150, Math.max(titleW, descW) + 36);
             int cardH = 32;
 
-            // Position: Top-Left corner next to toasts
-            int cardX = 12;
-            int cardY = 12;
+            // Exact position: 4px from top and 4px from left margin
+            int cardX = 4;
+            int cardY = 4;
 
             int bg = 0xD8120E0D;
             int border = isCompleted ? 0xFF55FF55 : 0xFFDF9E3F;
